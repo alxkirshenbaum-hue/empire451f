@@ -78,7 +78,7 @@ function Read-Host {throw 'Unexpected environment-install prompt in test'}
             with tempfile.TemporaryDirectory() as folder:
                 p = Path(folder) / 'bad.zip'
                 p.write_bytes(b'not the trusted bundle')
-                script = "$h=(Get-FileHash -Algorithm SHA256 -LiteralPath $env:TEST_ASSET).Hash.ToLowerInvariant(); if($h -ne ('0'*64)){exit 7}; exit 0"
+                script = (ROOT / 'bootstrap/windows.ps1.in').read_text().split('foreach($tool')[0] + "\n$h=Get-EmpireHash $env:TEST_ASSET; if($h -ne ('0'*64)){exit 7}; exit 0"
                 result = subprocess.run([shell, '-NoProfile', '-Command', script], env=dict(os.environ, TEST_ASSET=str(p)), capture_output=True)
                 self.assertEqual(result.returncode, 7)
 

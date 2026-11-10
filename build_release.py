@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parent
 def build():
     paths = [ROOT / p for p in ['client.py', 'remote.py', 'render.py', 'verify.py', 'versions.json', 'runtime-lock.json', 'Install-Vpn.ps1', 'Install-Vpn.sh', 'README.md', 'GUIDE.md', 'CLIENT_EXPORT_V1.md', 'TEST_RESULTS.md', 'MIGRATION_TEST.md']]
     paths += sorted((ROOT / 'templates').glob('*'))
+    paths += sorted((ROOT / 'bootstrap').glob('*.in'))
     paths += sorted((ROOT / 'tests').glob('*.py')) + [ROOT / 'tests/fixture.json']
     destination = ROOT / 'dist'
     destination.mkdir(exist_ok=True)

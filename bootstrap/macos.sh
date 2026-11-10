@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eu
-VERSION='v0.1.0'
-BUNDLE_HASH='592fd2ccd3d92698cf230cdf010c7a268ff1d7c207c246d87523dccd1b7278cd'
+VERSION='v0.1.1'
+BUNDLE_HASH='1c2ddc94f83624b18916dd83b0648f273b5f239806a12c05836744c05b900d8c'
 PYTHON_HASH='8373e58da4ea146b3eb1c1f9834f19a319440b6b679b06050b1f9ee3237aa8e4'
 BASE="https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/$VERSION"
 for tool in curl shasum unzip ssh ssh-keygen; do

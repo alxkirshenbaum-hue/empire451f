@@ -1,4 +1,4 @@
-# Персональная VPN: установщик v0.1.0
+# Персональная VPN: установщик v0.1.1
 
 Две Ubuntu 24.04 amd64 VDS: **Naive/HTTPS Caddy → HTTP CONNECT/UoT sing-box → WireGuard → Интернет**. Поддерживаются новая установка, замена входа и замена выхода. Код готовится к первой практической приёмке; результаты — в [TEST_RESULTS.md](TEST_RESULTS.md).
 
@@ -7,16 +7,16 @@
 **Windows 10/11 x64**, терминал **Windows PowerShell 5.1 или PowerShell 7** — одна команда:
 
 ```powershell
-& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.1.0/bootstrap/windows.ps1').Content))
+& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.1.1/bootstrap/windows.ps1').Content))
 ```
 
 **macOS 11+ Intel/Apple Silicon**, Terminal с **zsh или bash** — одна команда; PowerShell не нужен:
 
 ```sh
-/bin/bash -c 'set -e; f=$(mktemp); trap '\''rm -f "$f"'\'' EXIT; curl -fsSL --proto "=https" https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.1.0/bootstrap/macos.sh -o "$f"; /bin/bash "$f"'
+/bin/bash -c 'set -e; f=$(mktemp); trap '\''rm -f "$f"'\'' EXIT; curl -fsSL --proto "=https" https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.1.1/bootstrap/macos.sh -o "$f"; /bin/bash "$f"'
 ```
 
-Загрузчик получает комплект **v0.1.0**, сверяет закреплённый SHA256 и запускает мастер. При отсутствии Python 3.12+ предлагает официальный установщик; Windows также помогает установить OpenSSH Client. Ручное клонирование, скачивание модулей и редактирование конфигураций не нужны. Первое скачивание доверяет HTTPS GitHub; хеш комплекта закреплён в загрузчике. Не используйте команду с `main` вместо версии.
+Загрузчик получает небольшой комплект **исходников установщика v0.1.1**, сверяет закреплённый SHA256 и запускает мастер. Go, Caddy, sing-box и пакеты Ubuntu скачиваются **на VPS**, не через компьютер пользователя. При отсутствии локального Python3.12+ предлагается официальный установщик; Windows также помогает установить OpenSSH Client. Ручное клонирование, скачивание модулей и редактирование конфигураций не нужны. Первое скачивание доверяет HTTPS GitHub; хеш комплекта закреплён в загрузчике. Не используйте команду с `main` вместо версии.
 
 Следуйте вопросам **Q01–Q22**. До `APPLY` показываются адреса и изменения. Пароли вводятся скрыто, приватный SSH-ключ остаётся на компьютере. Установщик не переключает DNS. Неизвестные настройки и незавершённая транзакция останавливают применение.
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 set -eu
-VERSION='v0.1.0'
+VERSION='v0.1.1'
 BUNDLE_HASH='__BUNDLE_SHA256__'
 PYTHON_HASH='__PYTHON_MACOS_SHA256__'
 BASE="https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/$VERSION"

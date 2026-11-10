@@ -12,7 +12,16 @@ die() { printf '%s\n' "$*" >&2; exit 1; }
 for tool in ssh ssh-keygen ssh-add openssl curl awk base64; do command -v "$tool" >/dev/null 2>&1 || die "Missing standard macOS tool: $tool"; done
 ENTRY=$(ask Q03 'Entry root@IP or existing SSH alias')
 EXIT_NODE=$(ask Q05 'Exit root@IP or existing SSH alias')
-IDENTITY=$(ask Q09 'Existing private SSH key path, or new' new)
+while :; do
+ IDENTITY=$(ask Q09 'Private SSH key path (e.g. id_ed25519), or new' new)
+ case "$IDENTITY" in
+  new) break;;
+  *.[pP][uU][bB]) printf '%s\n' 'This is a public key. Enter the private key path, usually the same name without .pub.' >&2; continue;;
+  '~'*) IDENTITY="$HOME${IDENTITY#\~}";;
+ esac
+ [ -f "$IDENTITY" ] && break
+ printf '%s\n' 'SSH key file not found. Enter an existing private key path.' >&2
+done
 if [ "$IDENTITY" = new ]; then
  IDENTITY="$HOME/.ssh/empire-install"
  if [ ! -f "$IDENTITY" ]; then mkdir -p "$HOME/.ssh"; chmod 700 "$HOME/.ssh"; ssh-keygen -t ed25519 -a 100 -f "$IDENTITY"; fi

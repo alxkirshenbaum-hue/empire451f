@@ -124,7 +124,17 @@ foreach($tool in @('ssh.exe','ssh-keygen.exe')){
 $entry=Ask Q03 'Entry root@IP or existing SSH alias'
 $exit=Ask Q05 'Exit root@IP or existing SSH alias'
 if(!$entry -or !$exit){throw 'SSH destinations are required'}
-$Identity=Ask Q09 'Existing private SSH key path, or new' 'new'
+while ($true) {
+ $Identity=Ask Q09 'Private SSH key path (e.g. id_ed25519), or new' 'new'
+ if ($Identity -eq 'new') {break}
+ if ($Identity -like '*.pub') {
+  Write-Host 'This is a public key. Enter the private key path, usually the same name without .pub.'
+  continue
+ }
+ if ($Identity.StartsWith('~')) {$Identity=$HOME+$Identity.Substring(1)}
+ if (Test-Path -LiteralPath $Identity -PathType Leaf) {break}
+ Write-Host 'SSH key file not found. Enter an existing private key path.'
+}
 if($Identity -eq 'new'){
  $Identity=Join-Path $HOME '.ssh/empire-install'
  if(!(Test-Path -LiteralPath $Identity)){

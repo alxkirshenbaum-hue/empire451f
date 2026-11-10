@@ -162,6 +162,8 @@ $ErrorActionPreference='Stop'
 $global:EVPNTestAnswers=New-Object 'System.Collections.Generic.Queue[string]'
 $global:EVPNTestAnswers.Enqueue('root@198.51.100.10')
 $global:EVPNTestAnswers.Enqueue('root@203.0.113.20')
+$global:EVPNTestAnswers.Enqueue($env:EVPN_TEST_KEY + '.pub')
+$global:EVPNTestAnswers.Enqueue($env:EVPN_TEST_KEY + '.missing')
 $global:EVPNTestAnswers.Enqueue($env:EVPN_TEST_KEY)
 $global:EVPNTestAnswers.Enqueue('')
 function Read-Host {param([string]$Prompt); if(!$global:EVPNTestAnswers.Count){throw ('Unexpected prompt: '+$Prompt)};return $global:EVPNTestAnswers.Dequeue()}

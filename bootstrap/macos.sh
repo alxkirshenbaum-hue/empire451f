@@ -2,7 +2,7 @@
 # Bash 3.2 / standard macOS tools; no local Python or downloaded module bundle.
 set +x
 set -eu
-BOOT='python3 -c exec\(__import__\(\'"'"'base64\'"'"'\).b64decode\(\'"'"'aW1wb3J0IGhhc2hsaWIsaW8sanNvbixvcyxzeXMsdHlwZXMsdXJsbGliLnJlcXVlc3QsemlwZmlsZQp0cnk6CiAgICBpZiBvcy5nZXRldWlkKCkhPTA6IHJhaXNlIFJ1bnRpbWVFcnJvcigncm9vdCByZXF1aXJlZCcpCiAgICByZWxlYXNlPWRpY3QobGluZS5zcGxpdCgnPScsMSkgZm9yIGxpbmUgaW4gb3BlbignL2V0Yy9vcy1yZWxlYXNlJykgaWYgJz0nIGluIGxpbmUpCiAgICBpZiByZWxlYXNlLmdldCgnSUQnLCcnKS5zdHJpcCgpLnN0cmlwKCciJykhPSd1YnVudHUnIG9yIHJlbGVhc2UuZ2V0KCdWRVJTSU9OX0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0nMjQuMDQnIG9yIG9zLnVuYW1lKCkubWFjaGluZSE9J3g4Nl82NCc6IHJhaXNlIFJ1bnRpbWVFcnJvcignVWJ1bnR1IDI0LjA0IGFtZDY0IHJlcXVpcmVkJykKICAgIGRhdGE9dXJsbGliLnJlcXVlc3QudXJsb3BlbignaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FseGtpcnNoZW5iYXVtLWh1ZS9lbXBpcmU0NTFmL3YwLjIuMC9kaXN0L2luc3RhbGxlci56aXAnLHRpbWVvdXQ9NjApLnJlYWQoMioxMDI0KjEwMjQpCiAgICBpZiBoYXNobGliLnNoYTI1NihkYXRhKS5oZXhkaWdlc3QoKSE9JzMxNjRiNmIwZjA1MWEyYzhkNDNhNjYyOWVkNDlkMzA0YWQzYTNhNmUyZmRlYmNjNmRhM2Q5MzExODM3MTdkMDgnOiByYWlzZSBSdW50aW1lRXJyb3IoJ0luc3RhbGxlciBTSEEyNTYgbWlzbWF0Y2gnKQogICAgYXJjaGl2ZT16aXBmaWxlLlppcEZpbGUoaW8uQnl0ZXNJTyhkYXRhKSkKICAgIGJ1bmRsZT17bmFtZTphcmNoaXZlLnJlYWQobmFtZSkuZGVjb2RlKCd1dGYtOCcpIGZvciBuYW1lIGluIGFyY2hpdmUubmFtZWxpc3QoKX0KICAgIGZvciBuYW1lIGluICgncmVuZGVyJywncmVtb3RlJywnY2xpZW50JywnY29udHJvbGxlcicpOgogICAgICAgIG1vZHVsZT10eXBlcy5Nb2R1bGVUeXBlKG5hbWUpOyBtb2R1bGUuX19maWxlX189Jy9ydW4vZW1waXJlLXNvdXJjZS8nK25hbWUrJy5weScKICAgICAgICBzeXMubW9kdWxlc1tuYW1lXT1tb2R1bGUKICAgICAgICBpZiBuYW1lPT0nY29udHJvbGxlcic6IG1vZHVsZS5CVU5ETEU9YnVuZGxlCiAgICAgICAgZXhlYyhjb21waWxlKGJ1bmRsZVtuYW1lKycucHknXSxuYW1lKycucHknLCdleGVjJyksbW9kdWxlLl9fZGljdF9fKQogICAgc3lzLmV4aXQoc3lzLm1vZHVsZXNbJ2NvbnRyb2xsZXInXS5tYWluKHN5cy5hcmd2WzE6XSkpCmV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgIHByaW50KCdJbnN0YWxsZXIgYm9vdHN0cmFwIGZhaWxlZDogJyt0eXBlKGUpLl9fbmFtZV9fLGZpbGU9c3lzLnN0ZGVycikKICAgIHN5cy5leGl0KDEpCg==\'"'"'\)\)'
+BOOT='python3 -c exec\(__import__\(\'"'"'base64\'"'"'\).b64decode\(\'"'"'aW1wb3J0IGhhc2hsaWIsaW8sanNvbixvcyxzeXMsdHlwZXMsdXJsbGliLnJlcXVlc3QsemlwZmlsZQp0cnk6CiAgICBpZiBvcy5nZXRldWlkKCkhPTA6IHJhaXNlIFJ1bnRpbWVFcnJvcigncm9vdCByZXF1aXJlZCcpCiAgICByZWxlYXNlPWRpY3QobGluZS5zcGxpdCgnPScsMSkgZm9yIGxpbmUgaW4gb3BlbignL2V0Yy9vcy1yZWxlYXNlJykgaWYgJz0nIGluIGxpbmUpCiAgICBpZiByZWxlYXNlLmdldCgnSUQnLCcnKS5zdHJpcCgpLnN0cmlwKCciJykhPSd1YnVudHUnIG9yIHJlbGVhc2UuZ2V0KCdWRVJTSU9OX0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0nMjQuMDQnIG9yIG9zLnVuYW1lKCkubWFjaGluZSE9J3g4Nl82NCc6IHJhaXNlIFJ1bnRpbWVFcnJvcignVWJ1bnR1IDI0LjA0IGFtZDY0IHJlcXVpcmVkJykKICAgIGRhdGE9dXJsbGliLnJlcXVlc3QudXJsb3BlbignaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FseGtpcnNoZW5iYXVtLWh1ZS9lbXBpcmU0NTFmL3YwLjIuMS9kaXN0L2luc3RhbGxlci56aXAnLHRpbWVvdXQ9NjApLnJlYWQoMioxMDI0KjEwMjQpCiAgICBpZiBoYXNobGliLnNoYTI1NihkYXRhKS5oZXhkaWdlc3QoKSE9JzE2Y2IyZGE4MzU5NWI4NDg4ZWQ5MzE2ZDM4ODA2NTg0NGFjZWY1MDZjMjdhZjUyMzkxNDBiMzU5NTFjNzMxMTgnOiByYWlzZSBSdW50aW1lRXJyb3IoJ0luc3RhbGxlciBTSEEyNTYgbWlzbWF0Y2gnKQogICAgYXJjaGl2ZT16aXBmaWxlLlppcEZpbGUoaW8uQnl0ZXNJTyhkYXRhKSkKICAgIGJ1bmRsZT17bmFtZTphcmNoaXZlLnJlYWQobmFtZSkuZGVjb2RlKCd1dGYtOCcpIGZvciBuYW1lIGluIGFyY2hpdmUubmFtZWxpc3QoKX0KICAgIGZvciBuYW1lIGluICgncmVuZGVyJywncmVtb3RlJywnY2xpZW50JywnY29udHJvbGxlcicpOgogICAgICAgIG1vZHVsZT10eXBlcy5Nb2R1bGVUeXBlKG5hbWUpOyBtb2R1bGUuX19maWxlX189Jy9ydW4vZW1waXJlLXNvdXJjZS8nK25hbWUrJy5weScKICAgICAgICBzeXMubW9kdWxlc1tuYW1lXT1tb2R1bGUKICAgICAgICBpZiBuYW1lPT0nY29udHJvbGxlcic6IG1vZHVsZS5CVU5ETEU9YnVuZGxlCiAgICAgICAgZXhlYyhjb21waWxlKGJ1bmRsZVtuYW1lKycucHknXSxuYW1lKycucHknLCdleGVjJyksbW9kdWxlLl9fZGljdF9fKQogICAgc3lzLmV4aXQoc3lzLm1vZHVsZXNbJ2NvbnRyb2xsZXInXS5tYWluKHN5cy5hcmd2WzE6XSkpCmV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgIHByaW50KCdJbnN0YWxsZXIgYm9vdHN0cmFwIGZhaWxlZDogJyt0eXBlKGUpLl9fbmFtZV9fLGZpbGU9c3lzLnN0ZGVycikKICAgIHN5cy5leGl0KDEpCg==\'"'"'\)\)'
 ask() {
  printf '[%s] %s [%s]: ' "$1" "$2" "${3:-}" >&2
  IFS= read -r answer || exit 130
@@ -12,7 +12,16 @@ die() { printf '%s\n' "$*" >&2; exit 1; }
 for tool in ssh ssh-keygen ssh-add openssl curl awk base64; do command -v "$tool" >/dev/null 2>&1 || die "Missing standard macOS tool: $tool"; done
 ENTRY=$(ask Q03 'Entry root@IP or existing SSH alias')
 EXIT_NODE=$(ask Q05 'Exit root@IP or existing SSH alias')
-IDENTITY=$(ask Q09 'Existing private SSH key path, or new' new)
+while :; do
+ IDENTITY=$(ask Q09 'Private SSH key path (e.g. id_ed25519), or new' new)
+ case "$IDENTITY" in
+  new) break;;
+  *.[pP][uU][bB]) printf '%s\n' 'This is a public key. Enter the private key path, usually the same name without .pub.' >&2; continue;;
+  '~'*) IDENTITY="$HOME${IDENTITY#\~}";;
+ esac
+ [ -f "$IDENTITY" ] && break
+ printf '%s\n' 'SSH key file not found. Enter an existing private key path.' >&2
+done
 if [ "$IDENTITY" = new ]; then
  IDENTITY="$HOME/.ssh/empire-install"
  if [ ! -f "$IDENTITY" ]; then mkdir -p "$HOME/.ssh"; chmod 700 "$HOME/.ssh"; ssh-keygen -t ed25519 -a 100 -f "$IDENTITY"; fi

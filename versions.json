@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "go": "1.27.3",
+  "go_sha256": "65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40",
+  "caddy": "v2.11.9",
+  "xcaddy": "v0.4.7",
+  "forwardproxy": "v0.0.0-20261022172731-e747854e7874",
+  "sing_box": "1.14.4",
+  "sing_box_sha256": "699a1b510aa4396b2176d32d1181920399ebf1e267835da6f3b598d0f7c24968"
+}

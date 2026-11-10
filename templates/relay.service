@@ -1,0 +1,15 @@
+[Unit]
+Description=Empire fixed namespace TCP relay
+BindsTo=${prefix}-network.service
+PartOf=${prefix}-network.service
+After=${prefix}-network.service
+[Service]
+ExecStart=/usr/lib/systemd/systemd-socket-proxyd ${ra}:${port}
+DynamicUser=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_UNIX

@@ -1,0 +1,14 @@
+{
+ "schema_version": 1,
+ "mode": "fresh",
+ "id": "labtest",
+ "domain": "vpn.example.com",
+ "entry": {"address": "198.51.100.10", "ssh": "root@198.51.100.10", "kind": "new"},
+ "exit": {"address": "203.0.113.20", "ssh": "root@203.0.113.20", "kind": "new"},
+ "identity": "new",
+ "tls": "defer",
+ "tunnel": "10.203.71.0/30",
+ "relay": "10.203.72.0/30",
+ "wg_port": 51830,
+ "username": "test-owner"
+}

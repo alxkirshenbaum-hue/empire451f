@@ -1,0 +1,13 @@
+[Unit]
+Description=Empire VPN isolated network
+Requires=${prefix}-firewall.service
+After=${prefix}-firewall.service network-online.target
+Wants=network-online.target
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash ${base}/network.sh start
+ExecStop=/bin/bash ${base}/network.sh stop
+ExecStopPost=/bin/bash ${base}/network.sh stop
+[Install]
+WantedBy=multi-user.target

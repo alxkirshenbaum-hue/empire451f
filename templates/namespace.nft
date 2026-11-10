@@ -1,0 +1,18 @@
+table inet isolation {
+ chain input {
+  type filter hook input priority filter; policy drop;
+  iifname "lo" accept
+  ct state invalid drop
+  ct state established,related accept
+  iifname "${app_if}" ip saddr ${rh} tcp dport { 80, 443 } accept
+ }
+ chain output {
+  type filter hook output priority filter; policy drop;
+  oifname "lo" accept
+  meta nfproto ipv6 drop
+  oifname "${app_if}" ip daddr ${rh} ct state established,related accept
+  ip daddr { ${deny} } drop
+  oifname "wg0" accept
+ }
+ chain forward { type filter hook forward priority filter; policy drop; }
+}

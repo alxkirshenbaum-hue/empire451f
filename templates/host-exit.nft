@@ -1,0 +1,28 @@
+table inet ${table} {
+ chain input {
+  type filter hook input priority -10; policy ${policy};
+  iifname "${exit_if}" drop
+  iifname "lo" accept
+  ct state invalid drop
+  ct state established,related accept
+  tcp dport ${ssh_port} accept
+  ip saddr ${entry_addr} udp dport ${wg_port} accept
+  meta l4proto { icmp, ipv6-icmp } accept
+  udp sport 67 udp dport 68 accept
+ }
+ chain forward {
+  type filter hook forward priority -10; policy ${policy};
+  ct state invalid drop
+  iifname "${exit_if}" meta nfproto ipv6 drop
+  iifname "${exit_if}" ip daddr { ${deny} } drop
+  iifname "${exit_if}" oifname "${interface}" ip saddr ${te} accept
+  iifname "${exit_if}" drop
+  oifname "${exit_if}" ip daddr ${te} ct state established,related accept
+  oifname "${exit_if}" drop
+ }
+ chain output { type filter hook output priority -10; policy accept; }
+ chain nat {
+  type nat hook postrouting priority srcnat; policy accept;
+  oifname "${interface}" ip saddr ${te} masquerade
+ }
+}

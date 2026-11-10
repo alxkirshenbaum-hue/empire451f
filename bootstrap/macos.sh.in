@@ -1,0 +1,37 @@
+#!/bin/bash
+set -eu
+VERSION='v0.1.0'
+BUNDLE_HASH='__BUNDLE_SHA256__'
+PYTHON_HASH='__PYTHON_MACOS_SHA256__'
+BASE="https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/$VERSION"
+for tool in curl shasum unzip ssh ssh-keygen; do
+ command -v "$tool" >/dev/null 2>&1 || { echo "Missing standard macOS tool: $tool" >&2; exit 1; }
+done
+PYTHON=''
+for candidate in /Library/Frameworks/Python.framework/Versions/3.12/bin/python3 python3; do
+ if command -v "$candidate" >/dev/null 2>&1 && "$candidate" -c 'import sys; sys.exit(0 if sys.version_info >= (3,12) else 1)' 2>/dev/null; then PYTHON="$candidate"; break; fi
+done
+WORK="$(mktemp -d "${TMPDIR:-/tmp}/empire-bootstrap.XXXXXX")"
+trap 'rm -f "$WORK/python.pkg" "$WORK/installer.zip"; rmdir "$WORK" 2>/dev/null || true' EXIT
+if [ -z "$PYTHON" ]; then
+ printf '[B02] Install official Python 3.12.10 universal2? Requires macOS administrator password. yes/no: '
+ read -r answer
+ [ "$answer" = yes ] || { echo 'Python installation declined' >&2; exit 1; }
+ curl --fail --location --proto '=https' --tlsv1.2 'https://www.python.org/ftp/python/3.12.10/python-3.12.10-macos11.pkg' -o "$WORK/python.pkg"
+ [ "$(shasum -a 256 "$WORK/python.pkg" | awk '{print $1}')" = "$PYTHON_HASH" ] || { echo 'Python checksum mismatch' >&2; exit 1; }
+ sudo /usr/sbin/installer -pkg "$WORK/python.pkg" -target /
+ PYTHON='/Library/Frameworks/Python.framework/Versions/3.12/bin/python3'
+ '/Applications/Python 3.12/Install Certificates.command'
+fi
+curl --fail --location --proto '=https' --tlsv1.2 "$BASE/dist/installer.zip" -o "$WORK/installer.zip"
+[ "$(shasum -a 256 "$WORK/installer.zip" | awk '{print $1}')" = "$BUNDLE_HASH" ] || { echo 'Installer checksum mismatch' >&2; exit 1; }
+DEST="$HOME/Library/Application Support/EmpireVPN/$VERSION-${BUNDLE_HASH:0:12}"
+if [ -e "$DEST" ]; then
+ "$PYTHON" -c 'import pathlib,sys,zipfile; z=zipfile.ZipFile(sys.argv[1]); p=pathlib.Path(sys.argv[2]); sys.exit(0 if all((p/n).is_file() and (p/n).read_bytes()==z.read(n) for n in z.namelist()) else 1)' "$WORK/installer.zip" "$DEST" || { echo 'Previously downloaded files changed; refusing overwrite.' >&2; exit 1; }
+else
+ mkdir -p "$DEST"
+ unzip -q "$WORK/installer.zip" -d "$DEST"
+fi
+printf 'Installer directory: %s\n' "$DEST"
+export EMPIRE_PYTHON="$PYTHON"
+/bin/bash "$DEST/Install-Vpn.sh" wizard

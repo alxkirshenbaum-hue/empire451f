@@ -1,0 +1,13 @@
+[Unit]
+Description=Empire fixed public TCP relay
+DefaultDependencies=no
+After=sysinit.target ${prefix}-network.service
+Before=shutdown.target
+Conflicts=shutdown.target
+BindsTo=${prefix}-network.service
+PartOf=${prefix}-network.service
+[Socket]
+ListenStream=0.0.0.0:${port}
+NoDelay=true
+[Install]
+WantedBy=multi-user.target ${prefix}-network.service

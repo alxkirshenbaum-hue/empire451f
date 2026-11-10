@@ -1,0 +1,10 @@
+[Unit]
+Description=Empire VPN dedicated firewall
+After=network-pre.target nftables.service
+Before=${prefix}-network.service
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash ${base}/firewall.sh
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,30 @@
+[Unit]
+Description=Empire HTTP CONNECT and UoT v2
+BindsTo=${prefix}-network.service
+PartOf=${prefix}-network.service
+After=${prefix}-network.service
+[Service]
+Type=exec
+User=evpn
+Group=evpn
+NetworkNamespacePath=/run/netns/naive
+BindReadOnlyPaths=/etc/netns/naive/resolv.conf:/etc/resolv.conf
+ExecStart=/opt/empire-vpn/bin/sing-box run -c ${base}/sing-box.json
+Restart=on-failure
+RestartSec=3
+AmbientCapabilities=CAP_NET_RAW
+CapabilityBoundingSet=CAP_NET_RAW
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+UMask=0077
+LimitNOFILE=65536
+[Install]
+WantedBy=multi-user.target ${prefix}-network.service

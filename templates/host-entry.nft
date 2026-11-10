@@ -1,0 +1,15 @@
+table inet ${table} {
+ chain input {
+  type filter hook input priority -10; policy drop;
+  iifname "lo" accept
+  iifname "${host_if}" ct state established,related accept
+  iifname "${host_if}" drop
+  ct state invalid drop
+  ct state established,related accept
+  tcp dport { ${ssh_port}, 80, 443 } accept
+  meta l4proto { icmp, ipv6-icmp } accept
+  udp sport 67 udp dport 68 accept
+ }
+ chain forward { type filter hook forward priority -10; policy drop; }
+ chain output { type filter hook output priority -10; policy accept; }
+}

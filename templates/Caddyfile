@@ -1,0 +1,23 @@
+{
+ admin off
+ persist_config off
+ order forward_proxy before file_server
+ acme_ca https://acme-v02.api.letsencrypt.org/directory
+ log {
+  output discard
+ }
+ servers {
+  protocols h1 h2
+ }
+}
+:443, ${domain} {
+ forward_proxy {
+  import ${base}/auth.caddy
+  hide_ip
+  hide_via
+  probe_resistance
+  upstream http://127.0.0.1:1081
+ }
+ root * ${base}/site
+ file_server
+}

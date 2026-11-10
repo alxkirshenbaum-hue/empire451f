@@ -1,6 +1,8 @@
 """Maintainer-only deterministic packaging. Explicit allowlist; never packages parent project."""
 import hashlib
 import json
+import base64
+import shlex
 from pathlib import Path
 import zipfile
 
@@ -8,10 +10,8 @@ ROOT = Path(__file__).resolve().parent
 
 
 def build():
-    paths = [ROOT / p for p in ['client.py', 'remote.py', 'render.py', 'verify.py', 'versions.json', 'runtime-lock.json', 'Install-Vpn.ps1', 'Install-Vpn.sh', 'README.md', 'GUIDE.md', 'CLIENT_EXPORT_V1.md', 'TEST_RESULTS.md', 'MIGRATION_TEST.md']]
+    paths = [ROOT / p for p in ['client.py', 'controller.py', 'remote.py', 'render.py', 'verify.py', 'versions.json', 'README.md', 'GUIDE.md', 'CLIENT_EXPORT_V1.md', 'TEST_RESULTS.md', 'MIGRATION_TEST.md']]
     paths += sorted((ROOT / 'templates').glob('*'))
-    paths += sorted((ROOT / 'bootstrap').glob('*.in'))
-    paths += sorted((ROOT / 'tests').glob('*.py')) + [ROOT / 'tests/fixture.json']
     destination = ROOT / 'dist'
     destination.mkdir(exist_ok=True)
     with zipfile.ZipFile(destination / 'installer.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
@@ -23,10 +23,12 @@ def build():
             archive.writestr(info, data)
     digest = hashlib.sha256((destination / 'installer.zip').read_bytes()).hexdigest()
     (destination / 'installer.sha256').write_text(digest + '  installer.zip\n', encoding='ascii')
-    lock = json.loads((ROOT / 'runtime-lock.json').read_text())
+    loader = (ROOT / 'server_boot.py.in').read_text().replace('__BUNDLE_SHA256__', digest)
+    encoded = base64.b64encode(loader.encode()).decode()
+    command = "python3 -c exec\\(__import__\\(\\'base64\\'\\).b64decode\\(\\'" + encoded + "\\'\\)\\)"
     for name in ['windows.ps1', 'macos.sh']:
-        source = (ROOT / 'bootstrap' / (name + '.in')).read_text(encoding='utf-8')
-        source = source.replace('__BUNDLE_SHA256__', digest).replace('__PYTHON_WINDOWS_SHA256__', lock['windows_sha256']).replace('__PYTHON_MACOS_SHA256__', lock['macos_sha256'])
+        source = (ROOT / 'bootstrap' / ('native-' + name + '.in')).read_text(encoding='utf-8')
+        source = source.replace('__BOOT_PS__', "'" + command.replace("'", "''") + "'").replace('__BOOT_SH__', shlex.quote(command))
         (ROOT / 'bootstrap' / name).write_text(source, encoding='utf-8', newline='\n')
     print('Release bundle SHA256: ' + digest)
 

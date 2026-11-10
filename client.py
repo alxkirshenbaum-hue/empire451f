@@ -1,4 +1,4 @@
-"""Shared Windows/macOS CLI. Python 3.12+, standard library only."""
+"""Question catalog and developer test helpers. User startup is native SSH only."""
 import argparse
 import base64
 import contextlib
@@ -468,6 +468,8 @@ def main(argv=None):
     if args.action == 'test':
         import unittest
         return 0 if unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.discover(str(ROOT / 'tests'))).wasSuccessful() else 1
+    require(args.action == 'preview' and args.offline and args.config is not None,
+            'Developer CLI supports only test and preview --offline --config. Use the native README command for installation.')
     for exe in ('ssh', 'ssh-keygen'):
         require(shutil.which(exe), 'Missing ' + exe + ': see README environment preparation')
     c = validate(json.loads(args.config.read_text(encoding='utf-8-sig'))) if args.config else wizard()

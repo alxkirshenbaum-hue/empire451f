@@ -491,10 +491,11 @@ def rollback_local(txdir):
     return {'status': 'rolled-back'}
 
 
-def commit(c):
+def commit(c, expected=None):
     n = names(c)
     pending = readjson(n['state'] + '/pending.json')
     require(pending is not None, 'No pending transaction')
+    require(expected is None or pending['transaction'] == expected, 'Refusing to commit a different transaction')
     txdir = Path(pending['dir'])
     j = readjson(txdir / 'journal.json')
     require(j['phase'] == 'applied', 'Transaction did not finish applying')
@@ -537,12 +538,13 @@ def dispatch(request):
         if action == 'apply':
             return apply(c, role, request)
         if action == 'commit':
-            return commit(c)
+            return commit(c, request.get('transaction'))
         if action == 'rollback':
             n = names(c)
             pending = readjson(n['state'] + '/pending.json')
             tx = pending['transaction'] if pending else readjson(n['state'] + '/manifest.json', {}).get('transaction')
             require(tx is not None, 'No transaction to roll back')
+            require(request.get('transaction') in (None, tx), 'Refusing to roll back a different transaction')
             return rollback_local(Path(n['state']) / 'transactions' / tx)
         if action == 'failure':
             require(role == 'entry', 'Failure test is entry-only')

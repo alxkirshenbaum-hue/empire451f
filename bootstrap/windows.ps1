@@ -1,60 +1,234 @@
+# Native Windows launcher: no local Python, module bundle, or server templates.
 $ErrorActionPreference='Stop'
 [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
-$Version='v0.1.1'
-$BundleHash='1c2ddc94f83624b18916dd83b0648f273b5f239806a12c05836744c05b900d8c'
-$Base='https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/'+$Version
-$PythonHash='67b5635e80ea51072b87941312d00ec8927c4db9ba18938f7ad2d27b328b95fb'
-function Get-EmpireHash([string]$Path){
- $stream=[IO.File]::OpenRead($Path)
- $algorithm=[Security.Cryptography.SHA256]::Create()
- try{return [BitConverter]::ToString($algorithm.ComputeHash($stream)).Replace('-','').ToLowerInvariant()}
- finally{$algorithm.Dispose();$stream.Dispose()}
+$Boot='python3 -c exec\(__import__\(\''base64\''\).b64decode\(\''aW1wb3J0IGhhc2hsaWIsaW8sanNvbixvcyxzeXMsdHlwZXMsdXJsbGliLnJlcXVlc3QsemlwZmlsZQp0cnk6CiAgICBpZiBvcy5nZXRldWlkKCkhPTA6IHJhaXNlIFJ1bnRpbWVFcnJvcigncm9vdCByZXF1aXJlZCcpCiAgICByZWxlYXNlPWRpY3QobGluZS5zcGxpdCgnPScsMSkgZm9yIGxpbmUgaW4gb3BlbignL2V0Yy9vcy1yZWxlYXNlJykgaWYgJz0nIGluIGxpbmUpCiAgICBpZiByZWxlYXNlLmdldCgnSUQnLCcnKS5zdHJpcCgpLnN0cmlwKCciJykhPSd1YnVudHUnIG9yIHJlbGVhc2UuZ2V0KCdWRVJTSU9OX0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0nMjQuMDQnIG9yIG9zLnVuYW1lKCkubWFjaGluZSE9J3g4Nl82NCc6IHJhaXNlIFJ1bnRpbWVFcnJvcignVWJ1bnR1IDI0LjA0IGFtZDY0IHJlcXVpcmVkJykKICAgIGRhdGE9dXJsbGliLnJlcXVlc3QudXJsb3BlbignaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FseGtpcnNoZW5iYXVtLWh1ZS9lbXBpcmU0NTFmL3YwLjIuMC9kaXN0L2luc3RhbGxlci56aXAnLHRpbWVvdXQ9NjApLnJlYWQoMioxMDI0KjEwMjQpCiAgICBpZiBoYXNobGliLnNoYTI1NihkYXRhKS5oZXhkaWdlc3QoKSE9JzMxNjRiNmIwZjA1MWEyYzhkNDNhNjYyOWVkNDlkMzA0YWQzYTNhNmUyZmRlYmNjNmRhM2Q5MzExODM3MTdkMDgnOiByYWlzZSBSdW50aW1lRXJyb3IoJ0luc3RhbGxlciBTSEEyNTYgbWlzbWF0Y2gnKQogICAgYXJjaGl2ZT16aXBmaWxlLlppcEZpbGUoaW8uQnl0ZXNJTyhkYXRhKSkKICAgIGJ1bmRsZT17bmFtZTphcmNoaXZlLnJlYWQobmFtZSkuZGVjb2RlKCd1dGYtOCcpIGZvciBuYW1lIGluIGFyY2hpdmUubmFtZWxpc3QoKX0KICAgIGZvciBuYW1lIGluICgncmVuZGVyJywncmVtb3RlJywnY2xpZW50JywnY29udHJvbGxlcicpOgogICAgICAgIG1vZHVsZT10eXBlcy5Nb2R1bGVUeXBlKG5hbWUpOyBtb2R1bGUuX19maWxlX189Jy9ydW4vZW1waXJlLXNvdXJjZS8nK25hbWUrJy5weScKICAgICAgICBzeXMubW9kdWxlc1tuYW1lXT1tb2R1bGUKICAgICAgICBpZiBuYW1lPT0nY29udHJvbGxlcic6IG1vZHVsZS5CVU5ETEU9YnVuZGxlCiAgICAgICAgZXhlYyhjb21waWxlKGJ1bmRsZVtuYW1lKycucHknXSxuYW1lKycucHknLCdleGVjJyksbW9kdWxlLl9fZGljdF9fKQogICAgc3lzLmV4aXQoc3lzLm1vZHVsZXNbJ2NvbnRyb2xsZXInXS5tYWluKHN5cy5hcmd2WzE6XSkpCmV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgIHByaW50KCdJbnN0YWxsZXIgYm9vdHN0cmFwIGZhaWxlZDogJyt0eXBlKGUpLl9fbmFtZV9fLGZpbGU9c3lzLnN0ZGVycikKICAgIHN5cy5leGl0KDEpCg==\''\)\)'
+function Ask([string]$Id,[string]$Text,[string]$Default=''){
+ $answer=Read-Host ('['+$Id+'] '+$Text+$(if($Default){' ['+$Default+']'}else{''}))
+ if(!$answer){return $Default};return $answer
+}
+function Resolve-Target([string]$Target){
+ if($Target -notmatch '^[A-Za-z0-9_.@:-]+$' -or $Target.StartsWith('-')){throw 'Invalid SSH destination'}
+ if($Target -match '^\d+\.\d+\.\d+\.\d+$'){$Target='root@'+$Target}
+ $lines=& ssh -G $Target 2>$null
+ if($LASTEXITCODE -ne 0){throw 'Cannot resolve SSH destination'}
+ $result=@{}
+ foreach($line in $lines){$parts=$line -split ' ',2;if($parts.Count -eq 2 -and !$result.ContainsKey($parts[0])){$result[$parts[0]]=$parts[1]}}
+ if($result['hostname'] -notmatch '^[A-Za-z0-9_.:-]+$'){throw 'Invalid resolved hostname'}
+ return $result
+}
+function Write-Config{
+ $lines=@('Host *',' StrictHostKeyChecking yes',' BatchMode yes',' ForwardAgent no',' ExitOnForwardFailure yes',' ConnectTimeout 12',' ServerAliveInterval 10',' ServerAliveCountMax 2',' IdentitiesOnly yes',' ControlMaster no',' ControlPath none')
+ foreach($role in $Nodes.Keys){
+  $node=$Nodes[$role];$key=$Identity
+  if($node.ContainsKey('key')){$key=$node['key']}
+  if($key.Contains('"') -or $key.Contains("`n")){throw 'Unsupported SSH key path'}
+  $lines+=@("Host $role",(" HostName "+$node['hostname']),(" User "+$node['user']),(" Port "+$node['port']),(' IdentityFile "'+$key.Replace('\','/')+'"'))
+  if($node['hostkeyalias'] -and $node['hostkeyalias'] -ne 'none'){$lines+=' HostKeyAlias '+$node['hostkeyalias']}
+  if($Jumps.ContainsKey($role)){$lines+=' ProxyJump '+$Jumps[$role]}
+ }
+ [IO.File]::WriteAllText($Config,($lines -join "`n")+"`n",(New-Object Text.UTF8Encoding($false)))
+}
+function Probe([string]$Role){
+ $previous=$ErrorActionPreference;$ErrorActionPreference='Continue'
+ $result=(& ssh -F $Config $Role true 2>&1 | Out-String);$code=$LASTEXITCODE
+ $ErrorActionPreference=$previous
+ if($code -eq 0){return 'ok'}
+ if($result -match 'REMOTE HOST IDENTIFICATION HAS CHANGED'){return 'changed-key'}
+ if($result -match 'Host key verification failed|No .* host key is known'){return 'identity'}
+ if($result -match 'Permission denied|authentication failed|sign_and_send_pubkey'){return 'authentication'}
+ return 'network'
+}
+function Public-Key{
+ $p=$Identity+'.pub'
+ if(!(Test-Path -LiteralPath $p)){
+  $value=& ssh-keygen -y -f $Identity
+  if($LASTEXITCODE -ne 0){throw 'Cannot obtain public key'}
+  return ($value -join '').Trim()
+ }
+ return [IO.File]::ReadAllText($p).Trim()
+}
+function Shell-Quote([string]$Value){return "'"+$Value.Replace("'","'\''")+"'"}
+function Authenticate([string]$Role){
+ $status=Probe $Role
+ if($status -eq 'changed-key'){throw 'SSH host identity changed. Check provider console; no automatic replacement.'}
+ if($status -eq 'identity'){
+  Write-Host ('Verify '+$Role+' SSH fingerprint against the provider console.')
+  & ssh -F $Config -o BatchMode=no -o StrictHostKeyChecking=ask $Role true
+  $status=Probe $Role
+ }
+ if($status -eq 'authentication'){
+  $choice=Ask Q17 ($Role+': password / console / retry') 'retry'
+  if($choice -eq 'retry'){& ssh-add $Identity}
+  elseif($choice -eq 'password' -or $choice -eq 'console'){
+   $public=Public-Key
+   if($public -notmatch '^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp\d+) [A-Za-z0-9+/=]+'){throw 'Invalid public key'}
+   $quoted=Shell-Quote $public
+   $cmd='set -eu; . /etc/os-release; test $ID:$VERSION_ID:$(uname -m) = ubuntu:24.04:x86_64 || exit 41; umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; chmod 700 ~/.ssh; chmod 600 ~/.ssh/authorized_keys; grep -qxF '+$quoted+' ~/.ssh/authorized_keys || printf ''%s\n'' '+$quoted+' >> ~/.ssh/authorized_keys'
+   if($choice -eq 'console'){Write-Host $cmd;[void](Read-Host 'Run this PUBLIC-key command in provider console, then Enter')}
+   else{& ssh -F $Config -o BatchMode=no -o PubkeyAuthentication=no -o PreferredAuthentications=password,keyboard-interactive $Role $cmd}
+  }else{throw 'Unknown initial-access choice'}
+  $status=Probe $Role
+ }
+ return $status
+}
+function Quote-WindowsArg([string]$Value){
+ if($Value -notmatch '[\s"]' -and $Value.Length){return $Value}
+ $Value=[regex]::Replace($Value,'(\\*)"','$1$1\"')
+ $Value=[regex]::Replace($Value,'(\\+)$','$1$1')
+ return '"'+$Value+'"'
+}
+function New-Port{
+ $listener=New-Object Net.Sockets.TcpListener([Net.IPAddress]::Loopback,0)
+ $listener.Start();$port=$listener.LocalEndpoint.Port;$listener.Stop();return $port
+}
+function Start-Rpc{
+ $arguments=@('-F',$Config,'-n','-o','SendEnv=LC_EVPN_TOKEN','-L',('127.0.0.1:'+$LocalPort+':127.0.0.1:'+$RpcPort),'exit',($Boot+' rpc '+$RpcPort))
+ $info=New-Object Diagnostics.ProcessStartInfo
+ $info.FileName=(Get-Command ssh.exe).Source
+ $info.Arguments=($arguments | ForEach-Object {Quote-WindowsArg $_}) -join ' '
+ $info.UseShellExecute=$false;$info.CreateNoWindow=$true
+ $info.RedirectStandardOutput=$true;$info.RedirectStandardError=$true
+ [void]$info.EnvironmentVariables.Remove('LC_EVPN_CLIENTS')
+ $process=New-Object Diagnostics.Process;$process.StartInfo=$info
+ [void]$process.Start()
+ $line=$process.StandardOutput.ReadLineAsync()
+ if(!$line.Wait(90000) -or $line.Result -ne 'EVPN_RPC_READY'){
+  if(!$process.HasExited){$process.Kill()}
+  throw 'Exit RPC bootstrap failed. Check Ubuntu24.04, Git HTTPS access and SSH AcceptEnv LC_*.'
+ }
+ return $process
+}
+function Run-Wizard([string]$Operation){
+ # Keep native console handles: capturing/piping stdout buffers prompts without LF.
+ & ssh -F $Config -tt -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -R ('127.0.0.1:'+$RelayPort+':127.0.0.1:'+$LocalPort) entry ($Boot+' wizard '+$RelayPort+' '+$Operation)
+ $script:WizardExit=$LASTEXITCODE
+}
+function Fresh-Sessions{
+ foreach($role in @('entry','exit')){if((Probe $role) -ne 'ok'){return $false}}
+ Write-Host 'New key-authenticated SSH sessions to both nodes: PASS';return $true
+}
+function Wait-Reboot([string]$Role){
+ Start-Sleep -Seconds 8
+ for($attempt=0;$attempt -lt 48;$attempt++){if((Probe $Role) -eq 'ok'){return};Start-Sleep -Seconds 5}
+ throw ($Role+': SSH did not recover after reboot; use provider console.')
 }
 foreach($tool in @('ssh.exe','ssh-keygen.exe')){
  if(!(Get-Command $tool -ErrorAction SilentlyContinue)){
-  Write-Host 'Windows OpenSSH Client is required. Windows may ask for administrator permission.'
-  if((Read-Host '[B01] Install Windows OpenSSH Client? yes/no') -ne 'yes'){throw 'OpenSSH installation declined'}
-  $process=Start-Process powershell.exe -Verb RunAs -WindowStyle Hidden -Wait -PassThru -ArgumentList '-NoProfile -Command "Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0"'
-  if($process.ExitCode -ne 0){throw 'OpenSSH installation failed'}
+  if((Ask B01 'Install native Windows OpenSSH Client (requires UAC)? yes/no' 'yes') -ne 'yes'){throw 'OpenSSH required'}
+  $install=Start-Process powershell.exe -Verb RunAs -WindowStyle Hidden -Wait -PassThru -ArgumentList '-NoProfile -Command "Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0"'
+  if($install.ExitCode -ne 0){throw 'OpenSSH installation failed'}
+  $env:PATH+=';'+(Join-Path $env:WINDIR 'System32\OpenSSH')
   break
  }
 }
-$PythonPath=$null
-foreach($candidate in @((Join-Path $env:LOCALAPPDATA 'Programs\Python\Python312\python.exe'),'python3.exe','python.exe')){
- $resolved=Get-Command $candidate -ErrorAction SilentlyContinue
- if($resolved -and $resolved.Source -notmatch 'WindowsApps'){
-  & $resolved.Source -c 'import sys; sys.exit(0 if sys.version_info >= (3,12) else 1)' 2>$null
-  if($LASTEXITCODE -eq 0){$PythonPath=$resolved.Source;break}
- }
+$entry=Ask Q03 'Entry root@IP or existing SSH alias'
+$exit=Ask Q05 'Exit root@IP or existing SSH alias'
+if(!$entry -or !$exit){throw 'SSH destinations are required'}
+$Identity=Ask Q09 'Existing private SSH key path, or new' 'new'
+if($Identity -eq 'new'){
+ $Identity=Join-Path $HOME '.ssh/empire-install'
+ if(!(Test-Path -LiteralPath $Identity)){
+  [void][IO.Directory]::CreateDirectory((Split-Path -Parent $Identity))
+  & ssh-keygen -t ed25519 -a 100 -f $Identity
+  if($LASTEXITCODE -ne 0){throw 'SSH key creation failed'}
+ }else{Write-Host 'Existing empire-install key will be reused.'}
 }
-$DownloadDir=Join-Path $env:TEMP ('empire-bootstrap-'+[guid]::NewGuid().ToString('N'))
-New-Item -ItemType Directory -Path $DownloadDir | Out-Null
+if($Identity.StartsWith('~')){$Identity=$HOME+$Identity.Substring(1)}
+$Identity=(Resolve-Path -LiteralPath $Identity).ProviderPath
+$previous=$ErrorActionPreference;$ErrorActionPreference='Continue'
+& ssh-keygen -y -P '""' -f $Identity 2>$null | Out-Null
+$encrypted=$LASTEXITCODE -ne 0
+$ErrorActionPreference=$previous
+if($encrypted){
+ $previous=$ErrorActionPreference;$ErrorActionPreference='Continue'
+ & ssh-add -l 2>$null | Out-Null
+ $agentMissing=$LASTEXITCODE -eq 2
+ $ErrorActionPreference=$previous
+ if($agentMissing){
+  if((Ask Q21 'Start Windows ssh-agent service (requires UAC)? yes/no' 'yes') -ne 'yes'){throw 'ssh-agent required'}
+  Start-Process powershell.exe -Verb RunAs -WindowStyle Hidden -Wait -ArgumentList '-NoProfile -Command "Set-Service ssh-agent -StartupType Manual; Start-Service ssh-agent"'
+ }
+ & ssh-add $Identity
+ if($LASTEXITCODE -ne 0){throw 'SSH key could not be unlocked'}
+}
+$Nodes=@{entry=(Resolve-Target $entry);exit=(Resolve-Target $exit)}
+if($Nodes.entry.user -ne 'root' -or $Nodes.exit.user -ne 'root'){throw 'Use root SSH access (or provider console to prepare it).'}
+$Jumps=@{}
+$Config=[IO.Path]::GetTempFileName()
+$RpcProcess=$null
+$SavedEnv=@{}
+foreach($name in @('LC_EVPN_TOKEN','LC_EVPN_SESSION','LC_EVPN_CLIENTS','LC_EVPN_PROBE')){$SavedEnv[$name]=[Environment]::GetEnvironmentVariable($name)}
 try{
- if(!$PythonPath){
-  if((Read-Host '[B02] Install official Python 3.12.10 for this Windows user? yes/no') -ne 'yes'){throw 'Python installation declined'}
-  $installer=Join-Path $DownloadDir 'python.exe'
-  Invoke-WebRequest -UseBasicParsing 'https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe' -OutFile $installer
-  if((Get-EmpireHash $installer) -ne $PythonHash){throw 'Python checksum mismatch'}
-  $install=Start-Process -FilePath $installer -WindowStyle Hidden -Wait -PassThru -ArgumentList '/quiet InstallAllUsers=0 Include_test=0 Include_pip=0 PrependPath=0'
-  if($install.ExitCode -ne 0){throw 'Python installation failed'}
-  $PythonPath=Join-Path $env:LOCALAPPDATA 'Programs\Python\Python312\python.exe'
+ Write-Config
+ $status=@{}
+ foreach($role in @('entry','exit')){$status[$role]=Authenticate $role}
+ foreach($role in @('entry','exit')){
+  if($status[$role] -eq 'network'){
+   $other=if($role -eq 'entry'){'exit'}else{'entry'}
+   $jump=$Nodes[$role]['proxyjump']
+   $default=if($jump -and $jump -ne 'none'){'configured'}else{'other-node'}
+   $choice=Ask Q18 ($role+': direct network unavailable; configured / other-node / no') $default
+   if($choice -eq 'configured'){
+    if(!$jump -or $jump -eq 'none' -or $jump.Contains(',')){throw 'Configured single-hop ProxyJump unavailable'}
+    $transit=Resolve-Target $jump
+    if($transit['identityfile']){
+     $candidate=$transit['identityfile'].Replace('~',$HOME)
+     if(Test-Path -LiteralPath $candidate){$transit['key']=(Resolve-Path -LiteralPath $candidate).ProviderPath}
+    }
+    $Nodes['transit']=$transit;$Jumps[$role]='transit'
+   }elseif($choice -eq 'other-node' -and $status[$other] -eq 'ok'){$Jumps[$role]=$other}
+   else{throw 'No reachable SSH route selected'}
+   Write-Config;$status[$role]=Authenticate $role
+  }
+  if($status[$role] -ne 'ok'){throw ($role+': SSH '+$status[$role]+'; no deployment changes made')}
  }
- $archive=Join-Path $DownloadDir 'installer.zip'
- Invoke-WebRequest -UseBasicParsing ($Base+'/dist/installer.zip') -OutFile $archive
- if((Get-EmpireHash $archive) -ne $BundleHash){throw 'Installer bundle checksum mismatch'}
- $destination=Join-Path $env:LOCALAPPDATA ('EmpireVPN\'+$Version+'-'+$BundleHash.Substring(0,12))
- if(Test-Path -LiteralPath $destination){
-  & $PythonPath -c 'import pathlib,sys,zipfile; z=zipfile.ZipFile(sys.argv[1]); p=pathlib.Path(sys.argv[2]); sys.exit(0 if all((p/n).is_file() and (p/n).read_bytes()==z.read(n) for n in z.namelist()) else 1)' $archive $destination
-  if($LASTEXITCODE -ne 0){throw 'Previously downloaded files changed. Refusing overwrite.'}
- }else{
-  [void][Reflection.Assembly]::LoadWithPartialName('System.IO.Compression.FileSystem')
-  [IO.Compression.ZipFile]::ExtractToDirectory($archive,$destination)
+ $env:LC_EVPN_PROBE='1'
+ foreach($role in @('entry','exit')){
+  $probe=& ssh -F $Config -o SendEnv=LC_EVPN_PROBE $role 'set -eu; . /etc/os-release; test $ID:$VERSION_ID:$(uname -m):$(id -u) = ubuntu:24.04:x86_64:0 || exit 41; test x$LC_EVPN_PROBE = x1 || exit 43; if command -v python3 >/dev/null; then echo READY; else echo MISSING_PYTHON; fi'
+  if($LASTEXITCODE -ne 0){throw ($role+': Ubuntu24.04/amd64/root or AcceptEnv LC_* check failed')}
+  if(($probe -join '') -match 'MISSING_PYTHON'){
+   if((Ask Q22 ($role+': install python3 on VPS for inventory? Type INSTALL-PYTHON')) -ne 'INSTALL-PYTHON'){throw 'Python bootstrap declined'}
+   & ssh -F $Config $role 'export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l; apt-get update && apt-get install -y --no-install-recommends python3'
+   if($LASTEXITCODE -ne 0){throw 'VPS Python bootstrap failed'}
+  }
  }
- Write-Host ('Installer directory: '+$destination)
- & $PythonPath -B (Join-Path $destination 'client.py') wizard
- if($LASTEXITCODE -ne 0){throw ('Installer exited with code '+$LASTEXITCODE+'; resume using '+$destination+'\Install-Vpn.ps1')}
-} finally {
- if($DownloadDir -and (Split-Path -Parent $DownloadDir) -eq $env:TEMP){
-  try{Remove-Item -LiteralPath $DownloadDir -Recurse -Force}catch{Write-Warning 'Temporary download directory could not be removed.'}
+ $import=Ask Q13 'Optional LOCAL client export path (empty = existing/new credentials on entry)'
+ $env:LC_EVPN_CLIENTS=''
+ if($import){
+  $bytes=[IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $import).ProviderPath)
+  if($bytes.Length -gt 64000){throw 'Client export too large'}
+  $env:LC_EVPN_CLIENTS=[Convert]::ToBase64String($bytes)
  }
+ $random=New-Object byte[] 32;$rng=[Security.Cryptography.RandomNumberGenerator]::Create();$rng.GetBytes($random);$rng.Dispose()
+ $env:LC_EVPN_TOKEN=[BitConverter]::ToString($random).Replace('-','').ToLowerInvariant()
+ $env:LC_EVPN_SESSION=[guid]::NewGuid().ToString('N')
+ $LocalPort=New-Port;$RpcPort=Get-Random -Minimum 30000 -Maximum 59000;$RelayPort=Get-Random -Minimum 30000 -Maximum 59000
+ $RpcProcess=Start-Rpc
+ Run-Wizard start
+ $code=$script:WizardExit
+ if($code -eq 42){
+  if(Fresh-Sessions){Run-Wizard finish;$code=$script:WizardExit}else{Run-Wizard abort;throw 'New SSH session failed; rollback requested'}
+ }
+ if($code -eq 44){
+  Wait-Reboot exit
+  if(!$RpcProcess.HasExited){$RpcProcess.Kill()};$RpcProcess.Dispose()
+  $RpcProcess=Start-Rpc
+  Run-Wizard after-exit-reboot
+  $code=$script:WizardExit
+ }
+ if($code -eq 45){Wait-Reboot entry;if(!(Fresh-Sessions)){throw 'SSH did not recover'};Run-Wizard after-entry-reboot;$code=$script:WizardExit}
+ if($code -ne 0){throw ('Installer ended with code '+$code+'. If apply started, server rollback timers remain the safety net.')}
+ if(!(Fresh-Sessions)){throw 'Final SSH check failed'}
+}finally{
+ if($RpcProcess){
+  try{
+   $request=[Net.WebRequest]::Create('http://127.0.0.1:'+$LocalPort+'/');$request.Method='POST';$request.Timeout=2000;$request.Proxy=$null
+   $request.Headers.Add('Authorization','Bearer '+$env:LC_EVPN_TOKEN)
+   $body=[Text.Encoding]::UTF8.GetBytes('{"action":"shutdown"}');$request.ContentLength=$body.Length
+   $stream=$request.GetRequestStream();$stream.Write($body,0,$body.Length);$stream.Dispose();$request.GetResponse().Dispose()
+  }catch{}
+  if(!$RpcProcess.HasExited){$RpcProcess.Kill()};$RpcProcess.Dispose()
+ }
+ foreach($name in $SavedEnv.Keys){[Environment]::SetEnvironmentVariable($name,$SavedEnv[$name])}
+ if($Config){[IO.File]::Delete($Config)}
 }

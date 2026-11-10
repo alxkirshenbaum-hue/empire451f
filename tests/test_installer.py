@@ -148,6 +148,10 @@ class ClientTests(unittest.TestCase):
 
 
 class RemoteSafetyTests(unittest.TestCase):
+    def test_stale_session_cannot_commit_newer_transaction(self):
+        with patch.object(remote, 'readjson', return_value={'transaction': 'newer', 'dir': '/state/newer'}), patch.object(remote, 'atomic', side_effect=AssertionError('write')):
+            with self.assertRaisesRegex(render.Invalid, 'different transaction'):
+                remote.commit(config(), expected='older')
     def test_apply_failure_restores_exact_files_and_clears_pending(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

@@ -1,37 +1,184 @@
 #!/bin/bash
+# Bash 3.2 / standard macOS tools; no local Python or downloaded module bundle.
+set +x
 set -eu
-VERSION='v0.1.1'
-BUNDLE_HASH='1c2ddc94f83624b18916dd83b0648f273b5f239806a12c05836744c05b900d8c'
-PYTHON_HASH='8373e58da4ea146b3eb1c1f9834f19a319440b6b679b06050b1f9ee3237aa8e4'
-BASE="https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/$VERSION"
-for tool in curl shasum unzip ssh ssh-keygen; do
- command -v "$tool" >/dev/null 2>&1 || { echo "Missing standard macOS tool: $tool" >&2; exit 1; }
-done
-PYTHON=''
-for candidate in /Library/Frameworks/Python.framework/Versions/3.12/bin/python3 python3; do
- if command -v "$candidate" >/dev/null 2>&1 && "$candidate" -c 'import sys; sys.exit(0 if sys.version_info >= (3,12) else 1)' 2>/dev/null; then PYTHON="$candidate"; break; fi
-done
-WORK="$(mktemp -d "${TMPDIR:-/tmp}/empire-bootstrap.XXXXXX")"
-trap 'rm -f "$WORK/python.pkg" "$WORK/installer.zip"; rmdir "$WORK" 2>/dev/null || true' EXIT
-if [ -z "$PYTHON" ]; then
- printf '[B02] Install official Python 3.12.10 universal2? Requires macOS administrator password. yes/no: '
- read -r answer
- [ "$answer" = yes ] || { echo 'Python installation declined' >&2; exit 1; }
- curl --fail --location --proto '=https' --tlsv1.2 'https://www.python.org/ftp/python/3.12.10/python-3.12.10-macos11.pkg' -o "$WORK/python.pkg"
- [ "$(shasum -a 256 "$WORK/python.pkg" | awk '{print $1}')" = "$PYTHON_HASH" ] || { echo 'Python checksum mismatch' >&2; exit 1; }
- sudo /usr/sbin/installer -pkg "$WORK/python.pkg" -target /
- PYTHON='/Library/Frameworks/Python.framework/Versions/3.12/bin/python3'
- '/Applications/Python 3.12/Install Certificates.command'
+BOOT='python3 -c exec\(__import__\(\'"'"'base64\'"'"'\).b64decode\(\'"'"'aW1wb3J0IGhhc2hsaWIsaW8sanNvbixvcyxzeXMsdHlwZXMsdXJsbGliLnJlcXVlc3QsemlwZmlsZQp0cnk6CiAgICBpZiBvcy5nZXRldWlkKCkhPTA6IHJhaXNlIFJ1bnRpbWVFcnJvcigncm9vdCByZXF1aXJlZCcpCiAgICByZWxlYXNlPWRpY3QobGluZS5zcGxpdCgnPScsMSkgZm9yIGxpbmUgaW4gb3BlbignL2V0Yy9vcy1yZWxlYXNlJykgaWYgJz0nIGluIGxpbmUpCiAgICBpZiByZWxlYXNlLmdldCgnSUQnLCcnKS5zdHJpcCgpLnN0cmlwKCciJykhPSd1YnVudHUnIG9yIHJlbGVhc2UuZ2V0KCdWRVJTSU9OX0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0nMjQuMDQnIG9yIG9zLnVuYW1lKCkubWFjaGluZSE9J3g4Nl82NCc6IHJhaXNlIFJ1bnRpbWVFcnJvcignVWJ1bnR1IDI0LjA0IGFtZDY0IHJlcXVpcmVkJykKICAgIGRhdGE9dXJsbGliLnJlcXVlc3QudXJsb3BlbignaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FseGtpcnNoZW5iYXVtLWh1ZS9lbXBpcmU0NTFmL3YwLjIuMC9kaXN0L2luc3RhbGxlci56aXAnLHRpbWVvdXQ9NjApLnJlYWQoMioxMDI0KjEwMjQpCiAgICBpZiBoYXNobGliLnNoYTI1NihkYXRhKS5oZXhkaWdlc3QoKSE9JzMxNjRiNmIwZjA1MWEyYzhkNDNhNjYyOWVkNDlkMzA0YWQzYTNhNmUyZmRlYmNjNmRhM2Q5MzExODM3MTdkMDgnOiByYWlzZSBSdW50aW1lRXJyb3IoJ0luc3RhbGxlciBTSEEyNTYgbWlzbWF0Y2gnKQogICAgYXJjaGl2ZT16aXBmaWxlLlppcEZpbGUoaW8uQnl0ZXNJTyhkYXRhKSkKICAgIGJ1bmRsZT17bmFtZTphcmNoaXZlLnJlYWQobmFtZSkuZGVjb2RlKCd1dGYtOCcpIGZvciBuYW1lIGluIGFyY2hpdmUubmFtZWxpc3QoKX0KICAgIGZvciBuYW1lIGluICgncmVuZGVyJywncmVtb3RlJywnY2xpZW50JywnY29udHJvbGxlcicpOgogICAgICAgIG1vZHVsZT10eXBlcy5Nb2R1bGVUeXBlKG5hbWUpOyBtb2R1bGUuX19maWxlX189Jy9ydW4vZW1waXJlLXNvdXJjZS8nK25hbWUrJy5weScKICAgICAgICBzeXMubW9kdWxlc1tuYW1lXT1tb2R1bGUKICAgICAgICBpZiBuYW1lPT0nY29udHJvbGxlcic6IG1vZHVsZS5CVU5ETEU9YnVuZGxlCiAgICAgICAgZXhlYyhjb21waWxlKGJ1bmRsZVtuYW1lKycucHknXSxuYW1lKycucHknLCdleGVjJyksbW9kdWxlLl9fZGljdF9fKQogICAgc3lzLmV4aXQoc3lzLm1vZHVsZXNbJ2NvbnRyb2xsZXInXS5tYWluKHN5cy5hcmd2WzE6XSkpCmV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgIHByaW50KCdJbnN0YWxsZXIgYm9vdHN0cmFwIGZhaWxlZDogJyt0eXBlKGUpLl9fbmFtZV9fLGZpbGU9c3lzLnN0ZGVycikKICAgIHN5cy5leGl0KDEpCg==\'"'"'\)\)'
+ask() {
+ printf '[%s] %s [%s]: ' "$1" "$2" "${3:-}" >&2
+ IFS= read -r answer || exit 130
+ printf '%s' "${answer:-${3:-}}"
+}
+die() { printf '%s\n' "$*" >&2; exit 1; }
+for tool in ssh ssh-keygen ssh-add openssl curl awk base64; do command -v "$tool" >/dev/null 2>&1 || die "Missing standard macOS tool: $tool"; done
+ENTRY=$(ask Q03 'Entry root@IP or existing SSH alias')
+EXIT_NODE=$(ask Q05 'Exit root@IP or existing SSH alias')
+IDENTITY=$(ask Q09 'Existing private SSH key path, or new' new)
+if [ "$IDENTITY" = new ]; then
+ IDENTITY="$HOME/.ssh/empire-install"
+ if [ ! -f "$IDENTITY" ]; then mkdir -p "$HOME/.ssh"; chmod 700 "$HOME/.ssh"; ssh-keygen -t ed25519 -a 100 -f "$IDENTITY"; fi
 fi
-curl --fail --location --proto '=https' --tlsv1.2 "$BASE/dist/installer.zip" -o "$WORK/installer.zip"
-[ "$(shasum -a 256 "$WORK/installer.zip" | awk '{print $1}')" = "$BUNDLE_HASH" ] || { echo 'Installer checksum mismatch' >&2; exit 1; }
-DEST="$HOME/Library/Application Support/EmpireVPN/$VERSION-${BUNDLE_HASH:0:12}"
-if [ -e "$DEST" ]; then
- "$PYTHON" -c 'import pathlib,sys,zipfile; z=zipfile.ZipFile(sys.argv[1]); p=pathlib.Path(sys.argv[2]); sys.exit(0 if all((p/n).is_file() and (p/n).read_bytes()==z.read(n) for n in z.namelist()) else 1)' "$WORK/installer.zip" "$DEST" || { echo 'Previously downloaded files changed; refusing overwrite.' >&2; exit 1; }
-else
- mkdir -p "$DEST"
- unzip -q "$WORK/installer.zip" -d "$DEST"
+case "$IDENTITY" in '~'*) IDENTITY="$HOME${IDENTITY#\~}";; esac
+[ -f "$IDENTITY" ] || die 'SSH key file missing'
+case "$IDENTITY" in *'"'*|*'\'*) die 'Unsupported SSH key path character';; esac
+OWN_AGENT=0
+if ! ssh-keygen -y -P '' -f "$IDENTITY" >/dev/null 2>&1; then
+ agent_code=0; ssh-add -l >/dev/null 2>&1 || agent_code=$?
+ if [ "$agent_code" -eq 2 ]; then
+  [ "$(ask Q21 'Start ssh-agent for this installer session? yes/no' yes)" = yes ] || die 'ssh-agent required'
+  eval "$(ssh-agent -s)" >/dev/null
+  OWN_AGENT=1
+ fi
+ ssh-add "$IDENTITY"
 fi
-printf 'Installer directory: %s\n' "$DEST"
-export EMPIRE_PYTHON="$PYTHON"
-/bin/bash "$DEST/Install-Vpn.sh" wizard
+WORK=$(mktemp -d "${TMPDIR:-/tmp}/empire-launch.XXXXXX")
+chmod 700 "$WORK"
+CONFIG="$WORK/ssh-config"
+RPC_PID=''
+TOKEN=''
+LOCAL_PORT=0
+cleanup() {
+ if [ -n "$RPC_PID" ]; then
+  printf 'header = "Authorization: Bearer %s"\n' "$TOKEN" | curl --silent --noproxy '*' --max-time 2 --config - --data '{"action":"shutdown"}' "http://127.0.0.1:$LOCAL_PORT/" >/dev/null 2>&1 || true
+  kill "$RPC_PID" 2>/dev/null || true
+  wait "$RPC_PID" 2>/dev/null || true
+ fi
+ rm -f "$WORK/ssh-config" "$WORK/ready" "$WORK/rpc.err"
+ rmdir "$WORK" 2>/dev/null || true
+ if [ "$OWN_AGENT" = 1 ]; then ssh-agent -k >/dev/null 2>&1 || true; fi
+}
+trap cleanup EXIT
+resolve_target() {
+ local prefix="$1" target="$2" output key value
+ case "$target" in -*|*[!A-Za-z0-9_.@:-]*) die 'Invalid SSH destination';; esac
+ case "$target" in [0-9]*.[0-9]*.[0-9]*.[0-9]*) target="root@$target";; esac
+ output=$(ssh -G "$target" 2>/dev/null) || die 'Cannot resolve SSH destination'
+ for key in hostname user port proxyjump hostkeyalias identityfile; do
+  value=$(printf '%s\n' "$output" | awk -v k="$key" '$1==k{sub(/^[^ ]+ /,""); print; exit}')
+  printf -v "${prefix}_${key}" '%s' "$value"
+ done
+}
+resolve_target E "$ENTRY"
+resolve_target X "$EXIT_NODE"
+[ "$E_user" = root ] && [ "$X_user" = root ] || die 'Root SSH access required; prepare it through provider console'
+E_jump=''; X_jump=''; T_hostname=''; T_key="$IDENTITY"
+write_node() {
+ local name="$1" prefix="$2" key="$3" h="${2}_hostname" u="${2}_user" p="${2}_port" a="${2}_hostkeyalias"
+ case "${!h}" in ''|*[!A-Za-z0-9_.:-]*) die 'Invalid resolved hostname';; esac
+ printf 'Host %s\n HostName %s\n User %s\n Port %s\n IdentityFile "%s"\n' "$name" "${!h}" "${!u}" "${!p}" "$key"
+ if [ -n "${!a}" ] && [ "${!a}" != none ]; then printf ' HostKeyAlias %s\n' "${!a}"; fi
+}
+write_config() {
+ {
+  printf '%s\n' 'Host *' ' StrictHostKeyChecking yes' ' BatchMode yes' ' ForwardAgent no' ' ExitOnForwardFailure yes' ' ConnectTimeout 12' ' ServerAliveInterval 10' ' ServerAliveCountMax 2' ' IdentitiesOnly yes' ' ControlMaster no' ' ControlPath none'
+  write_node entry E "$IDENTITY"; [ -z "$E_jump" ] || printf ' ProxyJump %s\n' "$E_jump"
+  write_node exit X "$IDENTITY"; [ -z "$X_jump" ] || printf ' ProxyJump %s\n' "$X_jump"
+  [ -z "$T_hostname" ] || write_node transit T "$T_key"
+ } > "$CONFIG"
+ chmod 600 "$CONFIG"
+}
+probe() {
+ local output
+ if output=$(ssh -F "$CONFIG" "$1" true 2>&1); then printf ok; return; fi
+ case "$output" in
+  *'REMOTE HOST IDENTIFICATION HAS CHANGED'*) printf changed-key;;
+  *'Host key verification failed'*|*'host key is known'*) printf identity;;
+  *'Permission denied'*|*'authentication failed'*|*'sign_and_send_pubkey'*) printf authentication;;
+  *) printf network;;
+ esac
+}
+authenticate() {
+ local role="$1" status choice public cmd
+ status=$(probe "$role")
+ [ "$status" != changed-key ] || die 'SSH host identity changed; check provider console. No automatic replacement.'
+ if [ "$status" = identity ]; then
+  printf 'Compare %s SSH fingerprint with provider console.\n' "$role" >&2
+  ssh -F "$CONFIG" -o BatchMode=no -o StrictHostKeyChecking=ask "$role" true >&2 || true
+  status=$(probe "$role")
+ fi
+ if [ "$status" = authentication ]; then
+  choice=$(ask Q17 "$role: password / console / retry" retry)
+  if [ "$choice" = retry ]; then ssh-add "$IDENTITY" >&2
+  elif [ "$choice" = password ] || [ "$choice" = console ]; then
+   public=$(ssh-keygen -y -f "$IDENTITY" | awk '{print $1" "$2}')
+   case "$public" in *[!A-Za-z0-9+/=._\ -]*) die 'Invalid public key';; esac
+   cmd="set -eu; . /etc/os-release; test \$ID:\$VERSION_ID:\$(uname -m) = ubuntu:24.04:x86_64 || exit 41; umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; chmod 700 ~/.ssh; chmod 600 ~/.ssh/authorized_keys; grep -qxF '$public' ~/.ssh/authorized_keys || printf '%s\\n' '$public' >> ~/.ssh/authorized_keys"
+   if [ "$choice" = console ]; then printf '%s\n' "$cmd" >&2; [ -n "$(ask Q17 'Run PUBLIC-key command in provider console, then type done' done)" ];
+   else ssh -F "$CONFIG" -o BatchMode=no -o PubkeyAuthentication=no -o PreferredAuthentications=password,keyboard-interactive "$role" "$cmd" >&2; fi
+  else die 'Unknown initial-access choice'; fi
+  status=$(probe "$role")
+ fi
+ printf '%s' "$status"
+}
+write_config
+E_status=$(authenticate entry); X_status=$(authenticate exit)
+for role in entry exit; do
+ if [ "$role" = entry ]; then prefix=E; other=exit; other_status="$X_status"; else prefix=X; other=entry; other_status="$E_status"; fi
+ status_name="${prefix}_status"; jump_name="${prefix}_proxyjump"
+ if [ "${!status_name}" = network ]; then
+  default=other-node; [ -z "${!jump_name}" ] || [ "${!jump_name}" = none ] || default=configured
+  choice=$(ask Q18 "$role direct network unavailable: configured / other-node / no" "$default")
+  if [ "$choice" = configured ]; then
+   case "${!jump_name}" in ''|none|*,*) die 'Single-hop configured ProxyJump unavailable';; esac
+   resolve_target T "${!jump_name}"
+   case "$T_identityfile" in '~'*) T_identityfile="$HOME${T_identityfile#\~}";; esac
+   [ ! -f "$T_identityfile" ] || T_key="$T_identityfile"
+   printf -v "${prefix}_jump" '%s' transit
+  elif [ "$choice" = other-node ] && [ "$other_status" = ok ]; then printf -v "${prefix}_jump" '%s' "$other"
+  else die 'No reachable SSH route selected'; fi
+  write_config
+  printf -v "$status_name" '%s' "$(authenticate "$role")"
+ fi
+ [ "${!status_name}" = ok ] || die "$role: SSH ${!status_name}; no deployment changes"
+done
+export LC_EVPN_PROBE=1
+for role in entry exit; do
+ result=$(ssh -F "$CONFIG" -o SendEnv=LC_EVPN_PROBE "$role" 'set -eu; . /etc/os-release; test $ID:$VERSION_ID:$(uname -m):$(id -u) = ubuntu:24.04:x86_64:0 || exit 41; test x$LC_EVPN_PROBE = x1 || exit 43; if command -v python3 >/dev/null; then echo READY; else echo MISSING_PYTHON; fi') || die "$role: Ubuntu24.04/amd64/root or AcceptEnv LC_* check failed"
+ if [ "$result" = MISSING_PYTHON ]; then
+  [ "$(ask Q22 "$role: install python3 on VPS? Type INSTALL-PYTHON")" = INSTALL-PYTHON ] || die 'VPS Python bootstrap declined'
+  ssh -F "$CONFIG" "$role" 'export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l; apt-get update && apt-get install -y --no-install-recommends python3'
+ fi
+done
+IMPORT=$(ask Q13 'Optional LOCAL client export path; empty = existing/new credentials on entry')
+LC_EVPN_CLIENTS=''
+if [ -n "$IMPORT" ]; then
+ case "$IMPORT" in '~'*) IMPORT="$HOME${IMPORT#\~}";; esac
+ [ -f "$IMPORT" ] || die 'Client export missing'
+ [ "$(wc -c < "$IMPORT" | tr -d ' ')" -le 64000 ] || die 'Client export too large'
+ LC_EVPN_CLIENTS=$(base64 < "$IMPORT" | tr -d '\n')
+fi
+TOKEN=$(openssl rand -hex 32)
+export LC_EVPN_TOKEN="$TOKEN" LC_EVPN_SESSION="$(openssl rand -hex 16)" LC_EVPN_CLIENTS
+random_port() { local hex; hex=$(openssl rand -hex 2); printf '%s' "$((30000 + 16#$hex % 29000))"; }
+LOCAL_PORT=$(random_port); RPC_PORT=$(random_port); RELAY_PORT=$(random_port)
+start_rpc() {
+ rm -f "$WORK/ready"; mkfifo "$WORK/ready"
+ (unset LC_EVPN_CLIENTS; exec ssh -n -F "$CONFIG" -o SendEnv=LC_EVPN_TOKEN -L "127.0.0.1:$LOCAL_PORT:127.0.0.1:$RPC_PORT" exit "$BOOT rpc $RPC_PORT") > "$WORK/ready" 2> "$WORK/rpc.err" &
+ RPC_PID=$!
+ IFS= read -r -t 90 ready < "$WORK/ready" || die 'Exit RPC bootstrap failed: check VPS Git HTTPS access and AcceptEnv LC_*'
+ [ "$ready" = EVPN_RPC_READY ] || die 'Unexpected RPC handshake'
+}
+run_wizard() {
+ ssh -F "$CONFIG" -tt -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -R "127.0.0.1:$RELAY_PORT:127.0.0.1:$LOCAL_PORT" entry "$BOOT wizard $RELAY_PORT $1"
+}
+fresh_sessions() { [ "$(probe entry)" = ok ] && [ "$(probe exit)" = ok ]; }
+wait_reboot() {
+ sleep 8
+ local attempt=0
+ while [ "$attempt" -lt 48 ]; do [ "$(probe "$1")" != ok ] || return 0; sleep 5; attempt=$((attempt+1)); done
+ die "$1: SSH did not recover; use provider console"
+}
+start_rpc
+code=0; run_wizard start || code=$?
+if [ "$code" -eq 42 ]; then
+ if fresh_sessions; then code=0; run_wizard finish || code=$?; else run_wizard abort || true; die 'New SSH session failed; rollback requested'; fi
+fi
+if [ "$code" -eq 44 ]; then
+ wait_reboot exit
+ kill "$RPC_PID" 2>/dev/null || true; wait "$RPC_PID" 2>/dev/null || true
+ start_rpc
+ code=0; run_wizard after-exit-reboot || code=$?
+fi
+if [ "$code" -eq 45 ]; then wait_reboot entry; fresh_sessions || die 'SSH did not recover'; code=0; run_wizard after-entry-reboot || code=$?; fi
+[ "$code" -eq 0 ] || die "Installer exited $code; if apply started, check server rollback timers"
+fresh_sessions || die 'Final SSH check failed'
+printf 'New key-authenticated SSH sessions to both nodes: PASS\n'

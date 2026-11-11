@@ -38,9 +38,12 @@ class ServerControllerTests(unittest.TestCase):
                 if action == 'plan':
                     return {'changes': [], 'facts': {}}
                 raise AssertionError('Unexpected mutation: ' + action)
-        with patch('builtins.input', return_value='preview'), patch.object(controller, 'ask', return_value='labtest'), patch.object(controller, 'configure', return_value=config()), patch.object(controller, 'clients', return_value=users()), patch.object(controller.remote, 'readjson', return_value=None), patch.object(controller.remote, 'atomic', side_effect=AssertionError('write')), patch.object(controller, 'store_session', side_effect=AssertionError('write')), contextlib.redirect_stdout(io.StringIO()):
-            self.assertEqual(controller.start(Nodes(), 'a' * 32, None), 0)
-        self.assertEqual(calls, ['probe', 'probe', 'plan', 'plan'])
+        for answer in ('', '1', 'preview', '\x1b[200~PREVIEW\x1b[201~'):
+            calls.clear()
+            with self.subTest(answer=answer), patch('builtins.input', side_effect=['typo', answer]), patch.object(controller, 'ask', return_value='labtest'), patch.object(controller, 'configure', return_value=config()), patch.object(controller, 'clients', return_value=users()), patch.object(controller.remote, 'readjson', return_value=None), patch.object(controller.remote, 'atomic', side_effect=AssertionError('write')), patch.object(controller, 'store_session', side_effect=AssertionError('write')), contextlib.redirect_stdout(io.StringIO()) as output:
+                self.assertEqual(controller.start(Nodes(), 'a' * 32, None), 0)
+                self.assertIn('Choose a listed number', output.getvalue())
+            self.assertEqual(calls, ['probe', 'probe', 'plan', 'plan'])
     def test_apply_waits_for_fresh_local_ssh_before_commit(self):
         c = config()
         captured = {}
@@ -125,7 +128,13 @@ using System.Threading;
 class Stub {
  static int Main(string[] args) {
   string exe=Path.GetFileName(Process.GetCurrentProcess().MainModule.FileName);
-  if(exe.Contains("keygen")) { Console.WriteLine("ssh-ed25519 AAAA"); return 0; }
+  if(exe.Contains("keygen")) return 1;
+  if(exe.Contains("ssh-add")) {
+   if(args.Contains("-l")) return 0;
+   string marker=Environment.GetEnvironmentVariable("EVPN_TEST_TRACE")+".unlock";
+   if(!File.Exists(marker)){ File.WriteAllText(marker,"attempt"); return 1; }
+   return 0;
+  }
   string all=String.Join(" ",args), last=args.Length>0?args[args.Length-1]:"";
   string trace=Environment.GetEnvironmentVariable("EVPN_TEST_TRACE");
   if(args.Contains("-G")) {
@@ -156,6 +165,7 @@ class Stub {
             result = subprocess.run([str(compiler), '/nologo', '/out:' + str(root / 'ssh.exe'), str(code)], capture_output=True)
             self.assertEqual(result.returncode, 0, result.stdout)
             shutil.copy2(root / 'ssh.exe', root / 'ssh-keygen.exe')
+            shutil.copy2(root / 'ssh.exe', root / 'ssh-add.exe')
             key = root / 'existing key'
             key.write_text('non-secret process-stub fixture')
             Path(str(key)+'.exit').touch()
@@ -171,6 +181,7 @@ $global:EVPNTestAnswers.Enqueue('existing-exit')
 $global:EVPNTestAnswers.Enqueue($env:EVPN_TEST_KEY + '.pub')
 $global:EVPNTestAnswers.Enqueue($env:EVPN_TEST_KEY + '.missing')
 $global:EVPNTestAnswers.Enqueue($env:EVPN_TEST_KEY)
+$global:EVPNTestAnswers.Enqueue('')
 $global:EVPNTestAnswers.Enqueue('wrong')
 $global:EVPNTestAnswers.Enqueue('2')
 $global:EVPNTestAnswers.Enqueue('')
@@ -191,6 +202,7 @@ function Read-Host {param([string]$Prompt); if(!$global:EVPNTestAnswers.Count){t
                 self.assertEqual(events[start + 1:finish], ['ssh-check', 'ssh-check'])
                 self.assertIn(b'REMOTE_DIALOG_STUB', result.stdout)
                 self.assertIn(b'COMMIT_STUB', result.stdout)
+                self.assertIn(b'Key was not unlocked', result.stdout)
                 self.assertIn(b'Route 2 did not reach exit', result.stdout)
 
     def test_real_shells_parse_and_generate_ssh_config(self):

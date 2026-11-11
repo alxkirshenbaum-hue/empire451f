@@ -18,6 +18,7 @@ import signal
 import socket
 import sys
 import time
+import threading
 import urllib.request
 import uuid
 
@@ -42,14 +43,32 @@ class Nodes:
         self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
     def call(self, role, action, c, **extra):
+        label = role + ' / ' + action
+        print(label, flush=True)
+        done = threading.Event()
+        def progress():
+            started = time.monotonic()
+            while not done.wait(20):
+                print(f'{label}: running for {int(time.monotonic() - started)} seconds', flush=True)
+        threading.Thread(target=progress, daemon=True).start()
+        try:
+            return self._execute(role, action, c, **extra)
+        finally:
+            done.set()
+
+    def _execute(self, role, action, c, **extra):
         if role == 'entry':
             return remote.dispatch(request(action, role, c, **extra))
         payload = {'action': action, 'config': c, **extra}
         payload.pop('clients', None)  # Client passwords never need to reach the exit node.
         req = urllib.request.Request('http://127.0.0.1:' + str(self.port) + '/', data=json.dumps(payload).encode(),
                                      headers={'Authorization': 'Bearer ' + self.token, 'Content-Type': 'application/json'})
-        with self.opener.open(req, timeout=5400) as response:
-            result = json.load(response)
+        timeout = {'prepare': 2400, 'apply': 1200, 'rollback': 1200, 'boot': 150, 'reboot': 150}.get(action, 300)
+        try:
+            with self.opener.open(req, timeout=timeout) as response:
+                result = json.load(response)
+        except OSError:
+            raise Invalid('exit/' + action + ': connection lost or timed out. Operation result unconfirmed.') from None
         require(result.get('ok'), 'exit/' + action + ': ' + result.get('error', 'failed'))
         return result['result']
 
@@ -60,6 +79,7 @@ def rpc(port, token):
     stopping = False
 
     class Handler(BaseHTTPRequestHandler):
+        timeout = 15
         def log_message(self, *args):
             pass
 
@@ -141,12 +161,12 @@ def configure(saved=None):
             if edit == 'continue':
                 return c
         except (ValueError, KeyError) as error:
-            print('Проверьте ответы: ' + str(error))
+            print('Check your answers: ' + str(error))
             edit = ask('Q20', 'Q01')
         if edit in answers:
             answers[edit] = ask(edit, answers[edit])
         else:
-            print('SSH-адреса/ключ/локальный импорт задаются запуском на компьютере; остальные ответы исправьте по Qxx.')
+            print('Enter a question ID to edit a server setting. SSH destinations, key and import path are selected on your computer.')
 
 
 def clients(c, imported, create=False):
@@ -163,13 +183,13 @@ def clients(c, imported, create=False):
         result = {'format': 'empire-vpn-clients', 'schema_version': 1, 'clients': [{'username': c['username'], 'password': 'PREVIEW-ONLY-NOT-A-CREDENTIAL'}]}
     else:
         import secrets
-        password = getpass.getpass('[Q14-P] Пароль клиента (пусто — случайный): ')
+        password = getpass.getpass('[Q14-P] Client password (hidden; empty generates one): ')
         result = credentials({'format': 'empire-vpn-clients', 'schema_version': 1, 'clients': [{'username': c['username'], 'password': password or secrets.token_urlsafe(32)}]})
     if create:
         path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         path.parent.chmod(0o700)
         remote.atomic(path, json.dumps(result))
-        print('Экспорт учётных данных сохранён на входной VDS: ' + str(path))
+        print('Client export saved on entry: ' + str(path))
     return result
 
 
@@ -186,40 +206,59 @@ def abort(nodes, state):
         except BaseException:
             errors.append(role)
     if errors:
-        print('Откат не подтверждён: ' + ','.join(errors) + '; остаются серверные таймеры, проверьте консоли.')
+        print('Rollback unconfirmed: ' + ','.join(errors) + '. Check rollback timers in the provider consoles.')
 
 
 def start(nodes, session, imported):
-    print('Установщик выполняется на входной VDS. Ключи SSH остаются на компьютере; агент SSH не перенаправляется.')
-    action = input('[Q00] new / apply-saved / preview / verify / rollback / acceptance / reboot-test [new]: ').strip() or 'new'
-    require(action in ('new', 'apply-saved', 'preview', 'verify', 'rollback', 'acceptance', 'reboot-test'), 'Unknown action')
+    print('Connected. The wizard is running on the entry server.')
+    actions = {
+        'preview': 'Show proposed changes for a new or saved deployment',
+        'new': 'Configure a deployment and review changes before applying',
+        'apply-saved': 'Load saved settings and review changes before applying',
+        'verify': 'Test the existing site, TCP, UDP and exit IP',
+        'rollback': 'Restore files from the last installation transaction',
+        'acceptance': 'Test the deployed VPN, including a WireGuard outage',
+        'reboot-test': 'Test recovery after rebooting each node',
+    }
+    print('[Q00] What would you like to do on this run?')
+    numbers = {}
+    for number, (name, description) in enumerate(actions.items(), 1):
+        numbers[str(number)] = name
+        print(f'  {number}  {description} ({name})')
+    while True:
+        answer = input('[Q00] Enter a number or action name [1]: ').removeprefix('\x1b[200~').removesuffix('\x1b[201~').strip().lower() or '1'
+        action = numbers.get(answer, answer)
+        if action in actions:
+            break
+        print('Choose a listed number or action name.')
     if action == 'new':
         c = configure()
     elif action == 'preview':
-        ident = ask('Q02', 'personal')
-        require(re.fullmatch(r'[a-z][a-z0-9]{2,9}', ident), 'Invalid ID')
+        ident = deployment_id()
         saved = remote.readjson('/var/lib/empire-vpn/' + ident + '/deployment.json')
         c = configure(saved or {'id': ident})
     else:
-        ident = ask('Q02', 'personal')
-        require(re.fullmatch(r'[a-z][a-z0-9]{2,9}', ident), 'Invalid ID')
-        saved = remote.readjson('/var/lib/empire-vpn/' + ident + '/deployment.json')
-        require(saved is not None, 'No saved deployment on this entry VPS; choose new')
+        while True:
+            ident = deployment_id()
+            saved = remote.readjson('/var/lib/empire-vpn/' + ident + '/deployment.json')
+            if saved is not None:
+                break
+            print('No saved deployment with this ID on entry. Enter another ID or press Ctrl+C to stop.')
         c = configure(saved) if action == 'apply-saved' else validate(saved)
     users = clients(c, imported)
     state = {'config': c, 'changed': [], 'action': action}
     if action == 'rollback':
-        require(input('Откатить последнюю транзакцию обеих нод? Введите ROLLBACK: ') == 'ROLLBACK', 'Cancelled')
+        require(input('Roll back both nodes? Type ROLLBACK: ') == 'ROLLBACK', 'Cancelled')
         for role in ('entry', 'exit'):
             print(role, nodes.call(role, 'rollback', c))
         return 0
     if action in ('verify', 'acceptance', 'reboot-test'):
         verify(nodes, c, users)
         if action == 'acceptance':
-            require(input('Отказной тест WG входа: введите FAIL-CLOSED: ') == 'FAIL-CLOSED', 'Cancelled')
+            require(input('Test entry WireGuard failure? Type FAIL-CLOSED: ') == 'FAIL-CLOSED', 'Cancelled')
             print(nodes.call('entry', 'failure', c, clients=users))
         if action == 'reboot-test':
-            require(input('Поочерёдный reboot выхода/входа: введите REBOOT: ') == 'REBOOT', 'Cancelled')
+            require(input('Reboot exit and entry in sequence? Type REBOOT: ') == 'REBOOT', 'Cancelled')
             state['boots'] = {r: nodes.call(r, 'boot', c)['boot_id'] for r in ('entry', 'exit')}
             store_session(session, state)
             nodes.call('exit', 'reboot', c)
@@ -230,20 +269,27 @@ def start(nodes, session, imported):
     require(not any(f['pending'] for f in facts.values()), 'Pending transaction; run rollback before retry')
     keys = {r: facts[r].get('public_key', ('A' if r == 'entry' else 'B') * 43 + '=') for r in facts}
     plans = {r: nodes.call(r, 'plan', c, keys=keys, clients=users) for r in facts}
-    print('Пакеты: wireguard-tools nftables iproute2 ca-certificates curl python3; вход также git build-essential и закреплённые Go/Caddy/sing-box.')
-    print('Действующая нода сохраняет WG-ключ; новая получает новый. DNS не меняется. Таймер точечного отката — 30 минут.')
+    print('Packages: wireguard-tools nftables iproute2 ca-certificates curl python3; entry also uses git, build-essential and pinned Go, Caddy and sing-box.')
+    print('The existing node keeps its WireGuard key. The new node gets a new key. Rollback timer: 30 minutes.')
     for role, p in plans.items():
         print('\n' + role + ':')
         for item in p['changes']:
             print('  ' + item['action'] + ' ' + item['path'])
     if action == 'preview':
-        print('PREVIEW: пакеты, ключи, постоянные файлы и службы не изменены.')
+        print('PREVIEW: no installation changes applied.')
         return 0
-    require(ask('Q19') == 'APPLY', 'Cancelled before deployment changes')
+    while True:
+        confirmation = ask('Q19')
+        if confirmation == 'APPLY':
+            break
+        if confirmation.lower() in ('', 'stop', 'cancel', 'no'):
+            print('Stopped before applying changes.')
+            return 0
+        print('Type APPLY to proceed or stop to leave the wizard.')
     users = clients(c, imported, create=True)
     remote.atomic(Path(names(c)['state']) / 'deployment.json', json.dumps(c))
     for role in ('entry', 'exit'):
-        print(role + ': подготовка компонентов на VPS; сборка Caddy может занять несколько минут.', flush=True)
+        print(role + ': preparing components. Building Caddy may take several minutes.', flush=True)
         keys[role] = nodes.call(role, 'prepare', c)['public_key']
     transaction = uuid.uuid4().hex
     state['transaction'] = transaction
@@ -255,11 +301,19 @@ def start(nodes, session, imported):
                 state['changed'].append(role)
             store_session(session, state)
             print(role + ': ' + result['status'])
-        print('Применение завершено. Возврат запускающему терминалу для НОВЫХ SSH-сессий перед фиксацией.')
+        print('Changes applied. Opening fresh SSH sessions before committing.')
         return 42
     except BaseException:
         abort(nodes, state)
         raise
+
+
+def deployment_id():
+    while True:
+        ident = ask('Q02', 'personal')
+        if re.fullmatch(r'[a-z][a-z0-9]{2,9}', ident):
+            return ident
+        print('Use 3-10 lowercase letters or digits, starting with a letter.')
 
 
 def finish(nodes, session, operation):
@@ -289,7 +343,7 @@ def finish(nodes, session, operation):
             verify(nodes, c, users)
         for role in state['changed']:
             print(role + ': ' + nodes.call(role, 'commit', c, transaction=state['transaction'])['status'])
-        print('Установка зафиксирована.' + (' TLS/Naive-приёмка отложена до DNS; выполните verify.' if c.get('tls') == 'defer' else ' HTTPS/TCP/UoT проверены.'))
+        print('Deployment committed.' + (' TLS verification deferred. Run verify after DNS is ready.' if c.get('tls') == 'defer' else ' HTTPS/TCP/UoT checks passed.'))
         return 0
     except BaseException:
         abort(nodes, state)
@@ -306,11 +360,15 @@ def main(argv):
     require(len(argv) == 3, 'Expected wizard RELAY_PORT OPERATION')
     nodes = Nodes(token, argv[1])
     try:
-        imported = credentials(json.loads(base64.b64decode(imported_raw))) if imported_raw else None
+        try:
+            imported = credentials(json.loads(base64.b64decode(imported_raw, validate=True))) if imported_raw else None
+        except (Invalid, ValueError, AttributeError, TypeError):
+            print('Q13: invalid v1 client export. Select another file.', file=sys.stderr)
+            return 46
         return start(nodes, session, imported) if argv[2] == 'start' else finish(nodes, session, argv[2])
     except (Invalid, KeyboardInterrupt, EOFError) as error:
-        print(str(error) if isinstance(error, Invalid) else 'Операция прервана; проверьте таймеры отката.', file=sys.stderr)
+        print(str(error) if isinstance(error, Invalid) else 'Interrupted. Check pending transactions if apply had started.', file=sys.stderr)
         return 1
     except ValueError:
-        print('Некорректный JSON импорта учётных данных; проверьте формат v1.', file=sys.stderr)
+        print('Invalid input format.', file=sys.stderr)
         return 1

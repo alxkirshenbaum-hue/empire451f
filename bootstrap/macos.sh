@@ -2,7 +2,7 @@
 # Bash 3.2 / standard macOS tools; no local Python or downloaded module bundle.
 set +x
 set -eu
-BOOT='python3 -c exec\(__import__\(\'"'"'base64\'"'"'\).b64decode\(\'"'"'aW1wb3J0IGhhc2hsaWIsaW8sanNvbixvcyxzeXMsdHlwZXMsdXJsbGliLnJlcXVlc3QsemlwZmlsZQp0cnk6CiAgICBpZiBvcy5nZXRldWlkKCkhPTA6IHJhaXNlIFJ1bnRpbWVFcnJvcigncm9vdCByZXF1aXJlZCcpCiAgICByZWxlYXNlPWRpY3QobGluZS5zcGxpdCgnPScsMSkgZm9yIGxpbmUgaW4gb3BlbignL2V0Yy9vcy1yZWxlYXNlJykgaWYgJz0nIGluIGxpbmUpCiAgICBpZiByZWxlYXNlLmdldCgnSUQnLCcnKS5zdHJpcCgpLnN0cmlwKCciJykhPSd1YnVudHUnIG9yIHJlbGVhc2UuZ2V0KCdWRVJTSU9OX0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIG5vdCBpbiAoJzI0LjA0JywnMjYuMDQnKSBvciBvcy51bmFtZSgpLm1hY2hpbmUhPSd4ODZfNjQnOiByYWlzZSBSdW50aW1lRXJyb3IoJ1VidW50dSAyNC4wNCBvciAyNi4wNCBhbWQ2NCByZXF1aXJlZCcpCiAgICBkYXRhPXVybGxpYi5yZXF1ZXN0LnVybG9wZW4oJ2h0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9hbHhraXJzaGVuYmF1bS1odWUvZW1waXJlNDUxZi92MC4yLjcvZGlzdC9pbnN0YWxsZXIuemlwJyx0aW1lb3V0PTYwKS5yZWFkKDIqMTAyNCoxMDI0KQogICAgaWYgaGFzaGxpYi5zaGEyNTYoZGF0YSkuaGV4ZGlnZXN0KCkhPSdlZWFhODZhN2ZmZjA2ZmM3NThkYzkxMzg0OGMxMjNmNmIzZjlkYzhhYjkzNzU5MDNjOTFmNzBhODMyNmZhYTk3JzogcmFpc2UgUnVudGltZUVycm9yKCdJbnN0YWxsZXIgU0hBMjU2IG1pc21hdGNoJykKICAgIGFyY2hpdmU9emlwZmlsZS5aaXBGaWxlKGlvLkJ5dGVzSU8oZGF0YSkpCiAgICBidW5kbGU9e25hbWU6YXJjaGl2ZS5yZWFkKG5hbWUpLmRlY29kZSgndXRmLTgnKSBmb3IgbmFtZSBpbiBhcmNoaXZlLm5hbWVsaXN0KCl9CiAgICBmb3IgbmFtZSBpbiAoJ3JlbmRlcicsJ3JlbW90ZScsJ2NsaWVudCcsJ2NvbnRyb2xsZXInKToKICAgICAgICBtb2R1bGU9dHlwZXMuTW9kdWxlVHlwZShuYW1lKTsgbW9kdWxlLl9fZmlsZV9fPScvcnVuL2VtcGlyZS1zb3VyY2UvJytuYW1lKycucHknCiAgICAgICAgc3lzLm1vZHVsZXNbbmFtZV09bW9kdWxlCiAgICAgICAgaWYgbmFtZT09J2NvbnRyb2xsZXInOiBtb2R1bGUuQlVORExFPWJ1bmRsZQogICAgICAgIGV4ZWMoY29tcGlsZShidW5kbGVbbmFtZSsnLnB5J10sbmFtZSsnLnB5JywnZXhlYycpLG1vZHVsZS5fX2RpY3RfXykKICAgIHN5cy5leGl0KHN5cy5tb2R1bGVzWydjb250cm9sbGVyJ10ubWFpbihzeXMuYXJndlsxOl0pKQpleGNlcHQgRXhjZXB0aW9uIGFzIGU6CiAgICBwcmludCgnSW5zdGFsbGVyIGJvb3RzdHJhcCBmYWlsZWQ6ICcrdHlwZShlKS5fX25hbWVfXyxmaWxlPXN5cy5zdGRlcnIpCiAgICBzeXMuZXhpdCgxKQo=\'"'"'\)\)'
+BOOT='python3 -c exec\(__import__\(\'"'"'base64\'"'"'\).b64decode\(\'"'"'aW1wb3J0IHNpZ25hbCxoYXNobGliLGlvLGpzb24sb3Msc3lzLHR5cGVzLHVybGxpYi5yZXF1ZXN0LHppcGZpbGUKdHJ5OgogICAgaWYgb3MuZ2V0ZXVpZCgpIT0wOiByYWlzZSBSdW50aW1lRXJyb3IoJ3Jvb3QgcmVxdWlyZWQnKQogICAgcmVsZWFzZT1kaWN0KGxpbmUuc3BsaXQoJz0nLDEpIGZvciBsaW5lIGluIG9wZW4oJy9ldGMvb3MtcmVsZWFzZScpIGlmICc9JyBpbiBsaW5lKQogICAgaWYgcmVsZWFzZS5nZXQoJ0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0ndWJ1bnR1JyBvciByZWxlYXNlLmdldCgnVkVSU0lPTl9JRCcsJycpLnN0cmlwKCkuc3RyaXAoJyInKSBub3QgaW4gKCcyNC4wNCcsJzI2LjA0Jykgb3Igb3MudW5hbWUoKS5tYWNoaW5lIT0neDg2XzY0JzogcmFpc2UgUnVudGltZUVycm9yKCdVYnVudHUgMjQuMDQgb3IgMjYuMDQgYW1kNjQgcmVxdWlyZWQnKQogICAgZGVmIGV4cGlyZWQoKmFyZ3MpOiByYWlzZSBUaW1lb3V0RXJyb3IoIkJ1bmRsZSBkb3dubG9hZCB0aW1lZCBvdXQiKQogICAgc2lnbmFsLnNpZ25hbChzaWduYWwuU0lHQUxSTSxleHBpcmVkKQogICAgc2lnbmFsLmFsYXJtKDY1KQogICAgZGF0YT11cmxsaWIucmVxdWVzdC51cmxvcGVuKCdodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vYWx4a2lyc2hlbmJhdW0taHVlL2VtcGlyZTQ1MWYvdjAuMi44L2Rpc3QvaW5zdGFsbGVyLnppcCcsdGltZW91dD02MCkucmVhZCgyKjEwMjQqMTAyNCkKICAgIHNpZ25hbC5hbGFybSgwKQogICAgaWYgaGFzaGxpYi5zaGEyNTYoZGF0YSkuaGV4ZGlnZXN0KCkhPSc2MTY0YjE2NGNlNWVjYmQ2MjJlYjk0YjFkYTcwN2YyM2U3MDViOWE1ZDMyZDlmMjE5OThjMjc5NDUzYzA2YjI1JzogcmFpc2UgUnVudGltZUVycm9yKCdJbnN0YWxsZXIgU0hBMjU2IG1pc21hdGNoJykKICAgIGFyY2hpdmU9emlwZmlsZS5aaXBGaWxlKGlvLkJ5dGVzSU8oZGF0YSkpCiAgICBidW5kbGU9e25hbWU6YXJjaGl2ZS5yZWFkKG5hbWUpLmRlY29kZSgndXRmLTgnKSBmb3IgbmFtZSBpbiBhcmNoaXZlLm5hbWVsaXN0KCl9CiAgICBmb3IgbmFtZSBpbiAoJ3JlbmRlcicsJ3JlbW90ZScsJ2NsaWVudCcsJ2NvbnRyb2xsZXInKToKICAgICAgICBtb2R1bGU9dHlwZXMuTW9kdWxlVHlwZShuYW1lKTsgbW9kdWxlLl9fZmlsZV9fPScvcnVuL2VtcGlyZS1zb3VyY2UvJytuYW1lKycucHknCiAgICAgICAgc3lzLm1vZHVsZXNbbmFtZV09bW9kdWxlCiAgICAgICAgaWYgbmFtZT09J2NvbnRyb2xsZXInOiBtb2R1bGUuQlVORExFPWJ1bmRsZQogICAgICAgIGV4ZWMoY29tcGlsZShidW5kbGVbbmFtZSsnLnB5J10sbmFtZSsnLnB5JywnZXhlYycpLG1vZHVsZS5fX2RpY3RfXykKICAgIHN5cy5leGl0KHN5cy5tb2R1bGVzWydjb250cm9sbGVyJ10ubWFpbihzeXMuYXJndlsxOl0pKQpleGNlcHQgRXhjZXB0aW9uIGFzIGU6CiAgICBwcmludCgnSW5zdGFsbGVyIGJvb3RzdHJhcCBmYWlsZWQ6ICcrdHlwZShlKS5fX25hbWVfXyxmaWxlPXN5cy5zdGRlcnIpCiAgICBzeXMuZXhpdCgxKQo=\'"'"'\)\)'
 ask() {
  printf '[%s] %s [%s]: ' "$1" "$2" "${3:-}" >&2
  IFS= read -r answer || exit 130
@@ -10,10 +10,34 @@ ask() {
 }
 die() { printf '%s\n' "$*" >&2; exit 1; }
 for tool in ssh ssh-keygen ssh-add openssl curl awk base64; do command -v "$tool" >/dev/null 2>&1 || die "Missing standard macOS tool: $tool"; done
-ENTRY=$(ask Q03 'Entry root@IP or existing SSH alias')
-EXIT_NODE=$(ask Q05 'Exit root@IP or existing SSH alias')
+resolve_target() {
+ local prefix="$1" target="$2" output key value
+ case "$target" in ''|-*|*[!A-Za-z0-9_.@:-]*) return 1;; esac
+ case "$target" in [0-9]*.[0-9]*.[0-9]*.[0-9]*) target="root@$target";; esac
+ output=$(ssh -G "$target" 2>/dev/null) || return 1
+ for key in hostname user port proxyjump hostkeyalias identityfile; do
+  value=$(printf '%s\n' "$output" | awk -v k="$key" '$1==k{sub(/^[^ ]+ /,""); print; exit}')
+  printf -v "${prefix}_${key}" '%s' "$value"
+ done
+}
+for prefix in E X; do
+ while :; do
+  if [ "$prefix" = E ]; then target=$(ask Q03 'Entry root@IP or existing SSH alias'); else target=$(ask Q05 'Exit root@IP or existing SSH alias'); fi
+  if resolve_target "$prefix" "$target"; then
+   user_name="${prefix}_user"
+   if [ "${!user_name}" = root ]; then break; fi
+  fi
+  printf '%s\n' 'Enter a valid root destination or SSH alias for root.' >&2
+ done
+ if [ "$prefix" = E ]; then ENTRY="$target"; else EXIT_NODE="$target"; fi
+done
+OWN_AGENT=0
+trap 'if [ "$OWN_AGENT" = 1 ]; then ssh-agent -k >/dev/null 2>&1 || true; fi' EXIT
+key_default=new
 while :; do
- IDENTITY=$(ask Q09 'Private SSH key path (e.g. id_ed25519), or new' new)
+while :; do
+ IDENTITY=$(ask Q09 'Private SSH key path, new, or stop' "$key_default")
+ [ "$IDENTITY" != stop ] || exit 0
  case "$IDENTITY" in
   new) break;;
   *.[pP][uU][bB]) printf '%s\n' 'This is a public key. Enter the private key path, usually the same name without .pub.' >&2; continue;;
@@ -29,16 +53,20 @@ fi
 case "$IDENTITY" in '~'*) IDENTITY="$HOME${IDENTITY#\~}";; esac
 [ -f "$IDENTITY" ] || die 'SSH key file missing'
 case "$IDENTITY" in *'"'*|*'\'*) die 'Unsupported SSH key path character';; esac
-OWN_AGENT=0
 if ! ssh-keygen -y -P '' -f "$IDENTITY" >/dev/null 2>&1; then
  agent_code=0; ssh-add -l >/dev/null 2>&1 || agent_code=$?
  if [ "$agent_code" -eq 2 ]; then
-  [ "$(ask Q21 'Start ssh-agent for this installer session? yes/no' yes)" = yes ] || die 'ssh-agent required'
+  [ "$(ask Q21 'Start ssh-agent for this installer session? yes/no' yes)" = yes ] || continue
   eval "$(ssh-agent -s)" >/dev/null
   OWN_AGENT=1
  fi
- ssh-add "$IDENTITY"
+ if ! ssh-add "$IDENTITY"; then
+  printf '%s\n' 'Key was not unlocked. Press Enter at Q09 to retry, enter a different path, or type stop.' >&2
+  key_default="$IDENTITY"; continue
+ fi
 fi
+break
+done
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/empire-launch.XXXXXX")
 chmod 700 "$WORK"
 CONFIG="$WORK/ssh-config"
@@ -51,24 +79,11 @@ cleanup() {
   kill "$RPC_PID" 2>/dev/null || true
   wait "$RPC_PID" 2>/dev/null || true
  fi
- rm -f "$WORK/ssh-config" "$WORK/ready" "$WORK/rpc.err"
+ rm -f "$WORK/ssh-config" "$WORK/ready" "$WORK/rpc.err" "$WORK/check.out"
  rmdir "$WORK" 2>/dev/null || true
  if [ "$OWN_AGENT" = 1 ]; then ssh-agent -k >/dev/null 2>&1 || true; fi
 }
 trap cleanup EXIT
-resolve_target() {
- local prefix="$1" target="$2" output key value
- case "$target" in -*|*[!A-Za-z0-9_.@:-]*) die 'Invalid SSH destination';; esac
- case "$target" in [0-9]*.[0-9]*.[0-9]*.[0-9]*) target="root@$target";; esac
- output=$(ssh -G "$target" 2>/dev/null) || die 'Cannot resolve SSH destination'
- for key in hostname user port proxyjump hostkeyalias identityfile; do
-  value=$(printf '%s\n' "$output" | awk -v k="$key" '$1==k{sub(/^[^ ]+ /,""); print; exit}')
-  printf -v "${prefix}_${key}" '%s' "$value"
- done
-}
-resolve_target E "$ENTRY"
-resolve_target X "$EXIT_NODE"
-[ "$E_user" = root ] && [ "$X_user" = root ] || die 'Root SSH access required; prepare it through provider console'
 E_jump=''; X_jump=''; T_hostname=''; T_key="$IDENTITY"
 write_node() {
  local name="$1" prefix="$2" key="$3" h="${2}_hostname" u="${2}_user" p="${2}_port" a="${2}_hostkeyalias"
@@ -95,9 +110,21 @@ write_config() {
  } > "$CONFIG"
  chmod 600 "$CONFIG"
 }
+bounded_check() {
+ local pid result limit=$((SECONDS+25))
+ ssh -n -T -F "$CONFIG" "$@" >"$WORK/check.out" 2>&1 &
+ pid=$!
+ while kill -0 "$pid" 2>/dev/null; do
+  if [ "$SECONDS" -ge "$limit" ]; then kill -KILL "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; return 124; fi
+  sleep 1
+ done
+ result=0; wait "$pid" || result=$?
+ cat "$WORK/check.out"; return "$result"
+}
 probe() {
  local output
- if output=$(ssh -F "$CONFIG" "$1" true 2>&1); then printf ok; return; fi
+ printf 'Checking SSH: %s (up to 25 seconds)...\n' "$1" >&2
+ if output=$(bounded_check "$1" true); then printf ok; return; fi
  case "$output" in
   *'REMOTE HOST IDENTIFICATION HAS CHANGED'*) printf changed-key;;
   *'Host key verification failed'*|*'host key is known'*) printf identity;;
@@ -114,23 +141,23 @@ authenticate() {
   ssh -F "$CONFIG" -o BatchMode=no -o StrictHostKeyChecking=ask "$role" true >&2 || true
   status=$(probe "$role")
  fi
- if [ "$status" = authentication ]; then
-  choice=$(ask Q17 "$role: password / console / retry" retry)
+ while [ "$status" = authentication ]; do
+  choice=$(ask Q17 "$role: password / console / retry / stop" retry)
   if [ "$choice" = retry ]; then
    local retry_key="$IDENTITY" candidate='' target=''
    case "$role" in entry) candidate="$E_identityfile"; target="$ENTRY";; exit) candidate="$X_identityfile"; target="$EXIT_NODE";; esac
    case "$candidate" in '~/'*) candidate="$HOME/${candidate#\~/}";; esac
    case "$target" in *@*|*:*) ;; *) [ ! -f "$candidate" ] || retry_key="$candidate";; esac
-   ssh-add "$retry_key" >&2
+   ssh-add "$retry_key" >&2 || true
   elif [ "$choice" = password ] || [ "$choice" = console ]; then
    public=$(ssh-keygen -y -f "$IDENTITY" | awk '{print $1" "$2}')
    case "$public" in *[!A-Za-z0-9+/=._\ -]*) die 'Invalid public key';; esac
    cmd="set -eu; . /etc/os-release; case \$ID:\$VERSION_ID:\$(uname -m) in ubuntu:24.04:x86_64|ubuntu:26.04:x86_64) ;; *) exit 41;; esac; umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; chmod 700 ~/.ssh; chmod 600 ~/.ssh/authorized_keys; grep -qxF '$public' ~/.ssh/authorized_keys || printf '%s\\n' '$public' >> ~/.ssh/authorized_keys"
    if [ "$choice" = console ]; then printf '%s\n' "$cmd" >&2; [ -n "$(ask Q17 'Run PUBLIC-key command in provider console, then type done' done)" ];
    else ssh -F "$CONFIG" -o BatchMode=no -o PubkeyAuthentication=no -o PreferredAuthentications=password,keyboard-interactive "$role" "$cmd" >&2; fi
-  else die 'Unknown initial-access choice'; fi
+  elif [ "$choice" = stop ]; then die 'Stopped at SSH authorization.'; else continue; fi
   status=$(probe "$role")
- fi
+ done
  printf '%s' "$status"
 }
 write_config
@@ -157,7 +184,7 @@ for role in entry exit; do
   done
   if [ "$choice" = 1 ]; then
    case "${!jump_name}" in ''|none|*,*) die 'Single-hop configured ProxyJump unavailable';; esac
-   resolve_target T "${!jump_name}"
+   resolve_target T "${!jump_name}" || { printf '%s\n' 'Cannot resolve saved jump host; choose another route.' >&2; continue; }
    case "$T_identityfile" in '~'*) T_identityfile="$HOME${T_identityfile#\~}";; esac
    [ ! -f "$T_identityfile" ] || T_key="$T_identityfile"
    printf -v "${prefix}_jump" '%s' transit
@@ -175,25 +202,38 @@ for role in entry exit; do
 done
 export LC_EVPN_PROBE=1
 for role in entry exit; do
- result=$(ssh -F "$CONFIG" -o SendEnv=LC_EVPN_PROBE "$role" 'set -eu; . /etc/os-release; case $ID:$VERSION_ID:$(uname -m):$(id -u) in ubuntu:24.04:x86_64:0|ubuntu:26.04:x86_64:0) ;; *) exit 41;; esac; test x$LC_EVPN_PROBE = x1 || exit 43; if command -v python3 >/dev/null; then echo READY; else echo MISSING_PYTHON; fi') || die "$role: Ubuntu 24.04/26.04/amd64/root or AcceptEnv LC_* check failed"
+ while :; do
+  printf 'Checking Ubuntu, Python and SSH environment: %s (up to 25 seconds)...\n' "$role" >&2
+  status=0
+ result=$(bounded_check -o SendEnv=LC_EVPN_PROBE "$role" 'set -eu; . /etc/os-release; case $ID:$VERSION_ID:$(uname -m):$(id -u) in ubuntu:24.04:x86_64:0|ubuntu:26.04:x86_64:0) ;; *) exit 41;; esac; test x${LC_EVPN_PROBE:-} = x1 || exit 43; if command -v python3 >/dev/null; then echo READY; else echo MISSING_PYTHON; fi') || status=$?
+  case "$status:$result" in 0:READY|0:MISSING_PYTHON) break;; esac
+  printf 'Platform check failed on %s (code %s; 41=platform, 43=SSH environment, 124=timeout).\n' "$role" "$status" >&2
+  [ "$(ask Platform 'Retry this check or stop?' retry)" != stop ] || exit 1
+ done
  if [ "$result" = MISSING_PYTHON ]; then
   [ "$(ask Q22 "$role: install python3 on VPS? Type INSTALL-PYTHON")" = INSTALL-PYTHON ] || die 'VPS Python bootstrap declined'
-  ssh -F "$CONFIG" "$role" 'export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l; apt-get update && apt-get install -y --no-install-recommends python3'
+  ssh -F "$CONFIG" "$role" 'export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l; timeout -k 15s 600 apt-get update && timeout -k 15s 1200 apt-get install -y --no-install-recommends python3'
  fi
 done
+read_client_export() {
+while :; do
 IMPORT=$(ask Q13 'Optional LOCAL client export path; empty = existing/new credentials on entry')
 LC_EVPN_CLIENTS=''
 if [ -n "$IMPORT" ]; then
  case "$IMPORT" in '~'*) IMPORT="$HOME${IMPORT#\~}";; esac
- [ -f "$IMPORT" ] || die 'Client export missing'
- [ "$(wc -c < "$IMPORT" | tr -d ' ')" -le 64000 ] || die 'Client export too large'
+ if [ ! -r "$IMPORT" ] || [ ! -f "$IMPORT" ] || [ "$(wc -c < "$IMPORT" | tr -d ' ')" -gt 64000 ]; then printf '%s\n' 'Enter a readable export path (maximum 64000 bytes).' >&2; continue; fi
  LC_EVPN_CLIENTS=$(base64 < "$IMPORT" | tr -d '\n')
 fi
+break
+done
+}
+read_client_export
 TOKEN=$(openssl rand -hex 32)
 export LC_EVPN_TOKEN="$TOKEN" LC_EVPN_SESSION="$(openssl rand -hex 16)" LC_EVPN_CLIENTS
 random_port() { local hex; hex=$(openssl rand -hex 2); printf '%s' "$((30000 + 16#$hex % 29000))"; }
 LOCAL_PORT=$(random_port); RPC_PORT=$(random_port); RELAY_PORT=$(random_port)
 start_rpc() {
+ printf '%s\n' 'Opening exit SSH tunnel and loading installer on exit (up to 90 seconds)...' >&2
  rm -f "$WORK/ready"; mkfifo "$WORK/ready"
  (unset LC_EVPN_CLIENTS; exec ssh -n -F "$CONFIG" -o SendEnv=LC_EVPN_TOKEN -L "127.0.0.1:$LOCAL_PORT:127.0.0.1:$RPC_PORT" exit "$BOOT rpc $RPC_PORT") > "$WORK/ready" 2> "$WORK/rpc.err" &
  RPC_PID=$!
@@ -201,17 +241,22 @@ start_rpc() {
  [ "$ready" = EVPN_RPC_READY ] || die 'Unexpected RPC handshake'
 }
 run_wizard() {
+ printf 'Opening interactive wizard on entry: %s ...\n' "$1" >&2
  ssh -F "$CONFIG" -tt -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -R "127.0.0.1:$RELAY_PORT:127.0.0.1:$LOCAL_PORT" entry "$BOOT wizard $RELAY_PORT $1"
 }
 fresh_sessions() { [ "$(probe entry)" = ok ] && [ "$(probe exit)" = ok ]; }
 wait_reboot() {
  sleep 8
- local attempt=0
- while [ "$attempt" -lt 48 ]; do [ "$(probe "$1")" != ok ] || return 0; sleep 5; attempt=$((attempt+1)); done
+ local deadline=$((SECONDS+240))
+ while [ "$SECONDS" -lt "$deadline" ]; do [ "$(probe "$1")" != ok ] || return 0; sleep 5; done
  die "$1: SSH did not recover; use provider console"
 }
 start_rpc
-code=0; run_wizard start || code=$?
+while :; do
+ code=0; run_wizard start || code=$?
+ [ "$code" = 46 ] || break
+ read_client_export
+done
 if [ "$code" -eq 42 ]; then
  if fresh_sessions; then code=0; run_wizard finish || code=$?; else run_wizard abort || true; die 'New SSH session failed; rollback requested'; fi
 fi

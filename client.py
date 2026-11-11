@@ -24,28 +24,28 @@ ROOT = Path(__file__).resolve().parent
 sys.dont_write_bytecode = True
 
 QUESTIONS = {
- 'Q01': ('Режим: fresh / replace-entry / replace-exit', 'fresh — две чистые VDS; replace-entry — новый вход; replace-exit — новый выход.'),
- 'Q02': ('Идентификатор установки', '3–10 строчных латинских букв/цифр, первая — буква. При повторе используйте прежний ID.'),
- 'Q03': ('SSH входа: root@IP или существующий SSH alias', 'SSH-доступ берётся из панели провайдера. Адрес нового входа, а не старой KVMka.'),
- 'Q04': ('Публичный IPv4 входа', 'Выделенный IPv4 новой VDS из панели провайдера.'),
- 'Q05': ('SSH выхода: root@IP или SSH alias', 'При переносе входа укажите сохранённый выход.'),
- 'Q06': ('Публичный IPv4 выхода', 'Это ожидаемый адрес выхода VPN в Интернет.'),
- 'Q07': ('Домен HTTPS', 'Для испытания рекомендуем временный домен, направленный на новый вход. Рабочий DNS установщик не меняет.'),
- 'Q08': ('Сохранённая нода: legacy / managed', 'legacy — проверенная схема старого проекта; managed — нода этого установщика с тем же ID.'),
- 'Q09': ('Приватный SSH-ключ: путь или new', 'Ключ остаётся на этом компьютере. Для новой пары пароль вводится в ssh-keygen скрыто.'),
- 'Q10': ('WG-подсеть /30', 'Для нового входа используйте отдельную подсеть; при замене выхода сохраните подсеть прежнего входа.'),
- 'Q11': ('Локальная подсеть реле /30', 'Она не должна пересекаться с WG-подсетью и маршрутами серверов.'),
- 'Q12': ('UDP-порт WireGuard выхода', 'Открывается только для IP входа. Для параллельного туннеля нужен свободный порт.'),
- 'Q13': ('Импорт учётных данных: путь или пусто', 'Формат empire-vpn-clients v1. Для сохранения клиентского доступа импортируйте прежние логин/пароль.'),
- 'Q14': ('Имя нового клиента', 'Используется только без импорта. Пароль будет запрошен скрыто; пустой ответ создаёт случайный.'),
- 'Q15': ('Дополнительные запрещённые IP через запятую', 'Например, адрес резервной VDS. Эти адреса также нельзя выбирать целями установки.'),
- 'Q16': ('TLS: ready / defer', 'ready — DNS уже указывает на новый вход; defer — установить сеть сейчас, проверить HTTPS позже.'),
- 'Q17': ('Первоначальный доступ: password / console / retry', 'password добавит только выбранный публичный ключ; console покажет команду для консоли провайдера.'),
- 'Q18': ('Как компьютеру подключиться к серверу по SSH? 1 / 2 / 0', '1 — через сервер из SSH-настроек; 2 — через другую VDS установки; 0 — остановиться. Только при сетевой ошибке.'),
- 'Q19': ('Подтвердить применение: APPLY', 'Проверьте адреса, список файлов, пакеты и 30-минутный таймер отката.'),
- 'Q20': ('Продолжить или исправить: continue / Qxx', 'Номер вопроса возвращает к соответствующему ответу. До APPLY серверы не изменяются.'),
- 'Q21': ('Запустить ssh-agent для защищённого ключа? yes / no', 'Windows запросит права администратора для службы; macOS запустит агент только для текущего установщика.'),
- 'Q22': ('Установить python3 для инвентаризации VDS? INSTALL-PYTHON', 'Только для минимального образа Ubuntu без Python. Сначала проверяются ОС, архитектура и root; выполняются apt-get update/install python3.'),
+ 'Q01': ('Deployment mode', 'fresh: two new servers. replace-entry or replace-exit: keep the other node.'),
+ 'Q02': ('Deployment ID', 'Use 3-10 lowercase letters or digits starting with a letter. Reuse this ID for later actions.'),
+ 'Q03': ('Entry SSH destination', 'Enter root@IP or an existing alias for the new entry.'),
+ 'Q04': ('Entry public IPv4', 'Check your provider panel.'),
+ 'Q05': ('Exit SSH destination', 'For an entry migration, select the existing exit.'),
+ 'Q06': ('Exit public IPv4', 'Expected public IP of VPN traffic.'),
+ 'Q07': ('HTTPS domain', 'Use a test domain pointing to the new entry for migration.'),
+ 'Q08': ('Preserved node type: legacy / managed', 'Choose legacy for the original installation, managed for a node installed with this ID.'),
+ 'Q09': ('SSH key path or new', 'The private key stays on this computer.'),
+ 'Q10': ('WireGuard subnet (/30)', 'Choose a separate subnet for a new entry. Keep the original subnet when replacing the exit.'),
+ 'Q11': ('Local relay subnet (/30)', 'Avoid existing routes and the WireGuard subnet.'),
+ 'Q12': ('Exit WireGuard UDP port', 'Use a free port for a parallel tunnel.'),
+ 'Q13': ('Client export file (optional)', 'Import empire-vpn-clients v1 to keep existing credentials.'),
+ 'Q14': ('New client username', 'Used when creating credentials.'),
+ 'Q15': ('Protected IPs, separated by commas', 'These servers cannot be deployment targets.'),
+ 'Q16': ('TLS verification: ready / defer', 'Use ready if DNS points to entry, or defer to verify later.'),
+ 'Q17': ('Initial SSH access', 'Use password or provider console to install the public key, or retry login.'),
+ 'Q18': ('SSH route', 'Choose a displayed jump host or enter 0 to stop.'),
+ 'Q19': ('Apply these changes?', 'Type APPLY after reviewing both nodes.'),
+ 'Q20': ('Continue or edit an answer', 'Type continue or a question ID such as Q04.'),
+ 'Q21': ('Start ssh-agent?', 'Unlock the private key on your computer.'),
+ 'Q22': ('Install Python for inventory?', 'Type INSTALL-PYTHON for a minimal Ubuntu image.'),
 }
 
 
@@ -106,11 +106,11 @@ def clients_for(c, applying):
     elif not applying:
         value = {'format': 'empire-vpn-clients', 'schema_version': 1, 'clients': [{'username': c.get('username', 'owner'), 'password': 'PREVIEW-ONLY-NOT-A-CREDENTIAL'}]}
     else:
-        password = getpass.getpass('[Q14-P] Пароль клиента (пусто = случайный; ввод скрыт): ')
+        password = getpass.getpass('[Q14-P] Client password (hidden; empty generates one): ')
         value = credentials({'format': 'empire-vpn-clients', 'schema_version': 1, 'clients': [{'username': c.get('username', 'owner'), 'password': password or secrets.token_urlsafe(32)}]})
     if applying:
         save_private(saved, value)
-        print('Учётные данные сохранены вне репозитория: ' + str(saved))
+        print('Credentials saved at: ' + str(saved))
     return value
 
 
@@ -144,12 +144,12 @@ def wizard():
             if choice == 'continue':
                 return c
         except (ValueError, KeyError) as e:
-            print('Проверьте ответы: ' + str(e))
+            print('Check your answers: ' + str(e))
             choice = ask('Q20', 'Q01')
         if choice in order:
             answers[choice] = ask(choice, answers[choice])
         else:
-            print('Укажите номер Q01–Q16.')
+            print('Enter a question ID from Q01 to Q16.')
 
 
 def key_setup(c, applying):
@@ -159,7 +159,7 @@ def key_setup(c, applying):
         if not Path(identity).exists():
             require(applying, 'Preview: key does not exist. Use offline preview or select an existing key; preview never generates keys.')
             Path(identity).parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-            print('ssh-keygen запросит необязательный пароль новой пары. Для защищённого ключа нужен ssh-agent.')
+            print('ssh-keygen prompts for an optional passphrase. Encrypted keys use ssh-agent.')
             require(subprocess.call(['ssh-keygen', '-t', 'ed25519', '-a', '100', '-f', identity]) == 0, 'SSH key generation failed')
     identity = str(Path(identity).expanduser().resolve())
     require(Path(identity).is_file(), 'SSH private key not found')
@@ -252,11 +252,11 @@ class SSH:
         for role in ('entry', 'exit'):
             error = self.ping(role)
             if error == 'identity' and self.interactive and applying:
-                print('[' + role + '] Сверьте fingerprint SSH с консолью провайдера. Изменённый host key автоматически не принимается.')
+                print('[' + role + '] Verify the SSH fingerprint in the provider console.')
                 subprocess.call(['ssh', '-F', str(self.path), '-o', 'StrictHostKeyChecking=ask', role, 'true'])
                 error = self.ping(role)
             if error == 'authentication' and self.interactive and applying:
-                print('[' + role + '] Если ключ защищён паролем, сначала добавьте его в ssh-agent: ssh-add "' + self.c['identity'] + '"')
+                print('[' + role + '] Unlock the key using ssh-add: ' + self.c['identity'] + '"')
                 action = ask('Q17', 'retry')
                 if action in ('password', 'console'):
                     pub = Path(self.c['identity'] + '.pub')
@@ -265,8 +265,8 @@ class SSH:
                     require(re.fullmatch(r'(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp\d+) [A-Za-z0-9+/=]+(?: [^\r\n]*)?', public), 'Invalid public SSH key')
                     cmd = 'set -eu; . /etc/os-release; case "$ID:$VERSION_ID:$(uname -m)" in ubuntu:24.04:x86_64|ubuntu:26.04:x86_64) ;; *) exit 41;; esac; umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; chmod 700 ~/.ssh; chmod 600 ~/.ssh/authorized_keys; grep -qxF ' + shlex.quote(public) + ' ~/.ssh/authorized_keys || printf "%s\\n" ' + shlex.quote(public) + ' >> ~/.ssh/authorized_keys'
                     if action == 'console':
-                        print('Выполните в консоли провайдера (только публичный ключ):\n' + cmd)
-                        input('После выполнения нажмите Enter: ')
+                        print('Run this public-key command in the provider console:\n' + cmd)
+                        input('Press Enter when finished: ')
                     else:
                         subprocess.call(['ssh', '-F', str(self.path), '-o', 'PubkeyAuthentication=no', '-o', 'PreferredAuthentications=password,keyboard-interactive', role, cmd])
                 elif action == 'retry':
@@ -277,7 +277,7 @@ class SSH:
         for role, error in list(failures.items()):
             other = 'exit' if role == 'entry' else 'entry'
             if error == 'network' and self.interactive:
-                print('Прямое SSH к ' + role + ' недоступно по сети.')
+                print('Direct SSH to ' + role + ' is unreachable.')
                 configured = self.resolved[role].get('proxyjump', 'none')
                 number = ask('Q18', '1' if configured != 'none' else ('2' if other not in failures else '0'))
                 choice = {'1': 'configured', '2': 'other-node'}.get(number, 'no')
@@ -306,11 +306,11 @@ class SSH:
                     self.write_config()
                     error = self.ping(role)
                 if error == 'identity' and applying:
-                    print('Сверьте fingerprint целевой VDS в соединении через ProxyJump.')
+                    print('Verify the target fingerprint through the jump host.')
                     subprocess.call(['ssh', '-F', str(self.path), '-o', 'StrictHostKeyChecking=ask', role, 'true'])
                     error = self.ping(role)
-            require(error is None, 'SSH ' + role + ': ' + str(error) + '. identity = проверка host key; authentication = ключ/пароль; network = сеть. Изменения не начаты.')
-        print('Новые ключевые SSH-сессии обеих нод проверены; маршрут: ' + json.dumps(self.jumps))
+            require(error is None, 'SSH ' + role + ': ' + str(error) + '. Check the host identity, login or network as indicated.')
+        print('Verified new SSH sessions to both nodes. Route: ' + json.dumps(self.jumps))
 
     def ensure_runtime(self, applying):
         probe = 'set -eu; . /etc/os-release; case "$ID:$VERSION_ID:$(uname -m):$(id -u)" in ubuntu:24.04:x86_64:0|ubuntu:26.04:x86_64:0) ;; *) exit 41;; esac; if command -v python3 >/dev/null; then echo PYTHON_PRESENT; else echo PYTHON_MISSING; fi'
@@ -319,7 +319,7 @@ class SSH:
             require(p.returncode == 0, role + ': Ubuntu 24.04/26.04 amd64/root check failed before modifications')
             if b'PYTHON_MISSING' in p.stdout:
                 require(applying, role + ': Python3 absent; preview cannot install prerequisites')
-                print(role + ': минимальный образ без Python3.')
+                print(role + ': minimal image without Python.')
                 require(ask('Q22') == 'INSTALL-PYTHON', 'Python bootstrap declined')
                 install = 'export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l; apt-get update && apt-get install -y --no-install-recommends python3'
                 result = subprocess.run(self.command(role) + [install], capture_output=True, timeout=900)
@@ -365,7 +365,7 @@ def online(c, action):
         ssh.establish(applying)
         ssh.ensure_runtime(applying)
         if action == 'rollback':
-            require(input('Откатить последнюю транзакцию обеих нод? Введите ROLLBACK: ') == 'ROLLBACK', 'Cancelled')
+            require(input('Roll back the latest transaction? Type ROLLBACK: ') == 'ROLLBACK', 'Cancelled')
             for role in ('entry', 'exit'):
                 print(role, ssh.call(role, 'rollback'))
             return
@@ -373,11 +373,11 @@ def online(c, action):
             return verify(ssh, c)
         if action == 'acceptance':
             verify(ssh, c)
-            require(input('Остановить WG входа на время отказного теста? Введите FAIL-CLOSED: ') == 'FAIL-CLOSED', 'Cancelled')
+            require(input('Test entry WireGuard failure? Type FAIL-CLOSED: ') == 'FAIL-CLOSED', 'Cancelled')
             print(ssh.call('entry', 'failure', clients=clients_for(c, False), verifier=(ROOT / 'verify.py').read_text()))
             return
         if action == 'reboot-test':
-            require(input('Перезагрузить выход и вход по очереди? Введите REBOOT: ') == 'REBOOT', 'Cancelled')
+            require(input('Reboot exit and entry in sequence? Type REBOOT: ') == 'REBOOT', 'Cancelled')
             for role in ('exit', 'entry'):
                 old = ssh.call(role, 'boot')['boot_id']
                 ssh.call(role, 'reboot')
@@ -404,10 +404,10 @@ def online(c, action):
         keys = {r: facts[r].get('public_key', ('A' if r == 'entry' else 'B') * 43 + '=') for r in facts}
         templates = bundle()
         plans = {r: ssh.call(r, 'plan', keys=keys, clients=clients, templates=templates) for r in facts}
-        print('\nПараметры: ' + c['mode'] + ', ' + c['entry']['address'] + ' → ' + c['exit']['address'] + ', HTTPS ' + c['domain'])
-        print('Пакеты Ubuntu: wireguard-tools nftables iproute2 ca-certificates curl python3; сборка входа: git build-essential.')
-        print('На новой ноде создаётся WG-ключ; сохранённая нода использует существующий ключ. Зависимости и ключи при откате сохраняются.')
-        print('Сеть/файлы защищает постоянный таймер отката 30 минут. DNS переключается отдельно.')
+        print('\nConfiguration: ' + c['mode'] + ', ' + c['entry']['address'] + ' → ' + c['exit']['address'] + ', HTTPS ' + c['domain'])
+        print('Ubuntu packages: wireguard-tools nftables iproute2 ca-certificates curl python3; entry also needs git and build-essential.')
+        print('The new node gets a WireGuard key. The preserved node keeps its key.')
+        print('Network rollback timer: 30 minutes. Switch DNS separately.')
         for role in plans:
             print('\n' + role + ': ' + json.dumps(ssh.jumps.get(role, 'direct')))
             for change in plans[role]['changes']:
@@ -438,13 +438,13 @@ def online(c, action):
                 verify(ssh, c)
             for role in changed:
                 print(role + ': ' + ssh.call(role, 'commit')['status'])
-            print('Установка сохранена. ' + ('TLS/полный Naive-тест отложены до DNS; выполните verify.' if c.get('tls') == 'defer' else 'Проверки HTTPS/TCP/UoT пройдены.'))
+            print('Deployment committed. ' + (' TLS verification deferred until DNS is ready. Run verify.' if c.get('tls') == 'defer' else ' HTTPS/TCP/UoT checks passed.'))
         except BaseException:
             for role in reversed(changed):
                 try:
                     print(role + ': ' + ssh.call(role, 'rollback')['status'])
                 except BaseException:
-                    print(role + ': откат по SSH не подтверждён; действует серверный таймер. Используйте консоль провайдера.')
+                    print(role + ': rollback unconfirmed. Check server rollback timers in the provider console.')
             raise
 
 
@@ -489,5 +489,5 @@ if __name__ == '__main__':
         print('ERROR: ' + (str(exc) if isinstance(exc, Invalid) else type(exc).__name__), file=sys.stderr)
         sys.exit(1)
     except (KeyboardInterrupt, EOFError):
-        print('Прервано. Если применение уже началось, проверьте серверный таймер/rollback перед повтором.', file=sys.stderr)
+        print('Interrupted. Check pending transactions before retrying.', file=sys.stderr)
         sys.exit(130)

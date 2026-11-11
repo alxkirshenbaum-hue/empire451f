@@ -101,7 +101,7 @@ def verify(c, clients, blocked=False, before_block=None):
         cfg = Path(folder) / 'client.json'
         cfg.write_text(json.dumps(conf))
         cfg.chmod(0o600)
-        check = subprocess.run([binary, 'check', '-c', str(cfg)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        check = subprocess.run([binary, 'check', '-c', str(cfg)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
         require(check.returncode == 0, 'Naive client configuration invalid')
         child = subprocess.Popen([binary, 'run', '-c', str(cfg)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         held = None

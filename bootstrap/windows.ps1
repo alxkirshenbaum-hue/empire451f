@@ -1,7 +1,7 @@
 # Native Windows launcher: no local Python, module bundle, or server templates.
 $ErrorActionPreference='Stop'
 [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
-$Boot='python3 -c exec\(__import__\(\''base64\''\).b64decode\(\''aW1wb3J0IGhhc2hsaWIsaW8sanNvbixvcyxzeXMsdHlwZXMsdXJsbGliLnJlcXVlc3QsemlwZmlsZQp0cnk6CiAgICBpZiBvcy5nZXRldWlkKCkhPTA6IHJhaXNlIFJ1bnRpbWVFcnJvcigncm9vdCByZXF1aXJlZCcpCiAgICByZWxlYXNlPWRpY3QobGluZS5zcGxpdCgnPScsMSkgZm9yIGxpbmUgaW4gb3BlbignL2V0Yy9vcy1yZWxlYXNlJykgaWYgJz0nIGluIGxpbmUpCiAgICBpZiByZWxlYXNlLmdldCgnSUQnLCcnKS5zdHJpcCgpLnN0cmlwKCciJykhPSd1YnVudHUnIG9yIHJlbGVhc2UuZ2V0KCdWRVJTSU9OX0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIG5vdCBpbiAoJzI0LjA0JywnMjYuMDQnKSBvciBvcy51bmFtZSgpLm1hY2hpbmUhPSd4ODZfNjQnOiByYWlzZSBSdW50aW1lRXJyb3IoJ1VidW50dSAyNC4wNCBvciAyNi4wNCBhbWQ2NCByZXF1aXJlZCcpCiAgICBkYXRhPXVybGxpYi5yZXF1ZXN0LnVybG9wZW4oJ2h0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9hbHhraXJzaGVuYmF1bS1odWUvZW1waXJlNDUxZi92MC4yLjcvZGlzdC9pbnN0YWxsZXIuemlwJyx0aW1lb3V0PTYwKS5yZWFkKDIqMTAyNCoxMDI0KQogICAgaWYgaGFzaGxpYi5zaGEyNTYoZGF0YSkuaGV4ZGlnZXN0KCkhPSdlZWFhODZhN2ZmZjA2ZmM3NThkYzkxMzg0OGMxMjNmNmIzZjlkYzhhYjkzNzU5MDNjOTFmNzBhODMyNmZhYTk3JzogcmFpc2UgUnVudGltZUVycm9yKCdJbnN0YWxsZXIgU0hBMjU2IG1pc21hdGNoJykKICAgIGFyY2hpdmU9emlwZmlsZS5aaXBGaWxlKGlvLkJ5dGVzSU8oZGF0YSkpCiAgICBidW5kbGU9e25hbWU6YXJjaGl2ZS5yZWFkKG5hbWUpLmRlY29kZSgndXRmLTgnKSBmb3IgbmFtZSBpbiBhcmNoaXZlLm5hbWVsaXN0KCl9CiAgICBmb3IgbmFtZSBpbiAoJ3JlbmRlcicsJ3JlbW90ZScsJ2NsaWVudCcsJ2NvbnRyb2xsZXInKToKICAgICAgICBtb2R1bGU9dHlwZXMuTW9kdWxlVHlwZShuYW1lKTsgbW9kdWxlLl9fZmlsZV9fPScvcnVuL2VtcGlyZS1zb3VyY2UvJytuYW1lKycucHknCiAgICAgICAgc3lzLm1vZHVsZXNbbmFtZV09bW9kdWxlCiAgICAgICAgaWYgbmFtZT09J2NvbnRyb2xsZXInOiBtb2R1bGUuQlVORExFPWJ1bmRsZQogICAgICAgIGV4ZWMoY29tcGlsZShidW5kbGVbbmFtZSsnLnB5J10sbmFtZSsnLnB5JywnZXhlYycpLG1vZHVsZS5fX2RpY3RfXykKICAgIHN5cy5leGl0KHN5cy5tb2R1bGVzWydjb250cm9sbGVyJ10ubWFpbihzeXMuYXJndlsxOl0pKQpleGNlcHQgRXhjZXB0aW9uIGFzIGU6CiAgICBwcmludCgnSW5zdGFsbGVyIGJvb3RzdHJhcCBmYWlsZWQ6ICcrdHlwZShlKS5fX25hbWVfXyxmaWxlPXN5cy5zdGRlcnIpCiAgICBzeXMuZXhpdCgxKQo=\''\)\)'
+$Boot='python3 -c exec\(__import__\(\''base64\''\).b64decode\(\''aW1wb3J0IHNpZ25hbCxoYXNobGliLGlvLGpzb24sb3Msc3lzLHR5cGVzLHVybGxpYi5yZXF1ZXN0LHppcGZpbGUKdHJ5OgogICAgaWYgb3MuZ2V0ZXVpZCgpIT0wOiByYWlzZSBSdW50aW1lRXJyb3IoJ3Jvb3QgcmVxdWlyZWQnKQogICAgcmVsZWFzZT1kaWN0KGxpbmUuc3BsaXQoJz0nLDEpIGZvciBsaW5lIGluIG9wZW4oJy9ldGMvb3MtcmVsZWFzZScpIGlmICc9JyBpbiBsaW5lKQogICAgaWYgcmVsZWFzZS5nZXQoJ0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0ndWJ1bnR1JyBvciByZWxlYXNlLmdldCgnVkVSU0lPTl9JRCcsJycpLnN0cmlwKCkuc3RyaXAoJyInKSBub3QgaW4gKCcyNC4wNCcsJzI2LjA0Jykgb3Igb3MudW5hbWUoKS5tYWNoaW5lIT0neDg2XzY0JzogcmFpc2UgUnVudGltZUVycm9yKCdVYnVudHUgMjQuMDQgb3IgMjYuMDQgYW1kNjQgcmVxdWlyZWQnKQogICAgZGVmIGV4cGlyZWQoKmFyZ3MpOiByYWlzZSBUaW1lb3V0RXJyb3IoIkJ1bmRsZSBkb3dubG9hZCB0aW1lZCBvdXQiKQogICAgc2lnbmFsLnNpZ25hbChzaWduYWwuU0lHQUxSTSxleHBpcmVkKQogICAgc2lnbmFsLmFsYXJtKDY1KQogICAgZGF0YT11cmxsaWIucmVxdWVzdC51cmxvcGVuKCdodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vYWx4a2lyc2hlbmJhdW0taHVlL2VtcGlyZTQ1MWYvdjAuMi44L2Rpc3QvaW5zdGFsbGVyLnppcCcsdGltZW91dD02MCkucmVhZCgyKjEwMjQqMTAyNCkKICAgIHNpZ25hbC5hbGFybSgwKQogICAgaWYgaGFzaGxpYi5zaGEyNTYoZGF0YSkuaGV4ZGlnZXN0KCkhPSc2MTY0YjE2NGNlNWVjYmQ2MjJlYjk0YjFkYTcwN2YyM2U3MDViOWE1ZDMyZDlmMjE5OThjMjc5NDUzYzA2YjI1JzogcmFpc2UgUnVudGltZUVycm9yKCdJbnN0YWxsZXIgU0hBMjU2IG1pc21hdGNoJykKICAgIGFyY2hpdmU9emlwZmlsZS5aaXBGaWxlKGlvLkJ5dGVzSU8oZGF0YSkpCiAgICBidW5kbGU9e25hbWU6YXJjaGl2ZS5yZWFkKG5hbWUpLmRlY29kZSgndXRmLTgnKSBmb3IgbmFtZSBpbiBhcmNoaXZlLm5hbWVsaXN0KCl9CiAgICBmb3IgbmFtZSBpbiAoJ3JlbmRlcicsJ3JlbW90ZScsJ2NsaWVudCcsJ2NvbnRyb2xsZXInKToKICAgICAgICBtb2R1bGU9dHlwZXMuTW9kdWxlVHlwZShuYW1lKTsgbW9kdWxlLl9fZmlsZV9fPScvcnVuL2VtcGlyZS1zb3VyY2UvJytuYW1lKycucHknCiAgICAgICAgc3lzLm1vZHVsZXNbbmFtZV09bW9kdWxlCiAgICAgICAgaWYgbmFtZT09J2NvbnRyb2xsZXInOiBtb2R1bGUuQlVORExFPWJ1bmRsZQogICAgICAgIGV4ZWMoY29tcGlsZShidW5kbGVbbmFtZSsnLnB5J10sbmFtZSsnLnB5JywnZXhlYycpLG1vZHVsZS5fX2RpY3RfXykKICAgIHN5cy5leGl0KHN5cy5tb2R1bGVzWydjb250cm9sbGVyJ10ubWFpbihzeXMuYXJndlsxOl0pKQpleGNlcHQgRXhjZXB0aW9uIGFzIGU6CiAgICBwcmludCgnSW5zdGFsbGVyIGJvb3RzdHJhcCBmYWlsZWQ6ICcrdHlwZShlKS5fX25hbWVfXyxmaWxlPXN5cy5zdGRlcnIpCiAgICBzeXMuZXhpdCgxKQo=\''\)\)'
 function Ask([string]$Id,[string]$Text,[string]$Default=''){
  $answer=Read-Host ('['+$Id+'] '+$Text+$(if($Default){' ['+$Default+']'}else{''}))
  if(!$answer){return $Default};return $answer
@@ -87,8 +87,9 @@ function Authenticate([string]$Role){
   & ssh -F $Config -o BatchMode=no -o StrictHostKeyChecking=ask $Role true
   $status=Probe $Role
  }
- if($status -eq 'authentication'){
-  $choice=Ask Q17 ($Role+': password / console / retry') 'retry'
+ while($status -eq 'authentication'){
+  $choice=Ask Q17 ($Role+': password / console / retry / stop') 'retry'
+  if($choice -eq 'stop'){throw 'Stopped at SSH authorization.'}
   if($choice -eq 'retry'){if($Nodes[$Role]['aliasKey']){& ssh-add $Nodes[$Role]['aliasKey']}else{& ssh-add $Identity}}
   elseif($choice -eq 'password' -or $choice -eq 'console'){
    $public=Public-Key
@@ -97,7 +98,7 @@ function Authenticate([string]$Role){
    $cmd='set -eu; . /etc/os-release; case $ID:$VERSION_ID:$(uname -m) in ubuntu:24.04:x86_64|ubuntu:26.04:x86_64) ;; *) exit 41;; esac; umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; chmod 700 ~/.ssh; chmod 600 ~/.ssh/authorized_keys; grep -qxF '+$quoted+' ~/.ssh/authorized_keys || printf ''%s\n'' '+$quoted+' >> ~/.ssh/authorized_keys'
    if($choice -eq 'console'){Write-Host $cmd;[void](Read-Host 'Run this PUBLIC-key command in provider console, then Enter')}
    else{& ssh -F $Config -o BatchMode=no -o PubkeyAuthentication=no -o PreferredAuthentications=password,keyboard-interactive $Role $cmd}
-  }else{throw 'Unknown initial-access choice'}
+  }else{Write-Host 'Choose password, console, retry or stop.';continue}
   $status=Probe $Role
  }
  return $status
@@ -113,6 +114,7 @@ function New-Port{
  $listener.Start();$port=$listener.LocalEndpoint.Port;$listener.Stop();return $port
 }
 function Start-Rpc{
+ Write-Host 'Opening exit SSH tunnel and loading installer on exit (up to 90 seconds)...'
  $arguments=@('-F',$Config,'-n','-o','SendEnv=LC_EVPN_TOKEN','-L',('127.0.0.1:'+$LocalPort+':127.0.0.1:'+$RpcPort),'exit',($Boot+' rpc '+$RpcPort))
  $info=New-Object Diagnostics.ProcessStartInfo
  $info.FileName=(Get-Command ssh.exe).Source
@@ -130,6 +132,7 @@ function Start-Rpc{
  return $process
 }
 function Run-Wizard([string]$Operation){
+ Write-Host ("Opening interactive wizard on entry: "+$Operation+" ...")
  # Keep native console handles: capturing/piping stdout buffers prompts without LF.
  & ssh -F $Config -tt -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -R ('127.0.0.1:'+$RelayPort+':127.0.0.1:'+$LocalPort) entry ($Boot+' wizard '+$RelayPort+' '+$Operation)
  $script:WizardExit=$LASTEXITCODE
@@ -140,7 +143,9 @@ function Fresh-Sessions{
 }
 function Wait-Reboot([string]$Role){
  Start-Sleep -Seconds 8
- for($attempt=0;$attempt -lt 48;$attempt++){if((Probe $Role) -eq 'ok'){return};Start-Sleep -Seconds 5}
+ $clock=[Diagnostics.Stopwatch]::StartNew()
+ Write-Host ("Waiting for "+$Role+" SSH after reboot (4 minutes plus final probe)...")
+ while($clock.Elapsed.TotalSeconds -lt 240){if((Probe $Role) -eq 'ok'){return};Start-Sleep -Seconds 5}
  throw ($Role+': SSH did not recover after reboot; use provider console.')
 }
 foreach($tool in @('ssh.exe','ssh-keygen.exe')){
@@ -152,11 +157,19 @@ foreach($tool in @('ssh.exe','ssh-keygen.exe')){
   break
  }
 }
-$entry=Ask Q03 'Entry root@IP or existing SSH alias'
-$exit=Ask Q05 'Exit root@IP or existing SSH alias'
-if(!$entry -or !$exit){throw 'SSH destinations are required'}
+function Ask-Node($id,$label){
+ while($true){
+  $target=Ask $id ($label+' root@IP or existing SSH alias')
+  try{$node=Resolve-Target $target;if($node.user -eq 'root'){return $node}}catch{}
+  Write-Host 'Enter a valid root destination or SSH alias for root.'
+ }
+}
+$Nodes=@{entry=(Ask-Node Q03 'Entry');exit=(Ask-Node Q05 'Exit')}
+$keyDefault='new'
+:selectKey while($true){
 while ($true) {
- $Identity=Ask Q09 'Private SSH key path (e.g. id_ed25519), or new' 'new'
+ $Identity=Ask Q09 'Private SSH key path, new, or stop' $keyDefault
+ if ($Identity -eq 'stop'){return}
  if ($Identity -eq 'new') {break}
  if ($Identity -like '*.pub') {
   Write-Host 'This is a public key. Enter the private key path, usually the same name without .pub.'
@@ -171,7 +184,7 @@ if($Identity -eq 'new'){
  if(!(Test-Path -LiteralPath $Identity)){
   [void][IO.Directory]::CreateDirectory((Split-Path -Parent $Identity))
   & ssh-keygen -t ed25519 -a 100 -f $Identity
-  if($LASTEXITCODE -ne 0){throw 'SSH key creation failed'}
+  if($LASTEXITCODE -ne 0){Write-Host 'Key creation did not finish. Choose a key again.';continue selectKey}
  }else{Write-Host 'Existing empire-install key will be reused.'}
 }
 if($Identity.StartsWith('~')){$Identity=$HOME+$Identity.Substring(1)}
@@ -186,13 +199,14 @@ if($encrypted){
  $agentMissing=$LASTEXITCODE -eq 2
  $ErrorActionPreference=$previous
  if($agentMissing){
-  if((Ask Q21 'Start Windows ssh-agent service (requires UAC)? yes/no' 'yes') -ne 'yes'){throw 'ssh-agent required'}
-  Start-Process powershell.exe -Verb RunAs -WindowStyle Hidden -Wait -ArgumentList '-NoProfile -Command "Set-Service ssh-agent -StartupType Manual; Start-Service ssh-agent"'
+  if((Ask Q21 'Start Windows ssh-agent service (requires UAC)? yes/no' 'yes') -ne 'yes'){continue selectKey}
+  try {Start-Process powershell.exe -Verb RunAs -WindowStyle Hidden -Wait -ArgumentList '-NoProfile -Command "Set-Service ssh-agent -StartupType Manual; Start-Service ssh-agent"'} catch {Write-Host 'Agent startup cancelled or failed. Choose a key again.';continue selectKey}
  }
  & ssh-add $Identity
- if($LASTEXITCODE -ne 0){throw 'SSH key could not be unlocked'}
+ if($LASTEXITCODE -ne 0){$keyDefault=$Identity;Write-Host 'Key was not unlocked. Press Enter at Q09 to retry the same key, enter a different path, or type stop.';continue selectKey}
 }
-$Nodes=@{entry=(Resolve-Target $entry);exit=(Resolve-Target $exit)}
+break
+}
 if($Nodes.entry.user -ne 'root' -or $Nodes.exit.user -ne 'root'){throw 'Use root SSH access (or provider console to prepare it).'}
 $Jumps=@{}
 $Config=[IO.Path]::GetTempFileName()
@@ -241,36 +255,55 @@ try{
  }
  $env:LC_EVPN_PROBE='1'
  foreach($role in @('entry','exit')){
+  while($true){
   Write-Host ("Checking Ubuntu, Python and SSH environment: "+$role+" (up to 25 seconds)...")
   $probe=Invoke-SshCheck @('-o','SendEnv=LC_EVPN_PROBE',$role,'set -eu; . /etc/os-release; case $ID:$VERSION_ID:$(uname -m):$(id -u) in ubuntu:24.04:x86_64:0|ubuntu:26.04:x86_64:0) ;; *) exit 41;; esac; test x${LC_EVPN_PROBE:-} = x1 || exit 43; if command -v python3 >/dev/null; then echo READY; else echo MISSING_PYTHON; fi')
-  switch($probe.Code){
-   124 {Write-Host ("Platform check timed out on "+$role+". Setup stopped before package installation."); return}
-   41 {Write-Host ($role+': Ubuntu 24.04 or 26.04 amd64 and root access required.'); return}
-   43 {Write-Host ($role+': SSH server did not accept LC_EVPN_PROBE. Check AcceptEnv LC_*.'); return}
-   0 {}
-   default {Write-Host ($role+': platform check failed (SSH exit '+$probe.Code+').'); return}
+  if($probe.Code -eq 0 -and $probe.Output -in @('READY','MISSING_PYTHON')){break}
+  $reason=switch($probe.Code){
+   124 {'Timed out after 25 seconds.'}
+   41 {'Ubuntu 24.04/26.04 amd64 and root access required.'}
+   43 {'The SSH server did not accept LC_EVPN_PROBE. Check AcceptEnv LC_*.'}
+   default {'Unexpected SSH response; code '+$probe.Code}
   }
-  if($probe.Output -notin @('READY','MISSING_PYTHON')){throw ($role+': unexpected platform check response')}
+  Write-Host ($role+': '+$reason)
+  if((Ask 'Platform' 'Retry this check or stop?' 'retry') -eq 'stop'){return}
+  }
   if($probe.Output -eq 'MISSING_PYTHON'){
    if((Ask Q22 ($role+': install python3 on VPS for inventory? Type INSTALL-PYTHON')) -ne 'INSTALL-PYTHON'){throw 'Python bootstrap declined'}
-   & ssh -F $Config $role 'export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l; apt-get update && apt-get install -y --no-install-recommends python3'
+   & ssh -F $Config $role 'export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l; timeout -k 15s 600 apt-get update && timeout -k 15s 1200 apt-get install -y --no-install-recommends python3'
    if($LASTEXITCODE -ne 0){throw 'VPS Python bootstrap failed'}
   }
  }
- $import=Ask Q13 'Optional LOCAL client export path (empty = existing/new credentials on entry)'
+ function Read-ClientExport{
  $env:LC_EVPN_CLIENTS=''
+ while($true){
+ $import=Ask Q13 'Optional LOCAL client export path (empty = existing/new credentials on entry)'
+ try{
  if($import){
   $bytes=[IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $import).ProviderPath)
   if($bytes.Length -gt 64000){throw 'Client export too large'}
   $env:LC_EVPN_CLIENTS=[Convert]::ToBase64String($bytes)
  }
+ break
+ }catch{Write-Host 'Cannot read this export (maximum 64000 bytes). Enter the path again.'}
+ }
+ }
+ Read-ClientExport
  $random=New-Object byte[] 32;$rng=[Security.Cryptography.RandomNumberGenerator]::Create();$rng.GetBytes($random);$rng.Dispose()
  $env:LC_EVPN_TOKEN=[BitConverter]::ToString($random).Replace('-','').ToLowerInvariant()
  $env:LC_EVPN_SESSION=[guid]::NewGuid().ToString('N')
  $LocalPort=New-Port;$RpcPort=Get-Random -Minimum 30000 -Maximum 59000;$RelayPort=Get-Random -Minimum 30000 -Maximum 59000
- $RpcProcess=Start-Rpc
- Run-Wizard start
- $code=$script:WizardExit
+ while(!$RpcProcess){
+  try{$RpcProcess=Start-Rpc}catch{
+   Write-Host 'Exit tunnel startup failed. Check SSH forwarding, Git HTTPS access and AcceptEnv.'
+   if((Ask 'Tunnel' 'Retry or stop?' 'retry') -eq 'stop'){return}
+  }
+ }
+ do {
+  Run-Wizard start
+  $code=$script:WizardExit
+  if($code -eq 46){Read-ClientExport}
+ }while($code -eq 46)
  if($code -eq 42){
   if(Fresh-Sessions){Run-Wizard finish;$code=$script:WizardExit}else{Run-Wizard abort;throw 'New SSH session failed; rollback requested'}
  }
@@ -284,6 +317,9 @@ try{
  if($code -eq 45){Wait-Reboot entry;if(!(Fresh-Sessions)){throw 'SSH did not recover'};Run-Wizard after-entry-reboot;$code=$script:WizardExit}
  if($code -ne 0){throw ('Installer ended with code '+$code+'. If apply started, server rollback timers remain the safety net.')}
  if(!(Fresh-Sessions)){throw 'Final SSH check failed'}
+}catch{
+ Write-Host ('Setup stopped: '+$_.Exception.Message)
+ $global:LASTEXITCODE=1
 }finally{
  if($RpcProcess){
   try{

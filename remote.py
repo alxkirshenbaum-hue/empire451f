@@ -156,11 +156,18 @@ def download(url, sha, destination):
     destination = Path(destination)
     if destination.exists() and digest(destination) == sha:
         return
+    deadline = time.monotonic() + 600
+    data = bytearray()
     with urllib.request.urlopen(url, timeout=60) as response:
-        data = response.read(200 * 1024 * 1024 + 1)
+        while len(data) <= 200 * 1024 * 1024:
+            chunk = response.read1(256 * 1024)
+            require(time.monotonic() <= deadline, 'Component download exceeded 10 minutes')
+            if not chunk:
+                break
+            data.extend(chunk)
     require(len(data) <= 200 * 1024 * 1024, 'Download too large')
     require(hashlib.sha256(data).hexdigest() == sha, 'Official download checksum mismatch')
-    atomic(destination, data)
+    atomic(destination, bytes(data))
 
 
 def prepare(c, role, versions):

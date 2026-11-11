@@ -78,6 +78,27 @@ def public_key(path):
     return text(['wg', 'pubkey'], data=Path(path).read_bytes())
 
 
+def wireguard_runtime_key(source, destination, publish=False):
+    """Keep the state key for recovery and expose identical bytes in WireGuard's key directory."""
+    source, destination = Path(source), Path(destination)
+    require(not source.is_symlink() and not destination.is_symlink(), 'Unexpected WireGuard key symlink')
+    if destination.exists():
+        require(source.is_file() and destination.is_file() and
+                destination.stat().st_mode & 0o077 == 0 and destination.stat().st_uid == 0 and
+                digest(source) == digest(destination), 'Conflicting WireGuard key file; refusing to replace it')
+    elif publish:
+        # Install without overwriting an existing key, including across filesystems.
+        fd, tmp = tempfile.mkstemp(dir=destination.parent, prefix='.empire-key-')
+        try:
+            with os.fdopen(fd, 'wb') as out:
+                out.write(source.read_bytes())
+                out.flush()
+                os.fsync(out.fileno())
+            os.link(tmp, destination)
+        finally:
+            os.unlink(tmp)
+
+
 def probe(c, role):
     require(os.geteuid() == 0, 'ROOT_REQUIRED: use root or provider console bootstrap')
     require(sys.version_info >= (3, 12), 'Python3.12+ required on Ubuntu 24.04/26.04')
@@ -92,6 +113,9 @@ def probe(c, role):
     f = {'interface': routes[0]['dev'], 'ssh_port': int(connection[3]), 'admin_ip': connection[0],
          'legacy': c[role]['kind'] == 'legacy', 'key_path': n['state'] + '/wireguard.key',
          'default_route': routes, 'machine_id': Path('/etc/machine-id').read_text().strip()}
+    if not f['legacy']:
+        f['runtime_key_path'] = '/etc/wireguard/' + n['prefix'] + '.key'
+        wireguard_runtime_key(f['key_path'], f['runtime_key_path'])
     if f['legacy']:
         require(Path('/etc/wireguard/role').read_text().strip() == role, 'Legacy role mismatch')
         f['key_path'] = '/etc/wireguard/personal.key'
@@ -186,6 +210,8 @@ def prepare(c, role, versions):
         run(['apt-get', 'install', '-y', '--no-install-recommends'] + missing, timeout=1200, env=env)
     if not Path(f['key_path']).exists():
         atomic(f['key_path'], run(['wg', 'genkey']).stdout)
+    if not f['legacy']:
+        wireguard_runtime_key(f['key_path'], f['runtime_key_path'], publish=True)
     if role == 'entry' and not f['legacy']:
         install_components(versions)
         if run(['id', 'evpn'], check=False).returncode:

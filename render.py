@@ -115,7 +115,7 @@ def render(c, role, facts, public_keys, clients, templates):
                  wg_port=c['wg_port'], mtu=c['mtu'], tx=tx, te=te, rh=rh, ra=ra,
                  dns=c['dns'], domain=c['domain'], deny=', '.join(deny),
                  peer=public_keys['exit' if role == 'entry' else 'entry'],
-                 key_path=facts.get('key_path', n['state'] + '/wireguard.key'))
+                 key_path=facts.get('runtime_key_path') or facts.get('key_path', '/etc/wireguard/' + n['prefix'] + '.key'))
     def tpl(name, **extra):
         return Template(templates[name]).substitute(subst | extra)
     out = {}

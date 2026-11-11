@@ -395,7 +395,10 @@ def start(nodes, session, imported):
     users = clients(c, imported, create=True)
     remote.atomic(Path(names(c)['state']) / 'deployment.json', json.dumps(c))
     for role in ('entry', 'exit'):
-        print(role + ': preparing components. Building Caddy may take several minutes.', flush=True)
+        if role == 'entry' and c[role]['kind'] != 'legacy':
+            print('entry: checking proxy components; Caddy is built here if needed.', flush=True)
+        else:
+            print(role + ': checking network packages and the WireGuard key.', flush=True)
         keys[role] = nodes.call(role, 'prepare', c)['public_key']
     transaction = uuid.uuid4().hex
     state['transaction'] = transaction

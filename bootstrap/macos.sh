@@ -2,7 +2,7 @@
 # Bash 3.2 / standard macOS tools; no local Python or downloaded module bundle.
 set +x
 set -eu
-BOOT='python3 -c exec\(__import__\(\'"'"'base64\'"'"'\).b64decode\(\'"'"'aW1wb3J0IHNpZ25hbCxoYXNobGliLGlvLGpzb24sb3Msc3lzLHR5cGVzLHVybGxpYi5yZXF1ZXN0LHppcGZpbGUKdHJ5OgogICAgaWYgb3MuZ2V0ZXVpZCgpIT0wOiByYWlzZSBSdW50aW1lRXJyb3IoJ3Jvb3QgcmVxdWlyZWQnKQogICAgcmVsZWFzZT1kaWN0KGxpbmUuc3BsaXQoJz0nLDEpIGZvciBsaW5lIGluIG9wZW4oJy9ldGMvb3MtcmVsZWFzZScpIGlmICc9JyBpbiBsaW5lKQogICAgaWYgcmVsZWFzZS5nZXQoJ0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0ndWJ1bnR1JyBvciByZWxlYXNlLmdldCgnVkVSU0lPTl9JRCcsJycpLnN0cmlwKCkuc3RyaXAoJyInKSBub3QgaW4gKCcyNC4wNCcsJzI2LjA0Jykgb3Igb3MudW5hbWUoKS5tYWNoaW5lIT0neDg2XzY0JzogcmFpc2UgUnVudGltZUVycm9yKCdVYnVudHUgMjQuMDQgb3IgMjYuMDQgYW1kNjQgcmVxdWlyZWQnKQogICAgZGVmIGV4cGlyZWQoKmFyZ3MpOiByYWlzZSBUaW1lb3V0RXJyb3IoIkJ1bmRsZSBkb3dubG9hZCB0aW1lZCBvdXQiKQogICAgc2lnbmFsLnNpZ25hbChzaWduYWwuU0lHQUxSTSxleHBpcmVkKQogICAgc2lnbmFsLmFsYXJtKDY1KQogICAgZGF0YT11cmxsaWIucmVxdWVzdC51cmxvcGVuKCdodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vYWx4a2lyc2hlbmJhdW0taHVlL2VtcGlyZTQ1MWYvdjAuMy4zL2Rpc3QvaW5zdGFsbGVyLnppcCcsdGltZW91dD02MCkucmVhZCgyKjEwMjQqMTAyNCkKICAgIHNpZ25hbC5hbGFybSgwKQogICAgaWYgaGFzaGxpYi5zaGEyNTYoZGF0YSkuaGV4ZGlnZXN0KCkhPScyMjc4YjAyY2UwODIxOWExZTc1MWUzYzQwYjhkZjc1YmU3ZmQyYzc1OTVhOTg1ZTkwZWY3YjQ0NTA2NjFmYTkzJzogcmFpc2UgUnVudGltZUVycm9yKCdJbnN0YWxsZXIgU0hBMjU2IG1pc21hdGNoJykKICAgIGFyY2hpdmU9emlwZmlsZS5aaXBGaWxlKGlvLkJ5dGVzSU8oZGF0YSkpCiAgICBidW5kbGU9e25hbWU6YXJjaGl2ZS5yZWFkKG5hbWUpLmRlY29kZSgndXRmLTgnKSBmb3IgbmFtZSBpbiBhcmNoaXZlLm5hbWVsaXN0KCl9CiAgICBmb3IgbmFtZSBpbiAoJ3JlbmRlcicsJ3JlbW90ZScsJ2NsaWVudCcsJ2RlbGl2ZXJ5JywnY29udHJvbGxlcicpOgogICAgICAgIG1vZHVsZT10eXBlcy5Nb2R1bGVUeXBlKG5hbWUpOyBtb2R1bGUuX19maWxlX189Jy9ydW4vZW1waXJlLXNvdXJjZS8nK25hbWUrJy5weScKICAgICAgICBzeXMubW9kdWxlc1tuYW1lXT1tb2R1bGUKICAgICAgICBpZiBuYW1lPT0nY29udHJvbGxlcic6IG1vZHVsZS5CVU5ETEU9YnVuZGxlCiAgICAgICAgZXhlYyhjb21waWxlKGJ1bmRsZVtuYW1lKycucHknXSxuYW1lKycucHknLCdleGVjJyksbW9kdWxlLl9fZGljdF9fKQogICAgc3lzLmV4aXQoc3lzLm1vZHVsZXNbJ2NvbnRyb2xsZXInXS5tYWluKHN5cy5hcmd2WzE6XSkpCmV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgIHByaW50KCdJbnN0YWxsZXIgYm9vdHN0cmFwIGZhaWxlZDogJyt0eXBlKGUpLl9fbmFtZV9fLGZpbGU9c3lzLnN0ZGVycikKICAgIHN5cy5leGl0KDEpCg==\'"'"'\)\)'
+BOOT='python3 -c exec\(__import__\(\'"'"'base64\'"'"'\).b64decode\(\'"'"'aW1wb3J0IHNpZ25hbCxoYXNobGliLGlvLGpzb24sb3Msc3lzLHR5cGVzLHVybGxpYi5yZXF1ZXN0LHppcGZpbGUKdHJ5OgogICAgaWYgb3MuZ2V0ZXVpZCgpIT0wOiByYWlzZSBSdW50aW1lRXJyb3IoJ3Jvb3QgcmVxdWlyZWQnKQogICAgcmVsZWFzZT1kaWN0KGxpbmUuc3BsaXQoJz0nLDEpIGZvciBsaW5lIGluIG9wZW4oJy9ldGMvb3MtcmVsZWFzZScpIGlmICc9JyBpbiBsaW5lKQogICAgaWYgcmVsZWFzZS5nZXQoJ0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0ndWJ1bnR1JyBvciByZWxlYXNlLmdldCgnVkVSU0lPTl9JRCcsJycpLnN0cmlwKCkuc3RyaXAoJyInKSBub3QgaW4gKCcyNC4wNCcsJzI2LjA0Jykgb3Igb3MudW5hbWUoKS5tYWNoaW5lIT0neDg2XzY0JzogcmFpc2UgUnVudGltZUVycm9yKCdVYnVudHUgMjQuMDQgb3IgMjYuMDQgYW1kNjQgcmVxdWlyZWQnKQogICAgZGVmIGV4cGlyZWQoKmFyZ3MpOiByYWlzZSBUaW1lb3V0RXJyb3IoIkJ1bmRsZSBkb3dubG9hZCB0aW1lZCBvdXQiKQogICAgc2lnbmFsLnNpZ25hbChzaWduYWwuU0lHQUxSTSxleHBpcmVkKQogICAgc2lnbmFsLmFsYXJtKDY1KQogICAgZGF0YT11cmxsaWIucmVxdWVzdC51cmxvcGVuKCdodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vYWx4a2lyc2hlbmJhdW0taHVlL2VtcGlyZTQ1MWYvdjAuMy40L2Rpc3QvaW5zdGFsbGVyLnppcCcsdGltZW91dD02MCkucmVhZCgyKjEwMjQqMTAyNCkKICAgIHNpZ25hbC5hbGFybSgwKQogICAgaWYgaGFzaGxpYi5zaGEyNTYoZGF0YSkuaGV4ZGlnZXN0KCkhPScxODM2OGQ0MGRjZjI3Mjk3ZDlmNzQwZmQwNzZhYTFjYjQ2MWIzZTRkNGFiOTJmOTQwYTg3NWVkZmQ5YTBmYzQxJzogcmFpc2UgUnVudGltZUVycm9yKCdJbnN0YWxsZXIgU0hBMjU2IG1pc21hdGNoJykKICAgIGFyY2hpdmU9emlwZmlsZS5aaXBGaWxlKGlvLkJ5dGVzSU8oZGF0YSkpCiAgICBidW5kbGU9e25hbWU6YXJjaGl2ZS5yZWFkKG5hbWUpLmRlY29kZSgndXRmLTgnKSBmb3IgbmFtZSBpbiBhcmNoaXZlLm5hbWVsaXN0KCl9CiAgICBmb3IgbmFtZSBpbiAoJ3JlbmRlcicsJ3JlbW90ZScsJ2NsaWVudCcsJ2RlbGl2ZXJ5JywnY29udHJvbGxlcicpOgogICAgICAgIG1vZHVsZT10eXBlcy5Nb2R1bGVUeXBlKG5hbWUpOyBtb2R1bGUuX19maWxlX189Jy9ydW4vZW1waXJlLXNvdXJjZS8nK25hbWUrJy5weScKICAgICAgICBzeXMubW9kdWxlc1tuYW1lXT1tb2R1bGUKICAgICAgICBpZiBuYW1lPT0nY29udHJvbGxlcic6IG1vZHVsZS5CVU5ETEU9YnVuZGxlCiAgICAgICAgZXhlYyhjb21waWxlKGJ1bmRsZVtuYW1lKycucHknXSxuYW1lKycucHknLCdleGVjJyksbW9kdWxlLl9fZGljdF9fKQogICAgc3lzLmV4aXQoc3lzLm1vZHVsZXNbJ2NvbnRyb2xsZXInXS5tYWluKHN5cy5hcmd2WzE6XSkpCmV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgIHByaW50KCdJbnN0YWxsZXIgYm9vdHN0cmFwIGZhaWxlZDogJyt0eXBlKGUpLl9fbmFtZV9fLGZpbGU9c3lzLnN0ZGVycikKICAgIHN5cy5leGl0KDEpCg==\'"'"'\)\)'
 ask() {
  printf '[%s] %s [%s]: ' "$1" "$2" "${3:-}" >&2
  IFS= read -r answer || exit 130
@@ -103,7 +103,7 @@ write_node() {
 }
 write_config() {
  {
-  printf '%s\n' 'Host *' ' StrictHostKeyChecking yes' ' BatchMode yes' ' ForwardAgent no' ' ExitOnForwardFailure yes' ' ConnectTimeout 12' ' ServerAliveInterval 10' ' ServerAliveCountMax 2' ' IdentitiesOnly yes' ' ControlMaster no' ' ControlPath none'
+  printf '%s\n' 'Host *' ' StrictHostKeyChecking yes' ' BatchMode yes' ' PreferredAuthentications publickey' ' ForwardAgent no' ' ExitOnForwardFailure yes' ' ConnectTimeout 12' ' ServerAliveInterval 10' ' ServerAliveCountMax 2' ' IdentitiesOnly yes' ' ControlMaster no' ' ControlPath none'
   write_node entry E "$IDENTITY"; [ -z "$E_jump" ] || printf ' ProxyJump %s\n' "$E_jump"
   write_node exit X "$IDENTITY"; [ -z "$X_jump" ] || printf ' ProxyJump %s\n' "$X_jump"
   [ -z "$T_hostname" ] || write_node transit T "$T_key"
@@ -312,7 +312,14 @@ while :; do
  read_client_export
 done
 if [ "$code" -eq 42 ]; then
- if fresh_sessions; then code=0; run_wizard finish || code=$?; if [ "$code" = 0 ]; then finish_handoff; fi; else run_wizard abort || true; die 'New SSH session failed; rollback requested'; fi
+ if fresh_sessions; then code=0; run_wizard finish || code=$?; if [ "$code" = 0 ]; then
+  finish_handoff
+  fresh_sessions || die 'Post-install SSH check failed'
+  code=0; run_wizard secure || code=$?
+ fi; else run_wizard abort || true; die 'New SSH session failed; rollback requested'; fi
+fi
+if [ "$code" = 47 ]; then
+ if fresh_sessions; then code=0; run_wizard confirm-security || code=$?; else run_wizard abort || true; die 'New key login failed; security rollback requested'; fi
 fi
 if [ "$code" -eq 44 ]; then
  wait_reboot exit

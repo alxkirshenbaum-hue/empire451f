@@ -142,6 +142,7 @@ def probe(c, role):
         require(manifest.get('role') == role, 'Installed role differs from request')
         require((manifest['config'][role]['kind'] == 'legacy') == f['legacy'], 'Do not change the installed legacy/managed adapter')
         require(Path(f['key_path']).is_file(), 'Installed WG key missing; refusing automatic key rotation')
+    f['saved_security'] = manifest.get('config', {}).get('security', {})
     f['owned'] = manifest.get('files', {})
     f['pending'] = readjson(n['state'] + '/pending.json')
     if Path(f['key_path']).exists():
@@ -432,7 +433,14 @@ def apply(c, role, request):
     require(f['machine_id'] == request['facts']['machine_id'], 'SSH target changed since preview')
     require(f['default_route'] == request['facts']['default_route'], 'Default route changed since preview')
     require(f.get('legacy_hashes') == request['facts'].get('legacy_hashes'), 'Legacy configuration changed since preview')
+    c = dict(c, security=f.get('saved_security', {}) | c.get('security', {}))
     out, changes = plan(c, role, f, request['keys'], request.get('clients'), request['templates'])
+    security_only = request.get('action') == 'secure-apply'
+    ssh_file = '/etc/ssh/sshd_config.d/00-evpn-' + c['id'] + '.conf'
+    changed = {item['path'] for item in changes if item['action'] != 'unchanged'}
+    if security_only:
+        require(changed <= {ssh_file, names(c)['base'] + '/host.nft'}, 'Unexpected changes: run preview and review before hardening')
+
     if all(x['action'] == 'unchanged' for x in changes):
         return {'status': 'unchanged'}
     n = names(c)
@@ -453,7 +461,7 @@ def apply(c, role, request):
             atomic(txdir / 'backups' / backup, base64.b64decode(saved.pop('data')))
             saved['backup'] = backup
         saved_files[p] = saved
-    journal = {'config': c, 'role': role, 'facts': f, 'files': saved_files,
+    journal = {'config': c, 'role': role, 'facts': f, 'security_paths': sorted(changed) if security_only else None, 'files': saved_files,
                'manifest': snapshot(n['state'] + '/manifest.json'), 'prior_units': prior,
                'nft': table.stdout.decode() if table.returncode == 0 else None,
                'forward': Path('/proc/sys/net/ipv4/ip_forward').read_text().strip(),
@@ -467,10 +475,26 @@ def apply(c, role, request):
                 Path(directory).mkdir(parents=True, exist_ok=True)
                 os.chmod(directory, 0o755)
         for p, spec in out.items():
+            if security_only and p not in changed:
+                continue
             atomic(p, spec['content'], spec['mode'], spec['group'])
         for p in out:
             if p.endswith('.sh'):
                 run(['bash', '-n', p])
+        if ssh_file in changed:
+            run(['sshd', '-t'])
+            src, _, dst, port = os.environ['SSH_CONNECTION'].split()
+            effective = text(['sshd','-T','-C',f'user=root,host={src},addr={src},laddr={dst},lport={port}']).splitlines()
+            require(all(x in effective for x in ('passwordauthentication no','kbdinteractiveauthentication no','authenticationmethods publickey'))
+                    and any(x in effective for x in ('permitrootlogin without-password','permitrootlogin prohibit-password')),
+                    'Existing SSH directives override requested protection')
+            run(['systemctl','reload','ssh'])
+        if security_only:
+            if n['base'] + '/host.nft' in changed:
+                run(['bash', n['base'] + '/firewall.sh'])
+            journal['phase'] = 'applied'
+            atomic(txdir / 'journal.json', json.dumps(journal))
+            return {'status':'applied'}
         if f['legacy']:
             run(['nft', '-c', '-f', '/etc/nftables.conf'])
         else:
@@ -510,8 +534,29 @@ def rollback_local(txdir):
     manifest = readjson(n['state'] + '/manifest.json', {})
     require((pending and pending['dir'] == str(txdir)) or manifest.get('transaction') == txdir.name, 'Rollback is not the latest transaction')
     for p, saved in j['files'].items():
+        if j.get('security_paths') is not None and p not in j['security_paths']:
+            continue
         original = hashlib.sha256(backup_bytes(txdir, saved)).hexdigest() if saved else None
         require(digest(p) in (None, original, j['new_hashes'][p]), 'Rollback refuses externally modified file: ' + p)
+    if j.get('security_paths') is not None:
+        for p in j['security_paths']:
+            saved = j['files'][p]
+            if saved is None:
+                Path(p).unlink(missing_ok=True)
+            else:
+                atomic(p, backup_bytes(txdir, saved), saved['mode'])
+                os.chown(p,saved['uid'],saved['gid'])
+        if n['base'] + '/host.nft' in j['security_paths']:
+            run(['bash',n['base']+'/firewall.sh'])
+        if any(p.startswith('/etc/ssh/') for p in j['security_paths']):
+            run(['sshd','-t'])
+            run(['systemctl','reload','ssh'])
+        atomic(n['state']+'/manifest.json',base64.b64decode(j['manifest']['data']))
+        cancel_timer(c)
+        Path(n['state']+'/pending.json').unlink(missing_ok=True)
+        j['phase']='rolled-back'
+        atomic(txdir/'journal.json',json.dumps(j))
+        return {'status':'rolled-back'}
     if not (f['legacy'] and role == 'entry'):
         run(['systemctl', 'disable', '--now'] + list(reversed(units(c, role))), check=False)
         # socket-activated relays are not listed in enable set.
@@ -523,6 +568,9 @@ def rollback_local(txdir):
         else:
             atomic(p, backup_bytes(txdir, saved), saved['mode'])
             os.chown(p, saved['uid'], saved['gid'])
+    if any(p.startswith('/etc/ssh/sshd_config.d/') for p in j['files']):
+        run(['sshd','-t'])
+        run(['systemctl','reload','ssh'])
     if f['legacy']:
         legacy_runtime(c, role, f, undo=True)
         if '/etc/naive/auth.caddy' in j['files']:
@@ -612,7 +660,7 @@ def dispatch(request):
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         if action == 'prepare':
             return prepare(c, role, request['versions'])
-        if action == 'apply':
+        if action in ('apply','secure-apply'):
             return apply(c, role, request)
         if action == 'commit':
             return commit(c, request.get('transaction'))

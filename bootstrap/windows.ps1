@@ -1,7 +1,7 @@
 # Native Windows launcher: no local Python, module bundle, or server templates.
 $ErrorActionPreference='Stop'
 [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
-$Boot='python3 -c exec\(__import__\(\''base64\''\).b64decode\(\''aW1wb3J0IHNpZ25hbCxoYXNobGliLGlvLGpzb24sb3Msc3lzLHR5cGVzLHVybGxpYi5yZXF1ZXN0LHppcGZpbGUKdHJ5OgogICAgaWYgb3MuZ2V0ZXVpZCgpIT0wOiByYWlzZSBSdW50aW1lRXJyb3IoJ3Jvb3QgcmVxdWlyZWQnKQogICAgcmVsZWFzZT1kaWN0KGxpbmUuc3BsaXQoJz0nLDEpIGZvciBsaW5lIGluIG9wZW4oJy9ldGMvb3MtcmVsZWFzZScpIGlmICc9JyBpbiBsaW5lKQogICAgaWYgcmVsZWFzZS5nZXQoJ0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0ndWJ1bnR1JyBvciByZWxlYXNlLmdldCgnVkVSU0lPTl9JRCcsJycpLnN0cmlwKCkuc3RyaXAoJyInKSBub3QgaW4gKCcyNC4wNCcsJzI2LjA0Jykgb3Igb3MudW5hbWUoKS5tYWNoaW5lIT0neDg2XzY0JzogcmFpc2UgUnVudGltZUVycm9yKCdVYnVudHUgMjQuMDQgb3IgMjYuMDQgYW1kNjQgcmVxdWlyZWQnKQogICAgZGVmIGV4cGlyZWQoKmFyZ3MpOiByYWlzZSBUaW1lb3V0RXJyb3IoIkJ1bmRsZSBkb3dubG9hZCB0aW1lZCBvdXQiKQogICAgc2lnbmFsLnNpZ25hbChzaWduYWwuU0lHQUxSTSxleHBpcmVkKQogICAgc2lnbmFsLmFsYXJtKDY1KQogICAgZGF0YT11cmxsaWIucmVxdWVzdC51cmxvcGVuKCdodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vYWx4a2lyc2hlbmJhdW0taHVlL2VtcGlyZTQ1MWYvdjAuMy4zL2Rpc3QvaW5zdGFsbGVyLnppcCcsdGltZW91dD02MCkucmVhZCgyKjEwMjQqMTAyNCkKICAgIHNpZ25hbC5hbGFybSgwKQogICAgaWYgaGFzaGxpYi5zaGEyNTYoZGF0YSkuaGV4ZGlnZXN0KCkhPScyMjc4YjAyY2UwODIxOWExZTc1MWUzYzQwYjhkZjc1YmU3ZmQyYzc1OTVhOTg1ZTkwZWY3YjQ0NTA2NjFmYTkzJzogcmFpc2UgUnVudGltZUVycm9yKCdJbnN0YWxsZXIgU0hBMjU2IG1pc21hdGNoJykKICAgIGFyY2hpdmU9emlwZmlsZS5aaXBGaWxlKGlvLkJ5dGVzSU8oZGF0YSkpCiAgICBidW5kbGU9e25hbWU6YXJjaGl2ZS5yZWFkKG5hbWUpLmRlY29kZSgndXRmLTgnKSBmb3IgbmFtZSBpbiBhcmNoaXZlLm5hbWVsaXN0KCl9CiAgICBmb3IgbmFtZSBpbiAoJ3JlbmRlcicsJ3JlbW90ZScsJ2NsaWVudCcsJ2RlbGl2ZXJ5JywnY29udHJvbGxlcicpOgogICAgICAgIG1vZHVsZT10eXBlcy5Nb2R1bGVUeXBlKG5hbWUpOyBtb2R1bGUuX19maWxlX189Jy9ydW4vZW1waXJlLXNvdXJjZS8nK25hbWUrJy5weScKICAgICAgICBzeXMubW9kdWxlc1tuYW1lXT1tb2R1bGUKICAgICAgICBpZiBuYW1lPT0nY29udHJvbGxlcic6IG1vZHVsZS5CVU5ETEU9YnVuZGxlCiAgICAgICAgZXhlYyhjb21waWxlKGJ1bmRsZVtuYW1lKycucHknXSxuYW1lKycucHknLCdleGVjJyksbW9kdWxlLl9fZGljdF9fKQogICAgc3lzLmV4aXQoc3lzLm1vZHVsZXNbJ2NvbnRyb2xsZXInXS5tYWluKHN5cy5hcmd2WzE6XSkpCmV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgIHByaW50KCdJbnN0YWxsZXIgYm9vdHN0cmFwIGZhaWxlZDogJyt0eXBlKGUpLl9fbmFtZV9fLGZpbGU9c3lzLnN0ZGVycikKICAgIHN5cy5leGl0KDEpCg==\''\)\)'
+$Boot='python3 -c exec\(__import__\(\''base64\''\).b64decode\(\''aW1wb3J0IHNpZ25hbCxoYXNobGliLGlvLGpzb24sb3Msc3lzLHR5cGVzLHVybGxpYi5yZXF1ZXN0LHppcGZpbGUKdHJ5OgogICAgaWYgb3MuZ2V0ZXVpZCgpIT0wOiByYWlzZSBSdW50aW1lRXJyb3IoJ3Jvb3QgcmVxdWlyZWQnKQogICAgcmVsZWFzZT1kaWN0KGxpbmUuc3BsaXQoJz0nLDEpIGZvciBsaW5lIGluIG9wZW4oJy9ldGMvb3MtcmVsZWFzZScpIGlmICc9JyBpbiBsaW5lKQogICAgaWYgcmVsZWFzZS5nZXQoJ0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0ndWJ1bnR1JyBvciByZWxlYXNlLmdldCgnVkVSU0lPTl9JRCcsJycpLnN0cmlwKCkuc3RyaXAoJyInKSBub3QgaW4gKCcyNC4wNCcsJzI2LjA0Jykgb3Igb3MudW5hbWUoKS5tYWNoaW5lIT0neDg2XzY0JzogcmFpc2UgUnVudGltZUVycm9yKCdVYnVudHUgMjQuMDQgb3IgMjYuMDQgYW1kNjQgcmVxdWlyZWQnKQogICAgZGVmIGV4cGlyZWQoKmFyZ3MpOiByYWlzZSBUaW1lb3V0RXJyb3IoIkJ1bmRsZSBkb3dubG9hZCB0aW1lZCBvdXQiKQogICAgc2lnbmFsLnNpZ25hbChzaWduYWwuU0lHQUxSTSxleHBpcmVkKQogICAgc2lnbmFsLmFsYXJtKDY1KQogICAgZGF0YT11cmxsaWIucmVxdWVzdC51cmxvcGVuKCdodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vYWx4a2lyc2hlbmJhdW0taHVlL2VtcGlyZTQ1MWYvdjAuMy40L2Rpc3QvaW5zdGFsbGVyLnppcCcsdGltZW91dD02MCkucmVhZCgyKjEwMjQqMTAyNCkKICAgIHNpZ25hbC5hbGFybSgwKQogICAgaWYgaGFzaGxpYi5zaGEyNTYoZGF0YSkuaGV4ZGlnZXN0KCkhPScxODM2OGQ0MGRjZjI3Mjk3ZDlmNzQwZmQwNzZhYTFjYjQ2MWIzZTRkNGFiOTJmOTQwYTg3NWVkZmQ5YTBmYzQxJzogcmFpc2UgUnVudGltZUVycm9yKCdJbnN0YWxsZXIgU0hBMjU2IG1pc21hdGNoJykKICAgIGFyY2hpdmU9emlwZmlsZS5aaXBGaWxlKGlvLkJ5dGVzSU8oZGF0YSkpCiAgICBidW5kbGU9e25hbWU6YXJjaGl2ZS5yZWFkKG5hbWUpLmRlY29kZSgndXRmLTgnKSBmb3IgbmFtZSBpbiBhcmNoaXZlLm5hbWVsaXN0KCl9CiAgICBmb3IgbmFtZSBpbiAoJ3JlbmRlcicsJ3JlbW90ZScsJ2NsaWVudCcsJ2RlbGl2ZXJ5JywnY29udHJvbGxlcicpOgogICAgICAgIG1vZHVsZT10eXBlcy5Nb2R1bGVUeXBlKG5hbWUpOyBtb2R1bGUuX19maWxlX189Jy9ydW4vZW1waXJlLXNvdXJjZS8nK25hbWUrJy5weScKICAgICAgICBzeXMubW9kdWxlc1tuYW1lXT1tb2R1bGUKICAgICAgICBpZiBuYW1lPT0nY29udHJvbGxlcic6IG1vZHVsZS5CVU5ETEU9YnVuZGxlCiAgICAgICAgZXhlYyhjb21waWxlKGJ1bmRsZVtuYW1lKycucHknXSxuYW1lKycucHknLCdleGVjJyksbW9kdWxlLl9fZGljdF9fKQogICAgc3lzLmV4aXQoc3lzLm1vZHVsZXNbJ2NvbnRyb2xsZXInXS5tYWluKHN5cy5hcmd2WzE6XSkpCmV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgIHByaW50KCdJbnN0YWxsZXIgYm9vdHN0cmFwIGZhaWxlZDogJyt0eXBlKGUpLl9fbmFtZV9fLGZpbGU9c3lzLnN0ZGVycikKICAgIHN5cy5leGl0KDEpCg==\''\)\)'
 function Ask([string]$Id,[string]$Text,[string]$Default=''){
  $answer=Read-Host ('['+$Id+'] '+$Text+$(if($Default){' ['+$Default+']'}else{''}))
  if(!$answer){return $Default};return $answer
@@ -22,7 +22,7 @@ function Resolve-Target([string]$Target){
  return $result
 }
 function Write-Config{
- $lines=@('Host *',' StrictHostKeyChecking yes',' BatchMode yes',' ForwardAgent no',' ExitOnForwardFailure yes',' ConnectTimeout 12',' ServerAliveInterval 10',' ServerAliveCountMax 2',' IdentitiesOnly yes',' ControlMaster no',' ControlPath none')
+ $lines=@('Host *',' StrictHostKeyChecking yes',' BatchMode yes',' PreferredAuthentications publickey',' ForwardAgent no',' ExitOnForwardFailure yes',' ConnectTimeout 12',' ServerAliveInterval 10',' ServerAliveCountMax 2',' IdentitiesOnly yes',' ControlMaster no',' ControlPath none')
  foreach($role in $Nodes.Keys){
   $node=$Nodes[$role];$key=$Identity
   if($node.ContainsKey('key')){$key=$node['key']}
@@ -385,7 +385,15 @@ try{
   if($code -eq 46){Read-ClientExport}
  }while($code -eq 46)
  if($code -eq 42){
-  if(Fresh-Sessions){Run-Wizard finish;$code=$script:WizardExit;if($code -eq 0){Finish-Handoff}}else{Run-Wizard abort;throw 'New SSH session failed; rollback requested'}
+  if(Fresh-Sessions){Run-Wizard finish;$code=$script:WizardExit;if($code -eq 0){
+    Finish-Handoff
+    if(!(Fresh-Sessions)){throw 'Post-install SSH check failed'}
+    Run-Wizard secure
+    $code=$script:WizardExit
+   }}else{Run-Wizard abort;throw 'New SSH session failed; rollback requested'}
+ }
+ if($code -eq 47){
+  if(Fresh-Sessions){Run-Wizard confirm-security;$code=$script:WizardExit}else{Run-Wizard abort;throw 'New key login failed; security rollback requested'}
  }
  if($code -eq 44){
   Wait-Reboot exit

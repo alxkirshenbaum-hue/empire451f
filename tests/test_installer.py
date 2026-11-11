@@ -45,6 +45,24 @@ class RenderingTests(unittest.TestCase):
         self.assertNotIn('85.155.', e + x)
         self.assertNotIn('flush ruleset', x)
 
+    def test_optional_security_only_changes_selected_files(self):
+        c = config()
+        keys = {'entry':'A'*43+'=', 'exit':'B'*43+'='}
+        facts = {'interface':'ens99','ssh_port':2222,'admin_ip':c['entry']['address']}
+        for role in ('entry','exit'):
+            before = files(role)
+            hardened = render.render(dict(c,security={'key_only':True,'entry_only':True}),role,facts,keys,users(),client.bundle())
+            changes = {p for p in hardened if before.get(p)!=hardened[p]}
+            expected = {'/etc/ssh/sshd_config.d/00-evpn-labtest.conf'}
+            if role=='exit':
+                expected.add('/etc/empire-vpn/labtest/host.nft')
+                self.assertIn('ip saddr '+c['entry']['address']+' tcp dport 2222 accept', hardened['/etc/empire-vpn/labtest/host.nft']['content'])
+            self.assertEqual(changes,expected)
+            preserved = render.render(c,role,dict(facts,saved_security={'key_only':True,'entry_only':True}),keys,users(),client.bundle())
+            self.assertEqual(hardened,preserved)
+        with self.assertRaises(render.Invalid):
+            render.render(dict(c,security={'entry_only':True}),'exit',dict(facts,admin_ip='127.0.0.1'),keys,users(),client.bundle())
+
     def test_chain_is_http_uot_and_failclosed(self):
         out = files()
         sb = json.loads(out['/etc/empire-vpn/labtest/sing-box.json']['content'])
@@ -178,7 +196,7 @@ class RemoteSafetyTests(unittest.TestCase):
             def paths(value):
                 return forward if str(value) == '/proc/sys/net/ipv4/ip_forward' else (root / 'global-etc' if str(value) == '/etc/empire-vpn' else Path(value))
             request = {'facts': f, 'keys': {'exit': 'B' * 43 + '='}, 'templates': {}, 'clients': users(), 'transaction': 'testtransaction', 'sources': {'remote.py': '#fixture', 'render.py': '#fixture'}}
-            with patch.object(remote, 'names', return_value=n), patch.object(remote, 'probe', return_value=f), patch.object(remote, 'plan', return_value=(desired, [{'action': 'update'}])), patch.object(remote, 'run', side_effect=runner), patch.object(remote, 'atomic', side_effect=atomic), patch.object(remote, 'Path', side_effect=paths), patch.object(remote, 'arm_timer'), patch.object(remote, 'cancel_timer'), patch.object(remote.os, 'chmod'), patch.object(remote.os, 'chown', create=True):
+            with patch.object(remote, 'names', return_value=n), patch.object(remote, 'probe', return_value=f), patch.object(remote, 'plan', return_value=(desired, [{'action': 'update', 'path': str(old)}, {'action':'create','path':str(created)}])), patch.object(remote, 'run', side_effect=runner), patch.object(remote, 'atomic', side_effect=atomic), patch.object(remote, 'Path', side_effect=paths), patch.object(remote, 'arm_timer'), patch.object(remote, 'cancel_timer'), patch.object(remote.os, 'chmod'), patch.object(remote.os, 'chown', create=True):
                 with self.assertRaisesRegex(render.Invalid, 'activation failure'):
                     remote.apply(config(), 'exit', request)
             self.assertEqual(old.read_text(), 'before\n')

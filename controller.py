@@ -101,7 +101,7 @@ def rpc(port, token):
                     stopping = True
                     result = {'status': 'stopping'}
                 else:
-                    require(data['action'] in ('network-options', 'probe', 'plan', 'prepare', 'apply', 'commit', 'rollback', 'boot', 'reboot'), 'RPC action rejected')
+                    require(data['action'] in ('network-options', 'probe', 'plan', 'prepare', 'apply', 'secure-apply', 'commit', 'rollback', 'boot', 'reboot'), 'RPC action rejected')
                     result = remote.dispatch(request(data.pop('action'), 'exit', data.pop('config'), **data))
                 reply = {'ok': True, 'result': result}
             except BaseException as error:
@@ -330,6 +330,7 @@ def start(nodes, session, imported):
         'rollback': 'Undo the last installation changes on both servers',
         'acceptance': 'Test that traffic stops if the tunnel fails (briefly disconnects WireGuard)',
         'reboot-test': 'Restart both servers in turn and check that the VPN recovers',
+        'ssh-security': 'Secure SSH on an installed VPN (keys only or exit access through entry)',
     }
     print('[Q00] What would you like to do on this run?')
     numbers = {}
@@ -363,6 +364,10 @@ def start(nodes, session, imported):
             c = validate(saved)
     users = clients(c, imported)
     state = {'config': c, 'changed': [], 'action': action}
+    if action == 'ssh-security':
+        state['committed'] = True
+        store_session(session,state)
+        return finish(nodes,session,'secure')
     if action == 'rollback':
         require(input('Roll back both nodes? Type ROLLBACK: ') == 'ROLLBACK', 'Cancelled')
         for role in ('entry', 'exit'):
@@ -449,6 +454,52 @@ def finish(nodes, session, operation):
     state = remote.readjson(session_path(session))
     require(state is not None, 'Session state missing; timers remain armed')
     c = state['config']
+    if operation == 'secure':
+        require(state.get('committed'), 'Finish deployment first')
+        if any(c[r]['kind']=='legacy' for r in ('entry','exit')):
+            print('Post-install SSH options apply to installer-managed nodes only.')
+            return 0
+        def yes(prompt):
+            while True:
+                answer = input(prompt + ' [y/N]: ').strip().lower()
+                if answer in ('','no','n','yes','y'):
+                    return answer in ('yes','y')
+        if not yes('[Q26] Can you open a recovery console for BOTH servers from their provider panels if SSH fails?'):
+            return 0
+        policy = {}
+        if yes('[Q27] Require public-key SSH on both servers and disable password and keyboard-interactive login for all users?'):
+            policy['key_only'] = True
+        facts = {r:nodes.call(r,'probe',c) for r in ('entry','exit')}
+        require(all(facts[r]['owned'] and not facts[r]['pending'] for r in facts), 'Both roles need committed manifests and no pending transaction')
+        if facts['exit']['admin_ip'] == c['entry']['address']:
+            if yes('[Q28] Allow new SSH connections on the exit only from entry ' + c['entry']['address'] + '? Future SSH to exit must use this hop.'):
+                policy['entry_only'] = True
+        else:
+            print('Q28 skipped: the current exit SSH connection does not come from this entry. Use ProxyJump via entry to enable this restriction.')
+        if not policy:
+            return 0
+        c = dict(c, security=policy)
+        keys = {r:facts[r]['public_key'] for r in facts}
+        users = clients(c,None)
+        state.update(config=c, changed=[], transaction=uuid.uuid4().hex)
+        store_session(session,state)
+        try:
+            for r in ('exit','entry'):
+                result=nodes.call(r,'secure-apply',c,keys=keys,clients=users,facts=facts[r],transaction=state['transaction'])
+                if result['status']=='applied':
+                    state['changed'].append(r)
+                store_session(session,state)
+            return 47 if state['changed'] else 0
+        except BaseException:
+            abort(nodes,state)
+            raise
+    if operation == 'confirm-security':
+        require(state.get('committed'), 'Finish deployment first')
+        for r in state['changed']:
+            nodes.call(r,'commit',c,transaction=state['transaction'])
+        remote.atomic(Path(names(c)['state'])/'deployment.json',json.dumps(c))
+        print('SSH policy committed after fresh key logins to both servers.')
+        return 0
     if operation == 'publish-site':
         require(state.get('committed'), 'Website upload requires a committed deployment')
         archive = session_path(session).with_suffix('.zip')

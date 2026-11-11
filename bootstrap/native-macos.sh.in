@@ -103,7 +103,7 @@ write_node() {
 }
 write_config() {
  {
-  printf '%s\n' 'Host *' ' StrictHostKeyChecking yes' ' BatchMode yes' ' ForwardAgent no' ' ExitOnForwardFailure yes' ' ConnectTimeout 12' ' ServerAliveInterval 10' ' ServerAliveCountMax 2' ' IdentitiesOnly yes' ' ControlMaster no' ' ControlPath none'
+  printf '%s\n' 'Host *' ' StrictHostKeyChecking yes' ' BatchMode yes' ' PreferredAuthentications publickey' ' ForwardAgent no' ' ExitOnForwardFailure yes' ' ConnectTimeout 12' ' ServerAliveInterval 10' ' ServerAliveCountMax 2' ' IdentitiesOnly yes' ' ControlMaster no' ' ControlPath none'
   write_node entry E "$IDENTITY"; [ -z "$E_jump" ] || printf ' ProxyJump %s\n' "$E_jump"
   write_node exit X "$IDENTITY"; [ -z "$X_jump" ] || printf ' ProxyJump %s\n' "$X_jump"
   [ -z "$T_hostname" ] || write_node transit T "$T_key"
@@ -312,7 +312,14 @@ while :; do
  read_client_export
 done
 if [ "$code" -eq 42 ]; then
- if fresh_sessions; then code=0; run_wizard finish || code=$?; if [ "$code" = 0 ]; then finish_handoff; fi; else run_wizard abort || true; die 'New SSH session failed; rollback requested'; fi
+ if fresh_sessions; then code=0; run_wizard finish || code=$?; if [ "$code" = 0 ]; then
+  finish_handoff
+  fresh_sessions || die 'Post-install SSH check failed'
+  code=0; run_wizard secure || code=$?
+ fi; else run_wizard abort || true; die 'New SSH session failed; rollback requested'; fi
+fi
+if [ "$code" = 47 ]; then
+ if fresh_sessions; then code=0; run_wizard confirm-security || code=$?; else run_wizard abort || true; die 'New key login failed; security rollback requested'; fi
 fi
 if [ "$code" -eq 44 ]; then
  wait_reboot exit

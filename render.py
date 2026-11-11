@@ -122,7 +122,15 @@ def render(c, role, facts, public_keys, clients, templates):
     out = {}
     base = n['base']
     out[base + '/network.sh'] = file(tpl('network-' + role + '.sh'), 0o700)
-    out[base + '/host.nft'] = file(tpl('host-' + role + '.nft', policy='accept' if facts.get('legacy') else 'drop'))
+    security = dict(facts.get('saved_security', {})) | c.get('security', {})
+    rules = tpl('host-' + role + '.nft', policy='accept' if facts.get('legacy') else 'drop')
+    if not facts.get('legacy') and security.get('key_only'):
+        out['/etc/ssh/sshd_config.d/00-evpn-' + c['id'] + '.conf'] = file(
+            'PasswordAuthentication no\nKbdInteractiveAuthentication no\nPermitRootLogin prohibit-password\nAuthenticationMethods publickey\n')
+    if role == 'exit' and not facts.get('legacy') and security.get('entry_only'):
+        require(facts.get('admin_ip') == c['entry']['address'], 'Use SSH to exit via the entry before applying the exit firewall restriction')
+        rules = rules.replace('  tcp dport ', '  ip saddr ' + c['entry']['address'] + ' tcp dport ')
+    out[base + '/host.nft'] = file(rules)
     out[base + '/firewall.sh'] = file('#!/bin/bash\nset -euo pipefail\n{\n if nft list table inet ' + n['table'] + ' >/dev/null 2>&1; then echo "delete table inet ' + n['table'] + '"; fi\n cat ' + base + '/host.nft\n} | nft -f -', 0o700)
     out['/etc/systemd/system/' + n['prefix'] + '-firewall.service'] = file(tpl('firewall.service'))
     out['/etc/systemd/system/' + n['prefix'] + '-network.service'] = file(tpl('network.service'))

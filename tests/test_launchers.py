@@ -210,6 +210,7 @@ class Stub {
    if(!args.Contains("-tt")) return 8;
    if(last.EndsWith(" start")) {File.AppendAllText(trace,"apply-pending\n");Console.WriteLine("REMOTE_DIALOG_STUB");return 42;}
    if(last.EndsWith(" finish")) {File.AppendAllText(trace,"commit\n");Console.WriteLine("COMMIT_STUB");return 0;}
+   if(last.EndsWith(" secure")) return 0;
    if(last.EndsWith(" publish-site")) {File.AppendAllText(trace,"publish-site\n");return 0;}
   }
   return 7;

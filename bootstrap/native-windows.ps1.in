@@ -22,7 +22,7 @@ function Resolve-Target([string]$Target){
  return $result
 }
 function Write-Config{
- $lines=@('Host *',' StrictHostKeyChecking yes',' BatchMode yes',' ForwardAgent no',' ExitOnForwardFailure yes',' ConnectTimeout 12',' ServerAliveInterval 10',' ServerAliveCountMax 2',' IdentitiesOnly yes',' ControlMaster no',' ControlPath none')
+ $lines=@('Host *',' StrictHostKeyChecking yes',' BatchMode yes',' PreferredAuthentications publickey',' ForwardAgent no',' ExitOnForwardFailure yes',' ConnectTimeout 12',' ServerAliveInterval 10',' ServerAliveCountMax 2',' IdentitiesOnly yes',' ControlMaster no',' ControlPath none')
  foreach($role in $Nodes.Keys){
   $node=$Nodes[$role];$key=$Identity
   if($node.ContainsKey('key')){$key=$node['key']}
@@ -385,7 +385,15 @@ try{
   if($code -eq 46){Read-ClientExport}
  }while($code -eq 46)
  if($code -eq 42){
-  if(Fresh-Sessions){Run-Wizard finish;$code=$script:WizardExit;if($code -eq 0){Finish-Handoff}}else{Run-Wizard abort;throw 'New SSH session failed; rollback requested'}
+  if(Fresh-Sessions){Run-Wizard finish;$code=$script:WizardExit;if($code -eq 0){
+    Finish-Handoff
+    if(!(Fresh-Sessions)){throw 'Post-install SSH check failed'}
+    Run-Wizard secure
+    $code=$script:WizardExit
+   }}else{Run-Wizard abort;throw 'New SSH session failed; rollback requested'}
+ }
+ if($code -eq 47){
+  if(Fresh-Sessions){Run-Wizard confirm-security;$code=$script:WizardExit}else{Run-Wizard abort;throw 'New key login failed; security rollback requested'}
  }
  if($code -eq 44){
   Wait-Reboot exit

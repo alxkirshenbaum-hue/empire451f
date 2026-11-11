@@ -49,10 +49,22 @@ def connect(port, host, target_port):
 
 
 def udp(port, address, target_port, payload):
-    # Service port MUST be zero (the previous SOCKS upstream bug was here).
-    with connect(port, 'sp.v2.udp-over-tcp.arpa', 0) as s:
-        s.sendall(b'\x01\x01' + socket.inet_aton(address) + struct.pack('!H', target_port) + struct.pack('!H', len(payload)) + payload)
-        return readn(s, struct.unpack('!H', readn(s, 2))[0])
+    # Exercise the client in the same way as SFA: sing-box constructs the UoT stream.
+    with socket.create_connection(('127.0.0.1', port), timeout=6) as control, socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as datagram:
+        control.sendall(b'\x05\x01\x00')
+        require(readn(control, 2) == b'\x05\x00', 'SOCKS handshake failed')
+        control.sendall(b'\x05\x03\x00\x01' + bytes(6))
+        require(readn(control, 4) == b'\x05\x00\x00\x01', 'Local SOCKS UDP relay unavailable')
+        relay_ip = socket.inet_ntoa(readn(control, 4))
+        relay_port = struct.unpack('!H', readn(control, 2))[0]
+        require(relay_ip in ('0.0.0.0', '127.0.0.1'), 'Unexpected UDP relay address')
+        header = b'\x00\x00\x00\x01' + socket.inet_aton(address) + struct.pack('!H', target_port)
+        datagram.settimeout(8)
+        datagram.connect(('127.0.0.1', relay_port))
+        datagram.send(header + payload)
+        response = datagram.recv(65535)
+        require(response.startswith(header), 'Unexpected SOCKS UDP response')
+        return response[len(header):]
 
 
 def https_ip(port):
@@ -94,6 +106,7 @@ def verify(c, clients, blocked=False, before_block=None):
             raise RuntimeError('Website/TLS not ready; check DNS, provider firewall and ACME')
     conf = {'log': {'disabled': True}, 'inbounds': [{'type': 'socks', 'listen': '127.0.0.1', 'listen_port': port}],
             'outbounds': [{'type': 'naive', 'tag': 'proxy', 'server': c['entry']['address'], 'server_port': 443,
+                           'udp_over_tcp': {'enabled': True, 'version': 2},
                            'username': user['username'], 'password': user['password'],
                            'tls': {'enabled': True, 'server_name': c['domain']}}], 'route': {'final': 'proxy'}}
     with tempfile.TemporaryDirectory(prefix='evpn-verify-', dir='/run') as folder:
@@ -128,10 +141,16 @@ def verify(c, clients, blocked=False, before_block=None):
                 must_fail(lambda: udp(port, c['dns'], 53, query), 'DNS with WG down')
             else:
                 require(https_ip(port) == c['exit']['address'], 'Wrong TCP exit IP')
-                answer = udp(port, c['dns'], 53, query)
+                try:
+                    answer = udp(port, c['dns'], 53, query)
+                except OSError as error:
+                    raise RuntimeError('DNS over UoT failed: ' + type(error).__name__) from None
                 require(answer[:2] == query[:2] and answer[2] & 128 and answer[3] & 15 == 0, 'UoT DNS failed')
                 tx = os.urandom(12)
-                answer = udp(port, socket.gethostbyname('stun.l.google.com'), 19302, struct.pack('!HHI', 1, 0, 0x2112a442) + tx)
+                try:
+                    answer = udp(port, socket.gethostbyname('stun.l.google.com'), 19302, struct.pack('!HHI', 1, 0, 0x2112a442) + tx)
+                except OSError as error:
+                    raise RuntimeError('STUN over UoT failed: ' + type(error).__name__) from None
                 require(answer[:2] == b'\x01\x01' and answer[8:20] == tx, 'STUN failed')
                 found = None
                 pos = 20

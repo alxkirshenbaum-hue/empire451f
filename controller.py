@@ -325,7 +325,7 @@ def start(nodes, session, imported):
     actions = {
         'preview': 'See what would change, then exit without installing',
         'new': 'Set up new servers or replace an entry or exit',
-        'apply-saved': 'Change the domain or other settings of an existing VPN, or retry a previous installation',
+        'apply-saved': 'Apply saved settings (change domain or other settings of existing VPN, retry a previous installation)',
         'verify': 'Check that the site and VPN work (use after switching DNS)',
         'rollback': 'Undo the last installation changes on both servers',
         'acceptance': 'Test that traffic stops if the tunnel fails (briefly disconnects WireGuard)',

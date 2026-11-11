@@ -59,6 +59,15 @@ class ServerControllerTests(unittest.TestCase):
         for role in ('entry','exit'):
             self.assertEqual(edited[role]['address'], saved[role]['address'])
 
+    def test_resume_verify_uses_checked_pair_and_supplied_id(self):
+        from unittest.mock import Mock
+        saved = config()
+        nodes = Mock()
+        with patch.object(controller.remote, 'readjson', return_value=saved), patch.object(controller,'clients',return_value=users()), patch.object(controller,'verify') as verify, patch.object(controller,'deployment_id',side_effect=AssertionError('unexpected ID question')), patch('builtins.input',side_effect=['4']), contextlib.redirect_stdout(io.StringIO()):
+            controller.start(nodes,'unused',None,saved['id'])
+        self.assertEqual([call.args[:2] for call in nodes.call.call_args_list],[('entry','check-pair'),('exit','check-pair')])
+        verify.assert_called_once()
+
     def test_preview_reuses_accepted_id(self):
         answers = {'Q04': '198.51.100.10', 'Q06': '203.0.113.20', 'Q07': 'vpn.example.com'}
         ids = iter(['newhhentry1', 'nhh1'])

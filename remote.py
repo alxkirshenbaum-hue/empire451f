@@ -620,6 +620,13 @@ def dispatch(request):
     c = validate(request['config'])
     role = request['role']
     action = request['action']
+    if action == 'check-pair':
+        manifest = readjson(names(c)['state'] + '/manifest.json', {})
+        previous = manifest.get('config', {})
+        require(manifest.get('role') == role and previous.get('id') == c['id'] and
+                all(previous.get(r, {}).get('address') == c[r]['address'] for r in ('entry','exit')),
+                'Saved installation differs on ' + role + '. Check the aliases and ID.')
+        return {'status':'matched'}
     if action == 'network-options':
         routes = json.loads(text(['ip', '-j', '-4', 'route', 'show', 'table', 'all']))
         networks = [r['dst'] for r in routes if r.get('dst') not in (None, 'default', '0.0.0.0/0')]

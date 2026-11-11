@@ -1,7 +1,12 @@
 # Native Windows launcher: no local Python, module bundle, or server templates.
+param([string]$EntryAlias,[string]$ExitAlias,[string]$DeploymentId)
 $ErrorActionPreference='Stop'
+$resume = $PSBoundParameters.Count -gt 0
+if ($resume -and ($EntryAlias -notmatch '^[a-zA-Z0-9][a-zA-Z0-9_.-]*$' -or $ExitAlias -notmatch '^[a-zA-Z0-9][a-zA-Z0-9_.-]*$' -or $EntryAlias -eq $ExitAlias -or $DeploymentId -cnotmatch '^[a-z][a-z0-9]{2,9}$')) { throw 'Supply two distinct SSH aliases and an existing deployment ID.' }
+$entryHost='entry'; $exitHost='exit'; $startOperation='start'
+if ($resume) {$entryHost=$EntryAlias; $exitHost=$ExitAlias; $startOperation='resume-'+$DeploymentId}
 [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
-$Boot='python3 -c exec\(__import__\(\''base64\''\).b64decode\(\''aW1wb3J0IHNpZ25hbCxoYXNobGliLGlvLGpzb24sb3Msc3lzLHR5cGVzLHVybGxpYi5yZXF1ZXN0LHppcGZpbGUKdHJ5OgogICAgaWYgb3MuZ2V0ZXVpZCgpIT0wOiByYWlzZSBSdW50aW1lRXJyb3IoJ3Jvb3QgcmVxdWlyZWQnKQogICAgcmVsZWFzZT1kaWN0KGxpbmUuc3BsaXQoJz0nLDEpIGZvciBsaW5lIGluIG9wZW4oJy9ldGMvb3MtcmVsZWFzZScpIGlmICc9JyBpbiBsaW5lKQogICAgaWYgcmVsZWFzZS5nZXQoJ0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0ndWJ1bnR1JyBvciByZWxlYXNlLmdldCgnVkVSU0lPTl9JRCcsJycpLnN0cmlwKCkuc3RyaXAoJyInKSBub3QgaW4gKCcyNC4wNCcsJzI2LjA0Jykgb3Igb3MudW5hbWUoKS5tYWNoaW5lIT0neDg2XzY0JzogcmFpc2UgUnVudGltZUVycm9yKCdVYnVudHUgMjQuMDQgb3IgMjYuMDQgYW1kNjQgcmVxdWlyZWQnKQogICAgZGVmIGV4cGlyZWQoKmFyZ3MpOiByYWlzZSBUaW1lb3V0RXJyb3IoIkJ1bmRsZSBkb3dubG9hZCB0aW1lZCBvdXQiKQogICAgc2lnbmFsLnNpZ25hbChzaWduYWwuU0lHQUxSTSxleHBpcmVkKQogICAgc2lnbmFsLmFsYXJtKDY1KQogICAgZGF0YT11cmxsaWIucmVxdWVzdC51cmxvcGVuKCdodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vYWx4a2lyc2hlbmJhdW0taHVlL2VtcGlyZTQ1MWYvdjAuMy40L2Rpc3QvaW5zdGFsbGVyLnppcCcsdGltZW91dD02MCkucmVhZCgyKjEwMjQqMTAyNCkKICAgIHNpZ25hbC5hbGFybSgwKQogICAgaWYgaGFzaGxpYi5zaGEyNTYoZGF0YSkuaGV4ZGlnZXN0KCkhPScxODM2OGQ0MGRjZjI3Mjk3ZDlmNzQwZmQwNzZhYTFjYjQ2MWIzZTRkNGFiOTJmOTQwYTg3NWVkZmQ5YTBmYzQxJzogcmFpc2UgUnVudGltZUVycm9yKCdJbnN0YWxsZXIgU0hBMjU2IG1pc21hdGNoJykKICAgIGFyY2hpdmU9emlwZmlsZS5aaXBGaWxlKGlvLkJ5dGVzSU8oZGF0YSkpCiAgICBidW5kbGU9e25hbWU6YXJjaGl2ZS5yZWFkKG5hbWUpLmRlY29kZSgndXRmLTgnKSBmb3IgbmFtZSBpbiBhcmNoaXZlLm5hbWVsaXN0KCl9CiAgICBmb3IgbmFtZSBpbiAoJ3JlbmRlcicsJ3JlbW90ZScsJ2NsaWVudCcsJ2RlbGl2ZXJ5JywnY29udHJvbGxlcicpOgogICAgICAgIG1vZHVsZT10eXBlcy5Nb2R1bGVUeXBlKG5hbWUpOyBtb2R1bGUuX19maWxlX189Jy9ydW4vZW1waXJlLXNvdXJjZS8nK25hbWUrJy5weScKICAgICAgICBzeXMubW9kdWxlc1tuYW1lXT1tb2R1bGUKICAgICAgICBpZiBuYW1lPT0nY29udHJvbGxlcic6IG1vZHVsZS5CVU5ETEU9YnVuZGxlCiAgICAgICAgZXhlYyhjb21waWxlKGJ1bmRsZVtuYW1lKycucHknXSxuYW1lKycucHknLCdleGVjJyksbW9kdWxlLl9fZGljdF9fKQogICAgc3lzLmV4aXQoc3lzLm1vZHVsZXNbJ2NvbnRyb2xsZXInXS5tYWluKHN5cy5hcmd2WzE6XSkpCmV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgIHByaW50KCdJbnN0YWxsZXIgYm9vdHN0cmFwIGZhaWxlZDogJyt0eXBlKGUpLl9fbmFtZV9fLGZpbGU9c3lzLnN0ZGVycikKICAgIHN5cy5leGl0KDEpCg==\''\)\)'
+$Boot='python3 -c exec\(__import__\(\''base64\''\).b64decode\(\''aW1wb3J0IHNpZ25hbCxoYXNobGliLGlvLGpzb24sb3Msc3lzLHR5cGVzLHVybGxpYi5yZXF1ZXN0LHppcGZpbGUKdHJ5OgogICAgaWYgb3MuZ2V0ZXVpZCgpIT0wOiByYWlzZSBSdW50aW1lRXJyb3IoJ3Jvb3QgcmVxdWlyZWQnKQogICAgcmVsZWFzZT1kaWN0KGxpbmUuc3BsaXQoJz0nLDEpIGZvciBsaW5lIGluIG9wZW4oJy9ldGMvb3MtcmVsZWFzZScpIGlmICc9JyBpbiBsaW5lKQogICAgaWYgcmVsZWFzZS5nZXQoJ0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0ndWJ1bnR1JyBvciByZWxlYXNlLmdldCgnVkVSU0lPTl9JRCcsJycpLnN0cmlwKCkuc3RyaXAoJyInKSBub3QgaW4gKCcyNC4wNCcsJzI2LjA0Jykgb3Igb3MudW5hbWUoKS5tYWNoaW5lIT0neDg2XzY0JzogcmFpc2UgUnVudGltZUVycm9yKCdVYnVudHUgMjQuMDQgb3IgMjYuMDQgYW1kNjQgcmVxdWlyZWQnKQogICAgZGVmIGV4cGlyZWQoKmFyZ3MpOiByYWlzZSBUaW1lb3V0RXJyb3IoIkJ1bmRsZSBkb3dubG9hZCB0aW1lZCBvdXQiKQogICAgc2lnbmFsLnNpZ25hbChzaWduYWwuU0lHQUxSTSxleHBpcmVkKQogICAgc2lnbmFsLmFsYXJtKDY1KQogICAgZGF0YT11cmxsaWIucmVxdWVzdC51cmxvcGVuKCdodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vYWx4a2lyc2hlbmJhdW0taHVlL2VtcGlyZTQ1MWYvdjAuMy41L2Rpc3QvaW5zdGFsbGVyLnppcCcsdGltZW91dD02MCkucmVhZCgyKjEwMjQqMTAyNCkKICAgIHNpZ25hbC5hbGFybSgwKQogICAgaWYgaGFzaGxpYi5zaGEyNTYoZGF0YSkuaGV4ZGlnZXN0KCkhPScyMGIxMjVmYzljMzdmYTI5ZDFmNzE5NDNkYzQxNzk2OTFjYmM5NTRhYTU3ODY0NmVkZDQwNjI2ZWJjZmUzMWUzJzogcmFpc2UgUnVudGltZUVycm9yKCdJbnN0YWxsZXIgU0hBMjU2IG1pc21hdGNoJykKICAgIGFyY2hpdmU9emlwZmlsZS5aaXBGaWxlKGlvLkJ5dGVzSU8oZGF0YSkpCiAgICBidW5kbGU9e25hbWU6YXJjaGl2ZS5yZWFkKG5hbWUpLmRlY29kZSgndXRmLTgnKSBmb3IgbmFtZSBpbiBhcmNoaXZlLm5hbWVsaXN0KCl9CiAgICBmb3IgbmFtZSBpbiAoJ3JlbmRlcicsJ3JlbW90ZScsJ2NsaWVudCcsJ2RlbGl2ZXJ5JywnY29udHJvbGxlcicpOgogICAgICAgIG1vZHVsZT10eXBlcy5Nb2R1bGVUeXBlKG5hbWUpOyBtb2R1bGUuX19maWxlX189Jy9ydW4vZW1waXJlLXNvdXJjZS8nK25hbWUrJy5weScKICAgICAgICBzeXMubW9kdWxlc1tuYW1lXT1tb2R1bGUKICAgICAgICBpZiBuYW1lPT0nY29udHJvbGxlcic6IG1vZHVsZS5CVU5ETEU9YnVuZGxlCiAgICAgICAgZXhlYyhjb21waWxlKGJ1bmRsZVtuYW1lKycucHknXSxuYW1lKycucHknLCdleGVjJyksbW9kdWxlLl9fZGljdF9fKQogICAgc3lzLmV4aXQoc3lzLm1vZHVsZXNbJ2NvbnRyb2xsZXInXS5tYWluKHN5cy5hcmd2WzE6XSkpCmV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgIHByaW50KCdJbnN0YWxsZXIgYm9vdHN0cmFwIGZhaWxlZDogJyt0eXBlKGUpLl9fbmFtZV9fLGZpbGU9c3lzLnN0ZGVycikKICAgIHN5cy5leGl0KDEpCg==\''\)\)'
 function Ask([string]$Id,[string]$Text,[string]$Default=''){
  $answer=Read-Host ('['+$Id+'] '+$Text+$(if($Default){' ['+$Default+']'}else{''}))
  if(!$answer){return $Default};return $answer
@@ -101,7 +106,8 @@ function Invoke-SshCheck([string[]]$Arguments){
 }
 function Probe([string]$Role){
  Write-Host ("Checking SSH: "+$Role+" (up to 25 seconds)...")
- $check=Invoke-SshCheck @($Role,'true')
+ $hostAlias=if($Role -eq 'entry'){$entryHost}else{$exitHost}
+ $check=Invoke-SshCheck @($hostAlias,'true')
  if($check.Code -eq 0){return 'ok'}
  if($check.Code -eq 124){Write-Host ("SSH "+$Role+" timed out.");return 'network'}
  $result=$check.ErrorText
@@ -163,7 +169,7 @@ function New-Port{
 }
 function Start-Rpc{
  Write-Host 'Opening exit SSH tunnel and loading installer on exit (up to 90 seconds)...'
- $arguments=@('-F',$Config,'-n','-o','SendEnv=LC_EVPN_TOKEN','-L',('127.0.0.1:'+$LocalPort+':127.0.0.1:'+$RpcPort),'exit',($Boot+' rpc '+$RpcPort))
+ $arguments=@('-F',$Config,'-n','-o','SendEnv=LC_EVPN_TOKEN','-L',('127.0.0.1:'+$LocalPort+':127.0.0.1:'+$RpcPort),$exitHost,($Boot+' rpc '+$RpcPort))
  $info=New-Object Diagnostics.ProcessStartInfo
  $info.FileName=(Get-Command ssh.exe).Source
  $info.Arguments=($arguments | ForEach-Object {Quote-WindowsArg $_}) -join ' '
@@ -182,7 +188,7 @@ function Start-Rpc{
 function Run-Wizard([string]$Operation){
  Write-Host ("Opening interactive wizard on entry: "+$Operation+" ...")
  # Keep native console handles: capturing/piping stdout buffers prompts without LF.
- & ssh -F $Config -tt -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -R ('127.0.0.1:'+$RelayPort+':127.0.0.1:'+$LocalPort) entry ($Boot+' wizard '+$RelayPort+' '+$Operation)
+ & ssh -F $Config -tt -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -R ('127.0.0.1:'+$RelayPort+':127.0.0.1:'+$LocalPort) $entryHost ($Boot+' wizard '+$RelayPort+' '+$Operation)
  $script:WizardExit=$LASTEXITCODE
 }
 function Finish-Handoff {
@@ -199,7 +205,7 @@ function Finish-Handoff {
    $sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
    & icacls.exe $tmp /inheritance:r /grant:r ('*'+$sid+':(F)') | Out-Null
    if($LASTEXITCODE){throw 'Private file permissions unavailable'}
-   & scp -q -F $Config ('entry:'+$prefix+'.profile.json') $tmp
+   & scp -q -F $Config ($entryHost+':'+$prefix+'.profile.json') $tmp
    if($LASTEXITCODE){throw 'Transfer failed'}
    [IO.File]::Move($tmp,$dest); Write-Host ('Saved private profile: '+$dest);break
   }catch{Write-Host 'Could not save the profile. Choose a new path in a private writable folder.'}
@@ -210,7 +216,7 @@ function Finish-Handoff {
   if(!$zip){return}
   try{$f=Get-Item -LiteralPath $zip -ErrorAction Stop;if($f.PSIsContainer -or $f.Length -gt 209715200){throw 'Invalid file'}}catch{Write-Host 'Select a ZIP up to 200 MiB.';continue}
   Write-Host 'Uploading site ZIP to entry. Only files under site/ will be published.'
-  & scp -F $Config $f.FullName ('entry:'+$prefix+'.zip')
+  & scp -F $Config $f.FullName ($entryHost+':'+$prefix+'.zip')
   if($LASTEXITCODE){Write-Host 'Upload failed. Retry or press Enter to skip.';continue}
   Run-Wizard publish-site
   if($script:WizardExit -eq 0){return}
@@ -243,6 +249,7 @@ function Ask-Node($id,$label){
   Write-Host 'Enter a valid root destination or SSH alias for root.'
  }
 }
+if (!$resume) {
 $Nodes=@{entry=(Ask-Node Q03 'Entry');exit=(Ask-Node Q05 'Exit')}
 $keyDefault='new'
 :selectKey while($true){
@@ -287,12 +294,18 @@ if($encrypted){
 break
 }
 if($Nodes.entry.user -ne 'root' -or $Nodes.exit.user -ne 'root'){throw 'Use root SSH access (or provider console to prepare it).'}
+}
 $Jumps=@{}
 $Config=[IO.Path]::GetTempFileName()
 $RpcProcess=$null
 $SavedEnv=@{}
 foreach($name in @('LC_EVPN_TOKEN','LC_EVPN_SESSION','LC_EVPN_CLIENTS','LC_EVPN_PROBE')){$SavedEnv[$name]=[Environment]::GetEnvironmentVariable($name)}
 try{
+ if ($resume) {
+  $sshSettings=@('Host *',' StrictHostKeyChecking yes',' BatchMode yes',' PreferredAuthentications publickey',' ForwardAgent no',' ControlMaster no',' ControlPath none',' ExitOnForwardFailure yes',' ConnectTimeout 12',' ServerAliveInterval 10',' ServerAliveCountMax 2',' Include ~/.ssh/config')
+  [IO.File]::WriteAllLines($Config,$sshSettings,(New-Object Text.UTF8Encoding($false)))
+  foreach ($role in 'entry','exit') { $status=Probe $role; if($status -ne 'ok'){throw ("Saved SSH route to "+$role+" failed: "+$status+". Check your alias and unlock its key in ssh-agent.")} }
+ } else {
  Write-Config
  $status=@{}
  foreach($role in @('entry','exit')){$status[$role]=Authenticate $role}
@@ -354,6 +367,7 @@ try{
    if($LASTEXITCODE -ne 0){throw 'VPS Python bootstrap failed'}
   }
  }
+ }
  function Read-ClientExport{
  $env:LC_EVPN_CLIENTS=''
  while($true){
@@ -368,7 +382,7 @@ try{
  }catch{Write-Host 'Cannot read this export (maximum 64000 bytes). Enter the path again.'}
  }
  }
- Read-ClientExport
+ if($resume){$env:LC_EVPN_CLIENTS=''}else{Read-ClientExport}
  $random=New-Object byte[] 32;$rng=[Security.Cryptography.RandomNumberGenerator]::Create();$rng.GetBytes($random);$rng.Dispose()
  $env:LC_EVPN_TOKEN=[BitConverter]::ToString($random).Replace('-','').ToLowerInvariant()
  $env:LC_EVPN_SESSION=[guid]::NewGuid().ToString('N')
@@ -380,7 +394,7 @@ try{
   }
  }
  do {
-  Run-Wizard start
+  Run-Wizard $startOperation
   $code=$script:WizardExit
   if($code -eq 46){Read-ClientExport}
  }while($code -eq 46)

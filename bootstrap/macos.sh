@@ -2,7 +2,7 @@
 # Bash 3.2 / standard macOS tools; no local Python or downloaded module bundle.
 set +x
 set -eu
-BOOT='python3 -c exec\(__import__\(\'"'"'base64\'"'"'\).b64decode\(\'"'"'aW1wb3J0IHNpZ25hbCxoYXNobGliLGlvLGpzb24sb3Msc3lzLHR5cGVzLHVybGxpYi5yZXF1ZXN0LHppcGZpbGUKdHJ5OgogICAgaWYgb3MuZ2V0ZXVpZCgpIT0wOiByYWlzZSBSdW50aW1lRXJyb3IoJ3Jvb3QgcmVxdWlyZWQnKQogICAgcmVsZWFzZT1kaWN0KGxpbmUuc3BsaXQoJz0nLDEpIGZvciBsaW5lIGluIG9wZW4oJy9ldGMvb3MtcmVsZWFzZScpIGlmICc9JyBpbiBsaW5lKQogICAgaWYgcmVsZWFzZS5nZXQoJ0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0ndWJ1bnR1JyBvciByZWxlYXNlLmdldCgnVkVSU0lPTl9JRCcsJycpLnN0cmlwKCkuc3RyaXAoJyInKSBub3QgaW4gKCcyNC4wNCcsJzI2LjA0Jykgb3Igb3MudW5hbWUoKS5tYWNoaW5lIT0neDg2XzY0JzogcmFpc2UgUnVudGltZUVycm9yKCdVYnVudHUgMjQuMDQgb3IgMjYuMDQgYW1kNjQgcmVxdWlyZWQnKQogICAgZGVmIGV4cGlyZWQoKmFyZ3MpOiByYWlzZSBUaW1lb3V0RXJyb3IoIkJ1bmRsZSBkb3dubG9hZCB0aW1lZCBvdXQiKQogICAgc2lnbmFsLnNpZ25hbChzaWduYWwuU0lHQUxSTSxleHBpcmVkKQogICAgc2lnbmFsLmFsYXJtKDY1KQogICAgZGF0YT11cmxsaWIucmVxdWVzdC51cmxvcGVuKCdodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vYWx4a2lyc2hlbmJhdW0taHVlL2VtcGlyZTQ1MWYvdjAuMy40L2Rpc3QvaW5zdGFsbGVyLnppcCcsdGltZW91dD02MCkucmVhZCgyKjEwMjQqMTAyNCkKICAgIHNpZ25hbC5hbGFybSgwKQogICAgaWYgaGFzaGxpYi5zaGEyNTYoZGF0YSkuaGV4ZGlnZXN0KCkhPScxODM2OGQ0MGRjZjI3Mjk3ZDlmNzQwZmQwNzZhYTFjYjQ2MWIzZTRkNGFiOTJmOTQwYTg3NWVkZmQ5YTBmYzQxJzogcmFpc2UgUnVudGltZUVycm9yKCdJbnN0YWxsZXIgU0hBMjU2IG1pc21hdGNoJykKICAgIGFyY2hpdmU9emlwZmlsZS5aaXBGaWxlKGlvLkJ5dGVzSU8oZGF0YSkpCiAgICBidW5kbGU9e25hbWU6YXJjaGl2ZS5yZWFkKG5hbWUpLmRlY29kZSgndXRmLTgnKSBmb3IgbmFtZSBpbiBhcmNoaXZlLm5hbWVsaXN0KCl9CiAgICBmb3IgbmFtZSBpbiAoJ3JlbmRlcicsJ3JlbW90ZScsJ2NsaWVudCcsJ2RlbGl2ZXJ5JywnY29udHJvbGxlcicpOgogICAgICAgIG1vZHVsZT10eXBlcy5Nb2R1bGVUeXBlKG5hbWUpOyBtb2R1bGUuX19maWxlX189Jy9ydW4vZW1waXJlLXNvdXJjZS8nK25hbWUrJy5weScKICAgICAgICBzeXMubW9kdWxlc1tuYW1lXT1tb2R1bGUKICAgICAgICBpZiBuYW1lPT0nY29udHJvbGxlcic6IG1vZHVsZS5CVU5ETEU9YnVuZGxlCiAgICAgICAgZXhlYyhjb21waWxlKGJ1bmRsZVtuYW1lKycucHknXSxuYW1lKycucHknLCdleGVjJyksbW9kdWxlLl9fZGljdF9fKQogICAgc3lzLmV4aXQoc3lzLm1vZHVsZXNbJ2NvbnRyb2xsZXInXS5tYWluKHN5cy5hcmd2WzE6XSkpCmV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgIHByaW50KCdJbnN0YWxsZXIgYm9vdHN0cmFwIGZhaWxlZDogJyt0eXBlKGUpLl9fbmFtZV9fLGZpbGU9c3lzLnN0ZGVycikKICAgIHN5cy5leGl0KDEpCg==\'"'"'\)\)'
+BOOT='python3 -c exec\(__import__\(\'"'"'base64\'"'"'\).b64decode\(\'"'"'aW1wb3J0IHNpZ25hbCxoYXNobGliLGlvLGpzb24sb3Msc3lzLHR5cGVzLHVybGxpYi5yZXF1ZXN0LHppcGZpbGUKdHJ5OgogICAgaWYgb3MuZ2V0ZXVpZCgpIT0wOiByYWlzZSBSdW50aW1lRXJyb3IoJ3Jvb3QgcmVxdWlyZWQnKQogICAgcmVsZWFzZT1kaWN0KGxpbmUuc3BsaXQoJz0nLDEpIGZvciBsaW5lIGluIG9wZW4oJy9ldGMvb3MtcmVsZWFzZScpIGlmICc9JyBpbiBsaW5lKQogICAgaWYgcmVsZWFzZS5nZXQoJ0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0ndWJ1bnR1JyBvciByZWxlYXNlLmdldCgnVkVSU0lPTl9JRCcsJycpLnN0cmlwKCkuc3RyaXAoJyInKSBub3QgaW4gKCcyNC4wNCcsJzI2LjA0Jykgb3Igb3MudW5hbWUoKS5tYWNoaW5lIT0neDg2XzY0JzogcmFpc2UgUnVudGltZUVycm9yKCdVYnVudHUgMjQuMDQgb3IgMjYuMDQgYW1kNjQgcmVxdWlyZWQnKQogICAgZGVmIGV4cGlyZWQoKmFyZ3MpOiByYWlzZSBUaW1lb3V0RXJyb3IoIkJ1bmRsZSBkb3dubG9hZCB0aW1lZCBvdXQiKQogICAgc2lnbmFsLnNpZ25hbChzaWduYWwuU0lHQUxSTSxleHBpcmVkKQogICAgc2lnbmFsLmFsYXJtKDY1KQogICAgZGF0YT11cmxsaWIucmVxdWVzdC51cmxvcGVuKCdodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vYWx4a2lyc2hlbmJhdW0taHVlL2VtcGlyZTQ1MWYvdjAuMy41L2Rpc3QvaW5zdGFsbGVyLnppcCcsdGltZW91dD02MCkucmVhZCgyKjEwMjQqMTAyNCkKICAgIHNpZ25hbC5hbGFybSgwKQogICAgaWYgaGFzaGxpYi5zaGEyNTYoZGF0YSkuaGV4ZGlnZXN0KCkhPScyMGIxMjVmYzljMzdmYTI5ZDFmNzE5NDNkYzQxNzk2OTFjYmM5NTRhYTU3ODY0NmVkZDQwNjI2ZWJjZmUzMWUzJzogcmFpc2UgUnVudGltZUVycm9yKCdJbnN0YWxsZXIgU0hBMjU2IG1pc21hdGNoJykKICAgIGFyY2hpdmU9emlwZmlsZS5aaXBGaWxlKGlvLkJ5dGVzSU8oZGF0YSkpCiAgICBidW5kbGU9e25hbWU6YXJjaGl2ZS5yZWFkKG5hbWUpLmRlY29kZSgndXRmLTgnKSBmb3IgbmFtZSBpbiBhcmNoaXZlLm5hbWVsaXN0KCl9CiAgICBmb3IgbmFtZSBpbiAoJ3JlbmRlcicsJ3JlbW90ZScsJ2NsaWVudCcsJ2RlbGl2ZXJ5JywnY29udHJvbGxlcicpOgogICAgICAgIG1vZHVsZT10eXBlcy5Nb2R1bGVUeXBlKG5hbWUpOyBtb2R1bGUuX19maWxlX189Jy9ydW4vZW1waXJlLXNvdXJjZS8nK25hbWUrJy5weScKICAgICAgICBzeXMubW9kdWxlc1tuYW1lXT1tb2R1bGUKICAgICAgICBpZiBuYW1lPT0nY29udHJvbGxlcic6IG1vZHVsZS5CVU5ETEU9YnVuZGxlCiAgICAgICAgZXhlYyhjb21waWxlKGJ1bmRsZVtuYW1lKycucHknXSxuYW1lKycucHknLCdleGVjJyksbW9kdWxlLl9fZGljdF9fKQogICAgc3lzLmV4aXQoc3lzLm1vZHVsZXNbJ2NvbnRyb2xsZXInXS5tYWluKHN5cy5hcmd2WzE6XSkpCmV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgIHByaW50KCdJbnN0YWxsZXIgYm9vdHN0cmFwIGZhaWxlZDogJyt0eXBlKGUpLl9fbmFtZV9fLGZpbGU9c3lzLnN0ZGVycikKICAgIHN5cy5leGl0KDEpCg==\'"'"'\)\)'
 ask() {
  printf '[%s] %s [%s]: ' "$1" "$2" "${3:-}" >&2
  IFS= read -r answer || exit 130
@@ -20,6 +20,13 @@ resolve_target() {
   printf -v "${prefix}_${key}" '%s' "$value"
  done
 }
+entry_host=entry; exit_host=exit; start_operation=start; resume=0
+if [ "$#" -gt 0 ]; then
+ [ "$#" -eq 4 ] && [ "$1" = --resume ] && [[ "$2" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] && [[ "$3" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] && [ "$2" != "$3" ] && [[ "$4" =~ ^[a-z][a-z0-9]{2,9}$ ]] || die 'Expected --resume ENTRY_ALIAS EXIT_ALIAS ID'
+ entry_host=$2; exit_host=$3; start_operation="resume-$4"; resume=1
+fi
+OWN_AGENT=0; IDENTITY=''
+if [ "$resume" = 0 ]; then
 for prefix in E X; do
  while :; do
   if [ "$prefix" = E ]; then target=$(ask Q03 'Entry root@IP or existing SSH alias'); else target=$(ask Q05 'Exit root@IP or existing SSH alias'); fi
@@ -67,6 +74,7 @@ if ! ssh-keygen -y -P '' -f "$IDENTITY" >/dev/null 2>&1; then
 fi
 break
 done
+fi
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/empire-launch.XXXXXX")
 chmod 700 "$WORK"
 CONFIG="$WORK/ssh-config"
@@ -122,9 +130,10 @@ bounded_check() {
  cat "$WORK/check.out"; return "$result"
 }
 probe() {
- local output
+ local output node="$entry_host"
+ [ "$1" = entry ] || node=$exit_host
  printf 'Checking SSH: %s (up to 25 seconds)...\n' "$1" >&2
- if output=$(bounded_check "$1" true); then printf ok; return; fi
+ if output=$(bounded_check "$node" true); then printf ok; return; fi
  case "$output" in
   *'REMOTE HOST IDENTIFICATION HAS CHANGED'*) printf changed-key;;
   *'Host key verification failed'*|*'host key is known'*) printf identity;;
@@ -163,6 +172,10 @@ authenticate() {
  done
  printf '%s' "$status"
 }
+if [ "$resume" = 1 ]; then
+ printf '%s\n' 'Host *' ' StrictHostKeyChecking yes' ' BatchMode yes' ' PreferredAuthentications publickey' ' ForwardAgent no' ' ControlMaster no' ' ControlPath none' ' ExitOnForwardFailure yes' ' ConnectTimeout 12' ' ServerAliveInterval 10' ' ServerAliveCountMax 2' ' Include ~/.ssh/config' > "$CONFIG"
+ for role in entry exit; do status=$(probe "$role"); [ "$status" = ok ] || die "$role: SSH $status. Check the alias and unlock its key in ssh-agent."; done
+else
 write_config
 E_status=$(authenticate entry); X_status=$(authenticate exit)
 for role in entry exit; do
@@ -247,6 +260,7 @@ for role in entry exit; do
   ssh -F "$CONFIG" "$role" 'export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l; timeout -k 15s 600 apt-get update && timeout -k 15s 1200 apt-get install -y --no-install-recommends python3'
  fi
 done
+fi
 read_client_export() {
 while :; do
 IMPORT=$(ask Q13 'Optional LOCAL client export path; empty = existing/new credentials on entry')
@@ -259,7 +273,7 @@ fi
 break
 done
 }
-read_client_export
+if [ "$resume" = 1 ]; then LC_EVPN_CLIENTS=''; else read_client_export; fi
 TOKEN=$(openssl rand -hex 32)
 export LC_EVPN_TOKEN="$TOKEN" LC_EVPN_SESSION="$(openssl rand -hex 16)" LC_EVPN_CLIENTS
 random_port() { local hex; hex=$(openssl rand -hex 2); printf '%s' "$((30000 + 16#$hex % 29000))"; }
@@ -267,14 +281,14 @@ LOCAL_PORT=$(random_port); RPC_PORT=$(random_port); RELAY_PORT=$(random_port)
 start_rpc() {
  printf '%s\n' 'Opening exit SSH tunnel and loading installer on exit (up to 90 seconds)...' >&2
  rm -f "$WORK/ready"; mkfifo "$WORK/ready"
- (unset LC_EVPN_CLIENTS; exec ssh -n -F "$CONFIG" -o SendEnv=LC_EVPN_TOKEN -L "127.0.0.1:$LOCAL_PORT:127.0.0.1:$RPC_PORT" exit "$BOOT rpc $RPC_PORT") > "$WORK/ready" 2> "$WORK/rpc.err" &
+ (unset LC_EVPN_CLIENTS; exec ssh -n -F "$CONFIG" -o SendEnv=LC_EVPN_TOKEN -L "127.0.0.1:$LOCAL_PORT:127.0.0.1:$RPC_PORT" "$exit_host" "$BOOT rpc $RPC_PORT") > "$WORK/ready" 2> "$WORK/rpc.err" &
  RPC_PID=$!
  IFS= read -r -t 90 ready < "$WORK/ready" || die 'Exit RPC bootstrap failed: check VPS Git HTTPS access and AcceptEnv LC_*'
  [ "$ready" = EVPN_RPC_READY ] || die 'Unexpected RPC handshake'
 }
 run_wizard() {
  printf 'Opening interactive wizard on entry: %s ...\n' "$1" >&2
- ssh -F "$CONFIG" -tt -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -R "127.0.0.1:$RELAY_PORT:127.0.0.1:$LOCAL_PORT" entry "$BOOT wizard $RELAY_PORT $1"
+ ssh -F "$CONFIG" -tt -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -R "127.0.0.1:$RELAY_PORT:127.0.0.1:$LOCAL_PORT" "$entry_host" "$BOOT wizard $RELAY_PORT $1"
 }
 fresh_sessions() { [ "$(probe entry)" = ok ] && [ "$(probe exit)" = ok ]; }
 finish_handoff() {
@@ -285,7 +299,7 @@ finish_handoff() {
   case "$dest" in '~/'*) dest="$HOME/${dest#\~/}";; /*) ;; *) dest="$PWD/$dest";; esac
   if [ -e "$dest" ] || [ -L "$dest" ] || [ ! -d "$(dirname "$dest")" ]; then printf '%s\n' 'Choose a new path in an existing folder.' >&2; continue; fi
   tmp=$(mktemp "$(dirname "$dest")/.empire-profile.XXXXXX") || continue
-  if scp -q -F "$CONFIG" "entry:$prefix.profile.json" "$tmp" && chmod 600 "$tmp" && ln "$tmp" "$dest"; then
+  if scp -q -F "$CONFIG" "${entry_host}:$prefix.profile.json" "$tmp" && chmod 600 "$tmp" && ln "$tmp" "$dest"; then
    rm -f "$tmp"; printf 'Saved private profile: %s\n' "$dest"; break
   fi
   rm -f "$tmp"; printf '%s\n' 'Profile transfer failed; retry or skip.' >&2
@@ -296,7 +310,7 @@ finish_handoff() {
   case "$archive" in '~/'*) archive="$HOME/${archive#\~/}";; /*) ;; *) archive="$PWD/$archive";; esac
   if [ ! -f "$archive" ] || [ "$(wc -c < "$archive")" -gt 209715200 ]; then printf '%s\n' 'Select a ZIP up to 200 MiB.' >&2; continue; fi
   printf '%s\n' 'Uploading site ZIP to entry. Only files under site/ will be published.' >&2
-  if scp -F "$CONFIG" "$archive" "entry:$prefix.zip" && run_wizard publish-site; then return 0; fi
+  if scp -F "$CONFIG" "$archive" "${entry_host}:$prefix.zip" && run_wizard publish-site; then return 0; fi
  done
 }
 wait_reboot() {
@@ -307,7 +321,7 @@ wait_reboot() {
 }
 start_rpc
 while :; do
- code=0; run_wizard start || code=$?
+ code=0; run_wizard "$start_operation" || code=$?
  [ "$code" = 46 ] || break
  read_client_export
 done

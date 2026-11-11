@@ -101,7 +101,7 @@ def rpc(port, token):
                     stopping = True
                     result = {'status': 'stopping'}
                 else:
-                    require(data['action'] in ('network-options', 'probe', 'plan', 'prepare', 'apply', 'secure-apply', 'commit', 'rollback', 'boot', 'reboot'), 'RPC action rejected')
+                    require(data['action'] in ('check-pair', 'network-options', 'probe', 'plan', 'prepare', 'apply', 'secure-apply', 'commit', 'rollback', 'boot', 'reboot'), 'RPC action rejected')
                     result = remote.dispatch(request(data.pop('action'), 'exit', data.pop('config'), **data))
                 reply = {'ok': True, 'result': result}
             except BaseException as error:
@@ -320,7 +320,14 @@ def explain_plan(c, plans):
     print('  HTTPS and client traffic checks: ' + ('deferred until you run verify after DNS is ready.' if c['tls'] == 'defer' else 'included before commit.'))
 
 
-def start(nodes, session, imported):
+def start(nodes, session, imported, resume_id=None):
+    if resume_id:
+        require(re.fullmatch('[a-z][a-z0-9]{2,9}',resume_id),'Invalid deployment ID')
+        saved = remote.readjson('/var/lib/empire-vpn/' + resume_id + '/deployment.json')
+        require(saved and saved.get('id') == resume_id,'Installation not found on entry. Check the entry alias and deployment ID.')
+        for role in ('entry','exit'):
+            nodes.call(role,'check-pair',saved)
+        print('Saved installation:',resume_id,'|',saved['domain'])
     print('Connected. The wizard is running on the entry server.')
     actions = {
         'preview': 'See what would change, then exit without installing',
@@ -346,15 +353,16 @@ def start(nodes, session, imported):
     if action == 'new':
         c = configure(nodes=nodes, imported=imported)
     elif action == 'preview':
-        ident = deployment_id()
+        ident = resume_id or deployment_id()
         saved = remote.readjson('/var/lib/empire-vpn/' + ident + '/deployment.json')
         c = configure(saved or {'id': ident}, nodes, imported)
     else:
         while True:
-            ident = deployment_id()
+            ident = resume_id or deployment_id()
             saved = remote.readjson('/var/lib/empire-vpn/' + ident + '/deployment.json')
             if saved is not None:
                 break
+            require(not resume_id, 'Saved deployment disappeared; relaunch with the correct ID')
             print('No saved deployment with this ID on entry. Enter another ID or press Ctrl+C to stop.')
         if action == 'apply-saved':
             print(f"Editing {ident}. Current domain: {saved['domain']}. Press Enter to keep each saved answer.")
@@ -585,6 +593,8 @@ def main(argv):
         except (Invalid, ValueError, AttributeError, TypeError):
             print('Q13: invalid v1 client export. Select another file.', file=sys.stderr)
             return 46
+        if argv[2].startswith('resume-'):
+            return start(nodes,session,None,argv[2][7:])
         return start(nodes, session, imported) if argv[2] == 'start' else finish(nodes, session, argv[2])
     except (Invalid, KeyboardInterrupt, EOFError) as error:
         print(str(error) if isinstance(error, Invalid) else 'Interrupted. Check pending transactions if apply had started.', file=sys.stderr)

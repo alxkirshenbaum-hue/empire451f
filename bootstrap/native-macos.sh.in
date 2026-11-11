@@ -125,7 +125,7 @@ authenticate() {
   elif [ "$choice" = password ] || [ "$choice" = console ]; then
    public=$(ssh-keygen -y -f "$IDENTITY" | awk '{print $1" "$2}')
    case "$public" in *[!A-Za-z0-9+/=._\ -]*) die 'Invalid public key';; esac
-   cmd="set -eu; . /etc/os-release; test \$ID:\$VERSION_ID:\$(uname -m) = ubuntu:24.04:x86_64 || exit 41; umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; chmod 700 ~/.ssh; chmod 600 ~/.ssh/authorized_keys; grep -qxF '$public' ~/.ssh/authorized_keys || printf '%s\\n' '$public' >> ~/.ssh/authorized_keys"
+   cmd="set -eu; . /etc/os-release; case \$ID:\$VERSION_ID:\$(uname -m) in ubuntu:24.04:x86_64|ubuntu:26.04:x86_64) ;; *) exit 41;; esac; umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; chmod 700 ~/.ssh; chmod 600 ~/.ssh/authorized_keys; grep -qxF '$public' ~/.ssh/authorized_keys || printf '%s\\n' '$public' >> ~/.ssh/authorized_keys"
    if [ "$choice" = console ]; then printf '%s\n' "$cmd" >&2; [ -n "$(ask Q17 'Run PUBLIC-key command in provider console, then type done' done)" ];
    else ssh -F "$CONFIG" -o BatchMode=no -o PubkeyAuthentication=no -o PreferredAuthentications=password,keyboard-interactive "$role" "$cmd" >&2; fi
   else die 'Unknown initial-access choice'; fi
@@ -156,7 +156,7 @@ for role in entry exit; do
 done
 export LC_EVPN_PROBE=1
 for role in entry exit; do
- result=$(ssh -F "$CONFIG" -o SendEnv=LC_EVPN_PROBE "$role" 'set -eu; . /etc/os-release; test $ID:$VERSION_ID:$(uname -m):$(id -u) = ubuntu:24.04:x86_64:0 || exit 41; test x$LC_EVPN_PROBE = x1 || exit 43; if command -v python3 >/dev/null; then echo READY; else echo MISSING_PYTHON; fi') || die "$role: Ubuntu24.04/amd64/root or AcceptEnv LC_* check failed"
+ result=$(ssh -F "$CONFIG" -o SendEnv=LC_EVPN_PROBE "$role" 'set -eu; . /etc/os-release; case $ID:$VERSION_ID:$(uname -m):$(id -u) in ubuntu:24.04:x86_64:0|ubuntu:26.04:x86_64:0) ;; *) exit 41;; esac; test x$LC_EVPN_PROBE = x1 || exit 43; if command -v python3 >/dev/null; then echo READY; else echo MISSING_PYTHON; fi') || die "$role: Ubuntu 24.04/26.04/amd64/root or AcceptEnv LC_* check failed"
  if [ "$result" = MISSING_PYTHON ]; then
   [ "$(ask Q22 "$role: install python3 on VPS? Type INSTALL-PYTHON")" = INSTALL-PYTHON ] || die 'VPS Python bootstrap declined'
   ssh -F "$CONFIG" "$role" 'export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l; apt-get update && apt-get install -y --no-install-recommends python3'

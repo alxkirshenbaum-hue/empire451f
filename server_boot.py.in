@@ -2,8 +2,8 @@ import hashlib,io,json,os,sys,types,urllib.request,zipfile
 try:
     if os.geteuid()!=0: raise RuntimeError('root required')
     release=dict(line.split('=',1) for line in open('/etc/os-release') if '=' in line)
-    if release.get('ID','').strip().strip('"')!='ubuntu' or release.get('VERSION_ID','').strip().strip('"')!='24.04' or os.uname().machine!='x86_64': raise RuntimeError('Ubuntu 24.04 amd64 required')
-    data=urllib.request.urlopen('https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.2.3/dist/installer.zip',timeout=60).read(2*1024*1024)
+    if release.get('ID','').strip().strip('"')!='ubuntu' or release.get('VERSION_ID','').strip().strip('"') not in ('24.04','26.04') or os.uname().machine!='x86_64': raise RuntimeError('Ubuntu 24.04 or 26.04 amd64 required')
+    data=urllib.request.urlopen('https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.2.4/dist/installer.zip',timeout=60).read(2*1024*1024)
     if hashlib.sha256(data).hexdigest()!='__BUNDLE_SHA256__': raise RuntimeError('Installer SHA256 mismatch')
     archive=zipfile.ZipFile(io.BytesIO(data))
     bundle={name:archive.read(name).decode('utf-8') for name in archive.namelist()}

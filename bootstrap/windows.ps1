@@ -1,7 +1,7 @@
 # Native Windows launcher: no local Python, module bundle, or server templates.
 $ErrorActionPreference='Stop'
 [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
-$Boot='python3 -c exec\(__import__\(\''base64\''\).b64decode\(\''aW1wb3J0IGhhc2hsaWIsaW8sanNvbixvcyxzeXMsdHlwZXMsdXJsbGliLnJlcXVlc3QsemlwZmlsZQp0cnk6CiAgICBpZiBvcy5nZXRldWlkKCkhPTA6IHJhaXNlIFJ1bnRpbWVFcnJvcigncm9vdCByZXF1aXJlZCcpCiAgICByZWxlYXNlPWRpY3QobGluZS5zcGxpdCgnPScsMSkgZm9yIGxpbmUgaW4gb3BlbignL2V0Yy9vcy1yZWxlYXNlJykgaWYgJz0nIGluIGxpbmUpCiAgICBpZiByZWxlYXNlLmdldCgnSUQnLCcnKS5zdHJpcCgpLnN0cmlwKCciJykhPSd1YnVudHUnIG9yIHJlbGVhc2UuZ2V0KCdWRVJTSU9OX0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0nMjQuMDQnIG9yIG9zLnVuYW1lKCkubWFjaGluZSE9J3g4Nl82NCc6IHJhaXNlIFJ1bnRpbWVFcnJvcignVWJ1bnR1IDI0LjA0IGFtZDY0IHJlcXVpcmVkJykKICAgIGRhdGE9dXJsbGliLnJlcXVlc3QudXJsb3BlbignaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FseGtpcnNoZW5iYXVtLWh1ZS9lbXBpcmU0NTFmL3YwLjIuMy9kaXN0L2luc3RhbGxlci56aXAnLHRpbWVvdXQ9NjApLnJlYWQoMioxMDI0KjEwMjQpCiAgICBpZiBoYXNobGliLnNoYTI1NihkYXRhKS5oZXhkaWdlc3QoKSE9JzMzM2Q5OGVhNTMwMmQ2OTIzYjAwNDI3OTdhODQ5YWJjMTI2Y2QzYTg4MDY2OGY5ODBhNWQ1YTk3N2FiODA3NDMnOiByYWlzZSBSdW50aW1lRXJyb3IoJ0luc3RhbGxlciBTSEEyNTYgbWlzbWF0Y2gnKQogICAgYXJjaGl2ZT16aXBmaWxlLlppcEZpbGUoaW8uQnl0ZXNJTyhkYXRhKSkKICAgIGJ1bmRsZT17bmFtZTphcmNoaXZlLnJlYWQobmFtZSkuZGVjb2RlKCd1dGYtOCcpIGZvciBuYW1lIGluIGFyY2hpdmUubmFtZWxpc3QoKX0KICAgIGZvciBuYW1lIGluICgncmVuZGVyJywncmVtb3RlJywnY2xpZW50JywnY29udHJvbGxlcicpOgogICAgICAgIG1vZHVsZT10eXBlcy5Nb2R1bGVUeXBlKG5hbWUpOyBtb2R1bGUuX19maWxlX189Jy9ydW4vZW1waXJlLXNvdXJjZS8nK25hbWUrJy5weScKICAgICAgICBzeXMubW9kdWxlc1tuYW1lXT1tb2R1bGUKICAgICAgICBpZiBuYW1lPT0nY29udHJvbGxlcic6IG1vZHVsZS5CVU5ETEU9YnVuZGxlCiAgICAgICAgZXhlYyhjb21waWxlKGJ1bmRsZVtuYW1lKycucHknXSxuYW1lKycucHknLCdleGVjJyksbW9kdWxlLl9fZGljdF9fKQogICAgc3lzLmV4aXQoc3lzLm1vZHVsZXNbJ2NvbnRyb2xsZXInXS5tYWluKHN5cy5hcmd2WzE6XSkpCmV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgIHByaW50KCdJbnN0YWxsZXIgYm9vdHN0cmFwIGZhaWxlZDogJyt0eXBlKGUpLl9fbmFtZV9fLGZpbGU9c3lzLnN0ZGVycikKICAgIHN5cy5leGl0KDEpCg==\''\)\)'
+$Boot='python3 -c exec\(__import__\(\''base64\''\).b64decode\(\''aW1wb3J0IGhhc2hsaWIsaW8sanNvbixvcyxzeXMsdHlwZXMsdXJsbGliLnJlcXVlc3QsemlwZmlsZQp0cnk6CiAgICBpZiBvcy5nZXRldWlkKCkhPTA6IHJhaXNlIFJ1bnRpbWVFcnJvcigncm9vdCByZXF1aXJlZCcpCiAgICByZWxlYXNlPWRpY3QobGluZS5zcGxpdCgnPScsMSkgZm9yIGxpbmUgaW4gb3BlbignL2V0Yy9vcy1yZWxlYXNlJykgaWYgJz0nIGluIGxpbmUpCiAgICBpZiByZWxlYXNlLmdldCgnSUQnLCcnKS5zdHJpcCgpLnN0cmlwKCciJykhPSd1YnVudHUnIG9yIHJlbGVhc2UuZ2V0KCdWRVJTSU9OX0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIG5vdCBpbiAoJzI0LjA0JywnMjYuMDQnKSBvciBvcy51bmFtZSgpLm1hY2hpbmUhPSd4ODZfNjQnOiByYWlzZSBSdW50aW1lRXJyb3IoJ1VidW50dSAyNC4wNCBvciAyNi4wNCBhbWQ2NCByZXF1aXJlZCcpCiAgICBkYXRhPXVybGxpYi5yZXF1ZXN0LnVybG9wZW4oJ2h0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9hbHhraXJzaGVuYmF1bS1odWUvZW1waXJlNDUxZi92MC4yLjQvZGlzdC9pbnN0YWxsZXIuemlwJyx0aW1lb3V0PTYwKS5yZWFkKDIqMTAyNCoxMDI0KQogICAgaWYgaGFzaGxpYi5zaGEyNTYoZGF0YSkuaGV4ZGlnZXN0KCkhPSdhYzQ5NzBhNDIyNzc1MWI2MzkzMmM3MjE2ODFlZWEzOWEwOGY3M2ZjMjZlOWQxY2JmYjYzNWY4N2U3NmU4NTYxJzogcmFpc2UgUnVudGltZUVycm9yKCdJbnN0YWxsZXIgU0hBMjU2IG1pc21hdGNoJykKICAgIGFyY2hpdmU9emlwZmlsZS5aaXBGaWxlKGlvLkJ5dGVzSU8oZGF0YSkpCiAgICBidW5kbGU9e25hbWU6YXJjaGl2ZS5yZWFkKG5hbWUpLmRlY29kZSgndXRmLTgnKSBmb3IgbmFtZSBpbiBhcmNoaXZlLm5hbWVsaXN0KCl9CiAgICBmb3IgbmFtZSBpbiAoJ3JlbmRlcicsJ3JlbW90ZScsJ2NsaWVudCcsJ2NvbnRyb2xsZXInKToKICAgICAgICBtb2R1bGU9dHlwZXMuTW9kdWxlVHlwZShuYW1lKTsgbW9kdWxlLl9fZmlsZV9fPScvcnVuL2VtcGlyZS1zb3VyY2UvJytuYW1lKycucHknCiAgICAgICAgc3lzLm1vZHVsZXNbbmFtZV09bW9kdWxlCiAgICAgICAgaWYgbmFtZT09J2NvbnRyb2xsZXInOiBtb2R1bGUuQlVORExFPWJ1bmRsZQogICAgICAgIGV4ZWMoY29tcGlsZShidW5kbGVbbmFtZSsnLnB5J10sbmFtZSsnLnB5JywnZXhlYycpLG1vZHVsZS5fX2RpY3RfXykKICAgIHN5cy5leGl0KHN5cy5tb2R1bGVzWydjb250cm9sbGVyJ10ubWFpbihzeXMuYXJndlsxOl0pKQpleGNlcHQgRXhjZXB0aW9uIGFzIGU6CiAgICBwcmludCgnSW5zdGFsbGVyIGJvb3RzdHJhcCBmYWlsZWQ6ICcrdHlwZShlKS5fX25hbWVfXyxmaWxlPXN5cy5zdGRlcnIpCiAgICBzeXMuZXhpdCgxKQo=\''\)\)'
 function Ask([string]$Id,[string]$Text,[string]$Default=''){
  $answer=Read-Host ('['+$Id+'] '+$Text+$(if($Default){' ['+$Default+']'}else{''}))
  if(!$answer){return $Default};return $answer
@@ -91,7 +91,7 @@ function Authenticate([string]$Role){
    $public=Public-Key
    if($public -notmatch '^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp\d+) [A-Za-z0-9+/=]+'){throw 'Invalid public key'}
    $quoted=Shell-Quote $public
-   $cmd='set -eu; . /etc/os-release; test $ID:$VERSION_ID:$(uname -m) = ubuntu:24.04:x86_64 || exit 41; umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; chmod 700 ~/.ssh; chmod 600 ~/.ssh/authorized_keys; grep -qxF '+$quoted+' ~/.ssh/authorized_keys || printf ''%s\n'' '+$quoted+' >> ~/.ssh/authorized_keys'
+   $cmd='set -eu; . /etc/os-release; case $ID:$VERSION_ID:$(uname -m) in ubuntu:24.04:x86_64|ubuntu:26.04:x86_64) ;; *) exit 41;; esac; umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; chmod 700 ~/.ssh; chmod 600 ~/.ssh/authorized_keys; grep -qxF '+$quoted+' ~/.ssh/authorized_keys || printf ''%s\n'' '+$quoted+' >> ~/.ssh/authorized_keys'
    if($choice -eq 'console'){Write-Host $cmd;[void](Read-Host 'Run this PUBLIC-key command in provider console, then Enter')}
    else{& ssh -F $Config -o BatchMode=no -o PubkeyAuthentication=no -o PreferredAuthentications=password,keyboard-interactive $Role $cmd}
   }else{throw 'Unknown initial-access choice'}
@@ -122,7 +122,7 @@ function Start-Rpc{
  $line=$process.StandardOutput.ReadLineAsync()
  if(!$line.Wait(90000) -or $line.Result -ne 'EVPN_RPC_READY'){
   if(!$process.HasExited){$process.Kill()}
-  throw 'Exit RPC bootstrap failed. Check Ubuntu24.04, Git HTTPS access and SSH AcceptEnv LC_*.'
+  throw 'Exit RPC bootstrap failed. Check Ubuntu 24.04/26.04, Git HTTPS access and SSH AcceptEnv LC_*.'
  }
  return $process
 }
@@ -222,8 +222,8 @@ try{
  }
  $env:LC_EVPN_PROBE='1'
  foreach($role in @('entry','exit')){
-  $probe=& ssh -F $Config -o SendEnv=LC_EVPN_PROBE $role 'set -eu; . /etc/os-release; test $ID:$VERSION_ID:$(uname -m):$(id -u) = ubuntu:24.04:x86_64:0 || exit 41; test x$LC_EVPN_PROBE = x1 || exit 43; if command -v python3 >/dev/null; then echo READY; else echo MISSING_PYTHON; fi'
-  if($LASTEXITCODE -ne 0){throw ($role+': Ubuntu24.04/amd64/root or AcceptEnv LC_* check failed')}
+  $probe=& ssh -F $Config -o SendEnv=LC_EVPN_PROBE $role 'set -eu; . /etc/os-release; case $ID:$VERSION_ID:$(uname -m):$(id -u) in ubuntu:24.04:x86_64:0|ubuntu:26.04:x86_64:0) ;; *) exit 41;; esac; test x$LC_EVPN_PROBE = x1 || exit 43; if command -v python3 >/dev/null; then echo READY; else echo MISSING_PYTHON; fi'
+  if($LASTEXITCODE -ne 0){throw ($role+': Ubuntu 24.04/26.04/amd64/root or AcceptEnv LC_* check failed')}
   if(($probe -join '') -match 'MISSING_PYTHON'){
    if((Ask Q22 ($role+': install python3 on VPS for inventory? Type INSTALL-PYTHON')) -ne 'INSTALL-PYTHON'){throw 'Python bootstrap declined'}
    & ssh -F $Config $role 'export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l; apt-get update && apt-get install -y --no-install-recommends python3'

@@ -91,7 +91,7 @@ function Authenticate([string]$Role){
    $public=Public-Key
    if($public -notmatch '^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp\d+) [A-Za-z0-9+/=]+'){throw 'Invalid public key'}
    $quoted=Shell-Quote $public
-   $cmd='set -eu; . /etc/os-release; test $ID:$VERSION_ID:$(uname -m) = ubuntu:24.04:x86_64 || exit 41; umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; chmod 700 ~/.ssh; chmod 600 ~/.ssh/authorized_keys; grep -qxF '+$quoted+' ~/.ssh/authorized_keys || printf ''%s\n'' '+$quoted+' >> ~/.ssh/authorized_keys'
+   $cmd='set -eu; . /etc/os-release; case $ID:$VERSION_ID:$(uname -m) in ubuntu:24.04:x86_64|ubuntu:26.04:x86_64) ;; *) exit 41;; esac; umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; chmod 700 ~/.ssh; chmod 600 ~/.ssh/authorized_keys; grep -qxF '+$quoted+' ~/.ssh/authorized_keys || printf ''%s\n'' '+$quoted+' >> ~/.ssh/authorized_keys'
    if($choice -eq 'console'){Write-Host $cmd;[void](Read-Host 'Run this PUBLIC-key command in provider console, then Enter')}
    else{& ssh -F $Config -o BatchMode=no -o PubkeyAuthentication=no -o PreferredAuthentications=password,keyboard-interactive $Role $cmd}
   }else{throw 'Unknown initial-access choice'}
@@ -122,7 +122,7 @@ function Start-Rpc{
  $line=$process.StandardOutput.ReadLineAsync()
  if(!$line.Wait(90000) -or $line.Result -ne 'EVPN_RPC_READY'){
   if(!$process.HasExited){$process.Kill()}
-  throw 'Exit RPC bootstrap failed. Check Ubuntu24.04, Git HTTPS access and SSH AcceptEnv LC_*.'
+  throw 'Exit RPC bootstrap failed. Check Ubuntu 24.04/26.04, Git HTTPS access and SSH AcceptEnv LC_*.'
  }
  return $process
 }
@@ -222,8 +222,8 @@ try{
  }
  $env:LC_EVPN_PROBE='1'
  foreach($role in @('entry','exit')){
-  $probe=& ssh -F $Config -o SendEnv=LC_EVPN_PROBE $role 'set -eu; . /etc/os-release; test $ID:$VERSION_ID:$(uname -m):$(id -u) = ubuntu:24.04:x86_64:0 || exit 41; test x$LC_EVPN_PROBE = x1 || exit 43; if command -v python3 >/dev/null; then echo READY; else echo MISSING_PYTHON; fi'
-  if($LASTEXITCODE -ne 0){throw ($role+': Ubuntu24.04/amd64/root or AcceptEnv LC_* check failed')}
+  $probe=& ssh -F $Config -o SendEnv=LC_EVPN_PROBE $role 'set -eu; . /etc/os-release; case $ID:$VERSION_ID:$(uname -m):$(id -u) in ubuntu:24.04:x86_64:0|ubuntu:26.04:x86_64:0) ;; *) exit 41;; esac; test x$LC_EVPN_PROBE = x1 || exit 43; if command -v python3 >/dev/null; then echo READY; else echo MISSING_PYTHON; fi'
+  if($LASTEXITCODE -ne 0){throw ($role+': Ubuntu 24.04/26.04/amd64/root or AcceptEnv LC_* check failed')}
   if(($probe -join '') -match 'MISSING_PYTHON'){
    if((Ask Q22 ($role+': install python3 on VPS for inventory? Type INSTALL-PYTHON')) -ne 'INSTALL-PYTHON'){throw 'Python bootstrap declined'}
    & ssh -F $Config $role 'export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l; apt-get update && apt-get install -y --no-install-recommends python3'

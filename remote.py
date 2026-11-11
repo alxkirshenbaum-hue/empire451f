@@ -80,9 +80,9 @@ def public_key(path):
 
 def probe(c, role):
     require(os.geteuid() == 0, 'ROOT_REQUIRED: use root or provider console bootstrap')
-    require(sys.version_info >= (3, 12), 'Python3.12+ required on Ubuntu24.04')
+    require(sys.version_info >= (3, 12), 'Python3.12+ required on Ubuntu 24.04/26.04')
     osr = dict(line.split('=', 1) for line in Path('/etc/os-release').read_text().splitlines() if '=' in line)
-    require(osr.get('ID', '').strip('"') == 'ubuntu' and osr.get('VERSION_ID', '').strip('"') == '24.04' and os.uname().machine == 'x86_64', 'UNSUPPORTED_PLATFORM: Ubuntu 24.04 amd64 required')
+    require(osr.get('ID', '').strip('"') == 'ubuntu' and osr.get('VERSION_ID', '').strip('"') in ('24.04', '26.04') and os.uname().machine == 'x86_64', 'UNSUPPORTED_PLATFORM: Ubuntu 24.04 or 26.04 amd64 required')
     require(Path('/run/systemd/system').exists(), 'systemd required')
     n = names(c)
     routes = json.loads(text(['ip', '-j', '-4', 'route', 'show', 'default']))
@@ -132,7 +132,11 @@ def probe(c, role):
         if shutil.which('nft'):
             rules = json.loads(text(['nft', '-j', 'list', 'ruleset']))
             require(not any('chain' in x or 'rule' in x for x in rules.get('nftables', [])), 'Unknown host firewall: clean node required')
-        require(run(['systemctl', 'is-active', '--quiet', 'ufw'], check=False).returncode != 0, 'Active UFW is unsupported')
+        if shutil.which('ufw'):
+            status = text(['ufw', 'status'], env=dict(os.environ, LC_ALL='C'))
+            require(status.splitlines()[:1] == ['Status: inactive'], 'Active or unknown UFW configuration is unsupported')
+        else:
+            require(run(['systemctl', 'is-active', '--quiet', 'ufw'], check=False).returncode != 0, 'Unknown UFW service is active')
     existing_routes = json.loads(text(['ip', '-j', '-4', 'route', 'show', 'table', 'all']))
     for r in existing_routes:
         dst = r.get('dst', 'default')

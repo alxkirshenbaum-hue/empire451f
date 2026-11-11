@@ -1,19 +1,19 @@
-# Персональная VPN — v0.2.3
+# Персональная VPN — v0.2.4
 
 **Установщик работает на VPS; диалог — в вашем терминале через SSH.** На компьютер не скачиваются комплект, шаблоны или сборки; локальный Python и Git не нужны. Короткий запускающий текст выполняется в памяти штатной оболочки. Обе VPS сами получают закреплённый комплект из Git, проверяют SHA256 и устанавливают компоненты из официальных источников.
 
-Нужны две VDS **Ubuntu24.04 amd64**, первоначальный root-доступ/консоли провайдера и домен. Поддерживаются новая пара, замена входа и замена выхода. Архив старого сервера не требуется. Приватные SSH-ключи остаются на компьютере; ssh-agent на VPS не перенаправляется.
+Нужны две VDS **Ubuntu 24.04/26.04 amd64**, первоначальный root-доступ/консоли провайдера и домен. Поддерживаются новая пара, замена входа и замена выхода. Архив старого сервера не требуется. Приватные SSH-ключи остаются на компьютере; ssh-agent на VPS не перенаправляется.
 
 **Windows10/11**, Windows PowerShell5.1 или PowerShell7 — одна команда:
 
 ```powershell
-& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.2.3/bootstrap/windows.ps1').Content))
+& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.2.4/bootstrap/windows.ps1').Content))
 ```
 
 **macOS11+**, Terminal с zsh или bash — одна команда, без PowerShell:
 
 ```sh
-/bin/bash -c 'set -e; code=$(curl -fsSL --proto "=https" https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.2.3/bootstrap/macos.sh); /bin/bash -c "$code"'
+/bin/bash -c 'set -e; code=$(curl -fsSL --proto "=https" https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.2.4/bootstrap/macos.sh); /bin/bash -c "$code"'
 ```
 
 Сначала укажите SSH входа/выхода и выберите/создайте ключ. Windows при необходимости предложит системный OpenSSH Client. Затем серверный мастер в том же окне спросит режим, адреса и домен, покажет конкретные изменения и запросит `APPLY`. Непонятный вопрос найдите по **Qxx** в [подробной инструкции](GUIDE.md).

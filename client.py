@@ -263,7 +263,7 @@ class SSH:
                     require(pub.is_file(), 'Public .pub key missing; export it using ssh-keygen -y')
                     public = pub.read_text().strip()
                     require(re.fullmatch(r'(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp\d+) [A-Za-z0-9+/=]+(?: [^\r\n]*)?', public), 'Invalid public SSH key')
-                    cmd = 'set -eu; . /etc/os-release; test "$ID:$VERSION_ID:$(uname -m)" = ubuntu:24.04:x86_64 || exit 41; umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; chmod 700 ~/.ssh; chmod 600 ~/.ssh/authorized_keys; grep -qxF ' + shlex.quote(public) + ' ~/.ssh/authorized_keys || printf "%s\\n" ' + shlex.quote(public) + ' >> ~/.ssh/authorized_keys'
+                    cmd = 'set -eu; . /etc/os-release; case "$ID:$VERSION_ID:$(uname -m)" in ubuntu:24.04:x86_64|ubuntu:26.04:x86_64) ;; *) exit 41;; esac; umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; chmod 700 ~/.ssh; chmod 600 ~/.ssh/authorized_keys; grep -qxF ' + shlex.quote(public) + ' ~/.ssh/authorized_keys || printf "%s\\n" ' + shlex.quote(public) + ' >> ~/.ssh/authorized_keys'
                     if action == 'console':
                         print('Выполните в консоли провайдера (только публичный ключ):\n' + cmd)
                         input('После выполнения нажмите Enter: ')
@@ -312,10 +312,10 @@ class SSH:
         print('Новые ключевые SSH-сессии обеих нод проверены; маршрут: ' + json.dumps(self.jumps))
 
     def ensure_runtime(self, applying):
-        probe = 'set -eu; . /etc/os-release; test "$ID:$VERSION_ID:$(uname -m):$(id -u)" = ubuntu:24.04:x86_64:0 || exit 41; if command -v python3 >/dev/null; then echo PYTHON_PRESENT; else echo PYTHON_MISSING; fi'
+        probe = 'set -eu; . /etc/os-release; case "$ID:$VERSION_ID:$(uname -m):$(id -u)" in ubuntu:24.04:x86_64:0|ubuntu:26.04:x86_64:0) ;; *) exit 41;; esac; if command -v python3 >/dev/null; then echo PYTHON_PRESENT; else echo PYTHON_MISSING; fi'
         for role in ('entry', 'exit'):
             p = subprocess.run(self.command(role) + [probe], capture_output=True, timeout=45)
-            require(p.returncode == 0, role + ': Ubuntu24.04 amd64/root check failed before modifications')
+            require(p.returncode == 0, role + ': Ubuntu 24.04/26.04 amd64/root check failed before modifications')
             if b'PYTHON_MISSING' in p.stdout:
                 require(applying, role + ': Python3 absent; preview cannot install prerequisites')
                 print(role + ': минимальный образ без Python3.')

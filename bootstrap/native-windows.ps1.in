@@ -39,9 +39,27 @@ function Write-Config{
  [IO.File]::WriteAllText($Config,($lines -join "`n")+"`n",(New-Object Text.UTF8Encoding($false)))
 }
 function Probe([string]$Role){
- $previous=$ErrorActionPreference;$ErrorActionPreference='Continue'
- $result=(& ssh -F $Config $Role true 2>&1 | Out-String);$code=$LASTEXITCODE
- $ErrorActionPreference=$previous
+ Write-Host ("Checking SSH: "+$Role+" (up to 25 seconds)...")
+ $info=New-Object Diagnostics.ProcessStartInfo
+ $info.FileName=(Get-Command ssh.exe).Source
+ $info.Arguments=(@('-n','-T','-F',$Config,$Role,'true') | ForEach-Object {Quote-WindowsArg $_}) -join ' '
+ $info.UseShellExecute=$false
+ $info.CreateNoWindow=$true
+ $info.RedirectStandardError=$true
+ $info.RedirectStandardOutput=$true
+ $process=[Diagnostics.Process]::Start($info)
+ try{
+  $stderr=$process.StandardError.ReadToEndAsync()
+  $stdout=$process.StandardOutput.ReadToEndAsync()
+  if(!$process.WaitForExit(25000)){
+   $process.Kill()
+   Write-Host ("SSH "+$Role+" timed out before the remote command completed.")
+   return 'network'
+  }
+  if(!$stderr.Wait(1000)){return 'network'}
+  $result=$stderr.Result
+  $code=$process.ExitCode
+ }finally{$process.Dispose()}
  if($code -eq 0){return 'ok'}
  if($result -match 'REMOTE HOST IDENTIFICATION HAS CHANGED'){return 'changed-key'}
  if($result -match 'Host key verification failed|No .* host key is known'){return 'identity'}

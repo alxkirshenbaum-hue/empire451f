@@ -1,7 +1,7 @@
 # Native Windows launcher: no local Python, module bundle, or server templates.
 $ErrorActionPreference='Stop'
 [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
-$Boot='python3 -c exec\(__import__\(\''base64\''\).b64decode\(\''aW1wb3J0IGhhc2hsaWIsaW8sanNvbixvcyxzeXMsdHlwZXMsdXJsbGliLnJlcXVlc3QsemlwZmlsZQp0cnk6CiAgICBpZiBvcy5nZXRldWlkKCkhPTA6IHJhaXNlIFJ1bnRpbWVFcnJvcigncm9vdCByZXF1aXJlZCcpCiAgICByZWxlYXNlPWRpY3QobGluZS5zcGxpdCgnPScsMSkgZm9yIGxpbmUgaW4gb3BlbignL2V0Yy9vcy1yZWxlYXNlJykgaWYgJz0nIGluIGxpbmUpCiAgICBpZiByZWxlYXNlLmdldCgnSUQnLCcnKS5zdHJpcCgpLnN0cmlwKCciJykhPSd1YnVudHUnIG9yIHJlbGVhc2UuZ2V0KCdWRVJTSU9OX0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0nMjQuMDQnIG9yIG9zLnVuYW1lKCkubWFjaGluZSE9J3g4Nl82NCc6IHJhaXNlIFJ1bnRpbWVFcnJvcignVWJ1bnR1IDI0LjA0IGFtZDY0IHJlcXVpcmVkJykKICAgIGRhdGE9dXJsbGliLnJlcXVlc3QudXJsb3BlbignaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FseGtpcnNoZW5iYXVtLWh1ZS9lbXBpcmU0NTFmL3YwLjIuMi9kaXN0L2luc3RhbGxlci56aXAnLHRpbWVvdXQ9NjApLnJlYWQoMioxMDI0KjEwMjQpCiAgICBpZiBoYXNobGliLnNoYTI1NihkYXRhKS5oZXhkaWdlc3QoKSE9JzE0NWUyYWVjOWNmZjY2MzU5MTZjNjE3ZDNjMGEzYWI1OGRlZGYwOTVmMGFhNDFlYjBjNjFjZDI0MWM3Y2QyYWQnOiByYWlzZSBSdW50aW1lRXJyb3IoJ0luc3RhbGxlciBTSEEyNTYgbWlzbWF0Y2gnKQogICAgYXJjaGl2ZT16aXBmaWxlLlppcEZpbGUoaW8uQnl0ZXNJTyhkYXRhKSkKICAgIGJ1bmRsZT17bmFtZTphcmNoaXZlLnJlYWQobmFtZSkuZGVjb2RlKCd1dGYtOCcpIGZvciBuYW1lIGluIGFyY2hpdmUubmFtZWxpc3QoKX0KICAgIGZvciBuYW1lIGluICgncmVuZGVyJywncmVtb3RlJywnY2xpZW50JywnY29udHJvbGxlcicpOgogICAgICAgIG1vZHVsZT10eXBlcy5Nb2R1bGVUeXBlKG5hbWUpOyBtb2R1bGUuX19maWxlX189Jy9ydW4vZW1waXJlLXNvdXJjZS8nK25hbWUrJy5weScKICAgICAgICBzeXMubW9kdWxlc1tuYW1lXT1tb2R1bGUKICAgICAgICBpZiBuYW1lPT0nY29udHJvbGxlcic6IG1vZHVsZS5CVU5ETEU9YnVuZGxlCiAgICAgICAgZXhlYyhjb21waWxlKGJ1bmRsZVtuYW1lKycucHknXSxuYW1lKycucHknLCdleGVjJyksbW9kdWxlLl9fZGljdF9fKQogICAgc3lzLmV4aXQoc3lzLm1vZHVsZXNbJ2NvbnRyb2xsZXInXS5tYWluKHN5cy5hcmd2WzE6XSkpCmV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgIHByaW50KCdJbnN0YWxsZXIgYm9vdHN0cmFwIGZhaWxlZDogJyt0eXBlKGUpLl9fbmFtZV9fLGZpbGU9c3lzLnN0ZGVycikKICAgIHN5cy5leGl0KDEpCg==\''\)\)'
+$Boot='python3 -c exec\(__import__\(\''base64\''\).b64decode\(\''aW1wb3J0IGhhc2hsaWIsaW8sanNvbixvcyxzeXMsdHlwZXMsdXJsbGliLnJlcXVlc3QsemlwZmlsZQp0cnk6CiAgICBpZiBvcy5nZXRldWlkKCkhPTA6IHJhaXNlIFJ1bnRpbWVFcnJvcigncm9vdCByZXF1aXJlZCcpCiAgICByZWxlYXNlPWRpY3QobGluZS5zcGxpdCgnPScsMSkgZm9yIGxpbmUgaW4gb3BlbignL2V0Yy9vcy1yZWxlYXNlJykgaWYgJz0nIGluIGxpbmUpCiAgICBpZiByZWxlYXNlLmdldCgnSUQnLCcnKS5zdHJpcCgpLnN0cmlwKCciJykhPSd1YnVudHUnIG9yIHJlbGVhc2UuZ2V0KCdWRVJTSU9OX0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0nMjQuMDQnIG9yIG9zLnVuYW1lKCkubWFjaGluZSE9J3g4Nl82NCc6IHJhaXNlIFJ1bnRpbWVFcnJvcignVWJ1bnR1IDI0LjA0IGFtZDY0IHJlcXVpcmVkJykKICAgIGRhdGE9dXJsbGliLnJlcXVlc3QudXJsb3BlbignaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FseGtpcnNoZW5iYXVtLWh1ZS9lbXBpcmU0NTFmL3YwLjIuMy9kaXN0L2luc3RhbGxlci56aXAnLHRpbWVvdXQ9NjApLnJlYWQoMioxMDI0KjEwMjQpCiAgICBpZiBoYXNobGliLnNoYTI1NihkYXRhKS5oZXhkaWdlc3QoKSE9JzMzM2Q5OGVhNTMwMmQ2OTIzYjAwNDI3OTdhODQ5YWJjMTI2Y2QzYTg4MDY2OGY5ODBhNWQ1YTk3N2FiODA3NDMnOiByYWlzZSBSdW50aW1lRXJyb3IoJ0luc3RhbGxlciBTSEEyNTYgbWlzbWF0Y2gnKQogICAgYXJjaGl2ZT16aXBmaWxlLlppcEZpbGUoaW8uQnl0ZXNJTyhkYXRhKSkKICAgIGJ1bmRsZT17bmFtZTphcmNoaXZlLnJlYWQobmFtZSkuZGVjb2RlKCd1dGYtOCcpIGZvciBuYW1lIGluIGFyY2hpdmUubmFtZWxpc3QoKX0KICAgIGZvciBuYW1lIGluICgncmVuZGVyJywncmVtb3RlJywnY2xpZW50JywnY29udHJvbGxlcicpOgogICAgICAgIG1vZHVsZT10eXBlcy5Nb2R1bGVUeXBlKG5hbWUpOyBtb2R1bGUuX19maWxlX189Jy9ydW4vZW1waXJlLXNvdXJjZS8nK25hbWUrJy5weScKICAgICAgICBzeXMubW9kdWxlc1tuYW1lXT1tb2R1bGUKICAgICAgICBpZiBuYW1lPT0nY29udHJvbGxlcic6IG1vZHVsZS5CVU5ETEU9YnVuZGxlCiAgICAgICAgZXhlYyhjb21waWxlKGJ1bmRsZVtuYW1lKycucHknXSxuYW1lKycucHknLCdleGVjJyksbW9kdWxlLl9fZGljdF9fKQogICAgc3lzLmV4aXQoc3lzLm1vZHVsZXNbJ2NvbnRyb2xsZXInXS5tYWluKHN5cy5hcmd2WzE6XSkpCmV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgIHByaW50KCdJbnN0YWxsZXIgYm9vdHN0cmFwIGZhaWxlZDogJyt0eXBlKGUpLl9fbmFtZV9fLGZpbGU9c3lzLnN0ZGVycikKICAgIHN5cy5leGl0KDEpCg==\''\)\)'
 function Ask([string]$Id,[string]$Text,[string]$Default=''){
  $answer=Read-Host ('['+$Id+'] '+$Text+$(if($Default){' ['+$Default+']'}else{''}))
  if(!$answer){return $Default};return $answer
@@ -39,9 +39,27 @@ function Write-Config{
  [IO.File]::WriteAllText($Config,($lines -join "`n")+"`n",(New-Object Text.UTF8Encoding($false)))
 }
 function Probe([string]$Role){
- $previous=$ErrorActionPreference;$ErrorActionPreference='Continue'
- $result=(& ssh -F $Config $Role true 2>&1 | Out-String);$code=$LASTEXITCODE
- $ErrorActionPreference=$previous
+ Write-Host ("Checking SSH: "+$Role+" (up to 25 seconds)...")
+ $info=New-Object Diagnostics.ProcessStartInfo
+ $info.FileName=(Get-Command ssh.exe).Source
+ $info.Arguments=(@('-n','-T','-F',$Config,$Role,'true') | ForEach-Object {Quote-WindowsArg $_}) -join ' '
+ $info.UseShellExecute=$false
+ $info.CreateNoWindow=$true
+ $info.RedirectStandardError=$true
+ $info.RedirectStandardOutput=$true
+ $process=[Diagnostics.Process]::Start($info)
+ try{
+  $stderr=$process.StandardError.ReadToEndAsync()
+  $stdout=$process.StandardOutput.ReadToEndAsync()
+  if(!$process.WaitForExit(25000)){
+   $process.Kill()
+   Write-Host ("SSH "+$Role+" timed out before the remote command completed.")
+   return 'network'
+  }
+  if(!$stderr.Wait(1000)){return 'network'}
+  $result=$stderr.Result
+  $code=$process.ExitCode
+ }finally{$process.Dispose()}
  if($code -eq 0){return 'ok'}
  if($result -match 'REMOTE HOST IDENTIFICATION HAS CHANGED'){return 'changed-key'}
  if($result -match 'Host key verification failed|No .* host key is known'){return 'identity'}

@@ -9,6 +9,10 @@ foreach ($node in @($Entry,$ExitNode)) {
     if ($node -notmatch '^(root@)?[a-z0-9][a-z0-9._-]*$') { throw 'Invalid SSH destination' }
 }
 $source=(Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/audit-v1/security_audit.py' -TimeoutSec 30).Content
+$verify=(Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.3.3/verify.py' -TimeoutSec 30).Content
+if ($verify -is [byte[]]) { $verify=[Text.Encoding]::UTF8.GetString($verify) }
+if ($source -is [byte[]]) { $source=[Text.Encoding]::UTF8.GetString($source) }
+$source=$verify + [char]10 + $source
 foreach ($role in 'entry','exit') {
     $node=if ($role -eq 'entry') { $Entry } else { $ExitNode }
     $source | ssh -T -o ControlPath=none -o BatchMode=yes -o PreferredAuthentications=publickey -o StrictHostKeyChecking=yes -o ConnectTimeout=10 $node python3 - $role $Id

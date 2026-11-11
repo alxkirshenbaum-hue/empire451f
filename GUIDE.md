@@ -189,7 +189,7 @@ Legacy-выход: добавляется отдельный WG-интерфей
 На Windows откройте обычный PowerShell под той же учётной записью, что и для установки. Подготовьте SSH-алиасы обеих нод, проверенные ключи сервера в known_hosts, разблокированный ключ и ID установки. Команду можно повторять после изменений. Она предназначена для пары, развернутой этим установщиком на чистых VDS.
 
 ```powershell
-& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/audit-v1/Audit-Vpn.ps1').Content))
+& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/audit-v1.1/Audit-Vpn.ps1').Content))
 ```
 
 Для текущей пары ответы по порядку — `hh-entry`, `hh-exit`, `nh1`. Аудитор открывает новые SSH-сессии, учитывает ProxyJump из SSH-конфигурации и выводит результаты по ролям. При недоступной ноде, ошибке измерения или отклонении от критерия запуск завершается ошибкой. Строка FAIL указывает, какую проверку нужно разобрать. Повторный запуск ничего не исправляет автоматически.

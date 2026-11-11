@@ -523,6 +523,23 @@ def dispatch(request):
     c = validate(request['config'])
     role = request['role']
     action = request['action']
+    if action == 'network-options':
+        routes = json.loads(text(['ip', '-j', '-4', 'route', 'show', 'table', 'all']))
+        networks = [r['dst'] for r in routes if r.get('dst') not in (None, 'default', '0.0.0.0/0')]
+        ports = []
+        if role == 'exit':
+            for line in text(['ss', '-H', '-lun']).splitlines():
+                ports.append(int(line.split()[3].rsplit(':', 1)[1]))
+            if shutil.which('wg'):
+                ports.extend(int(line.split()[-1]) for line in text(['wg','show','all','listen-port']).splitlines())
+        manifest = readjson(Path(names(c)['state']) / 'manifest.json', {})
+        keep = {k: manifest['config'][k] for k in ('tunnel','relay','wg_port')} if manifest else {}
+        if role == 'entry' and c[role]['kind'] == 'legacy':
+            for k, dev in [('tunnel','wg0'), ('relay','vpn-app')]:
+                links = json.loads(text(['ip','-n','naive','-j','-4','addr','show','dev',dev]))
+                addr, = links[0]['addr_info']
+                keep[k] = str(ipaddress.ip_interface(f"{addr['local']}/{addr['prefixlen']}").network)
+        return {'networks': networks, 'ports': ports, 'keep': keep}
     if action == 'probe':
         return probe(c, role)
     if action == 'plan':

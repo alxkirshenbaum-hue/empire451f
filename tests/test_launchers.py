@@ -22,6 +22,20 @@ from test_installer import config, users
 
 
 class ServerControllerTests(unittest.TestCase):
+    def test_network_defaults_skip_used_ranges_and_ports(self):
+        class Inventory:
+            def call(self, role, action, c):
+                return {'keep': {}, 'networks': ['10.203.71.0/24'], 'ports': [51830]}
+        c = controller.network_defaults(Inventory(), config(), set())
+        self.assertNotEqual(c['tunnel'], '10.203.71.0/30')
+        self.assertNotEqual(c['tunnel'], c['relay'])
+        self.assertEqual(c['wg_port'], 51831)
+
+    def test_mode_menu_retries_before_next_question(self):
+        with patch('builtins.input', side_effect=['bad','2']), contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(controller.ask('Q01', 'replace-entry'), 'replace-entry')
+        self.assertIn('Invalid choice', output.getvalue())
+
     def test_preview_reuses_accepted_id(self):
         answers = {'Q04': '198.51.100.10', 'Q06': '203.0.113.20', 'Q07': 'vpn.example.com'}
         ids = iter(['newhhentry1', 'nhh1'])

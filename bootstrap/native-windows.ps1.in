@@ -88,7 +88,14 @@ function Authenticate([string]$Role){
   $status=Probe $Role
  }
  while($status -eq 'authentication'){
-  $choice=Ask Q17 ($Role+': password / console / retry / stop') 'retry'
+  Write-Host ("SSH login to "+$Role+" failed. How would you like to get access?")
+  Write-Host '  1  Unlock the existing key and retry SSH login'
+  Write-Host '  2  Use the server password to add your public key'
+  Write-Host '  3  Show a public-key command for the provider console'
+  Write-Host '  0  Stop setup'
+  $choice=Ask Q17 'Enter 1/2/3/0' '1'
+  $actions=@{'1'='retry';'2'='password';'3'='console';'0'='stop'}
+  if($actions.ContainsKey($choice)){$choice=$actions[$choice]}
   if($choice -eq 'stop'){throw 'Stopped at SSH authorization.'}
   if($choice -eq 'retry'){if($Nodes[$Role]['aliasKey']){& ssh-add $Nodes[$Role]['aliasKey']}else{& ssh-add $Identity}}
   elseif($choice -eq 'password' -or $choice -eq 'console'){

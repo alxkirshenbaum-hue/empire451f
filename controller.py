@@ -11,6 +11,8 @@ import hashlib
 import hmac
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
+import ipaddress
+import itertools
 import os
 from pathlib import Path
 import re
@@ -97,7 +99,7 @@ def rpc(port, token):
                     stopping = True
                     result = {'status': 'stopping'}
                 else:
-                    require(data['action'] in ('probe', 'plan', 'prepare', 'apply', 'commit', 'rollback', 'boot', 'reboot'), 'RPC action rejected')
+                    require(data['action'] in ('network-options', 'probe', 'plan', 'prepare', 'apply', 'commit', 'rollback', 'boot', 'reboot'), 'RPC action rejected')
                     result = remote.dispatch(request(data.pop('action'), 'exit', data.pop('config'), **data))
                 reply = {'ok': True, 'result': result}
             except BaseException as error:
@@ -135,7 +137,39 @@ def store_session(session, value):
     remote.atomic(p, json.dumps(value))
 
 
-def configure(saved=None):
+def network_defaults(nodes, c, fixed):
+    inventory = [nodes.call(r, 'network-options', c) for r in ('entry','exit')]
+    keep = {}
+    used = []
+    for item in inventory:
+        for k, value in item['keep'].items():
+            require(k not in keep or keep[k] == value, 'Existing nodes disagree on ' + k)
+            keep[k] = value
+        for dst in item['networks']:
+            used.append(ipaddress.IPv4Network(dst, strict=False))
+    for k in ('tunnel', 'relay', 'wg_port'):
+        if k in keep:
+            c[k] = keep[k]
+    fixed = set(fixed) | set(keep)
+    used.extend(ipaddress.IPv4Network(c[k]) for k in ('tunnel','relay') if k in fixed)
+    for k in ('tunnel','relay'):
+        if k in fixed:
+            continue
+        preferred = ipaddress.IPv4Network(c[k])
+        candidates = ipaddress.IPv4Network('10.203.0.0/16').subnets(new_prefix=30)
+        net = next((n for n in itertools.chain([preferred], candidates) if not any(n.overlaps(u) for u in used)), None)
+        require(net is not None, 'No free subnet in the automatic pool. Edit Q10 or Q11.')
+        c[k] = str(net)
+        used.append(net)
+    if 'wg_port' not in fixed:
+        busy = set(inventory[1]['ports'])
+        port = next((p for p in range(c['wg_port'], 65536) if p not in busy), None)
+        require(port is not None, 'No free exit port in the automatic range. Edit Q12.')
+        c['wg_port'] = port
+    return validate(c)
+
+
+def configure(saved=None, nodes=None, imported=None):
     saved = saved or {}
     default = {'Q01': saved.get('mode', 'replace-entry'), 'Q02': saved.get('id', 'personal'),
                'Q04': saved.get('entry', {}).get('address', ''), 'Q06': saved.get('exit', {}).get('address', ''),
@@ -146,9 +180,24 @@ def configure(saved=None):
         if saved.get(role, {}).get('kind') == 'managed':
             default['Q08'] = 'managed'
     answers = {}
+    network_fields = {'Q10':'tunnel','Q11':'relay','Q12':'wg_port'}
+    fixed = {k for k in network_fields.values() if k in saved}
+    def preserved_kind(previous):
+        if answers['Q01'] == 'fresh':
+            return 'new'
+        keep_exit = answers['Q01'] == 'replace-entry'
+        role = 'exit' if keep_exit else 'entry'
+        address = answers['Q06' if keep_exit else 'Q04']
+        print(f'Keeping the current {role} server ({address}). How was it set up?')
+        return ask('Q08', previous if previous in ('legacy', 'managed') else 'legacy')
+
     for q, value in default.items():
         if q == 'Q02':
             answers[q] = saved['id'] if 'id' in saved else deployment_id()
+        elif q == 'Q08':
+            answers[q] = preserved_kind(value)
+        elif q in network_fields or (q == 'Q14' and imported):
+            answers[q] = imported['clients'][0]['username'] if q == 'Q14' else value
         else:
             answers[q] = ask(q, value)
     while True:
@@ -161,15 +210,36 @@ def configure(saved=None):
                           'protected_addresses': [x.strip() for x in a['Q15'].split(',') if x.strip()], 'tls': a['Q16']})
             require(c['tls'] in ('ready', 'defer'), 'Q16: ready or defer')
             require(re.fullmatch(r'[A-Za-z0-9_.@-]{1,64}', c['username']), 'Q14: invalid username')
+            if nodes:
+                c = network_defaults(nodes, c, fixed)
+            for question, field in network_fields.items():
+                answers[question] = str(c[field])
+            print('Network settings: Q10 tunnel =', c['tunnel'], '/ Q11 service link =', c['relay'], '/ Q12 exit UDP port =', c['wg_port'])
             print(json.dumps(c, ensure_ascii=False, indent=2))
             edit = ask('Q20', 'continue')
             if edit == 'continue':
                 return c
         except (ValueError, KeyError) as error:
             print('Check your answers: ' + str(error))
-            edit = ask('Q20', 'Q01')
+            while True:
+                edit = input('[Q20] The plan is not valid yet. Enter a question ID to correct (e.g. Q04), or stop: ').strip().upper()
+                if edit == 'STOP':
+                    raise Invalid('Stopped before applying changes.')
+                if edit in answers:
+                    break
+                print('Enter one of: ' + ', '.join(answers))
         if edit in answers:
-            answers[edit] = deployment_id(answers[edit]) if edit == 'Q02' else ask(edit, answers[edit])
+            if edit == 'Q14' and imported:
+                print('Using imported client credentials. Q14 only applies when creating a client.')
+            elif edit == 'Q08':
+                answers[edit] = preserved_kind(answers[edit])
+            else:
+                previous = answers[edit]
+                answers[edit] = deployment_id(previous) if edit == 'Q02' else ask(edit, previous)
+                if edit in network_fields:
+                    fixed.add(network_fields[edit])
+                if edit == 'Q01' and previous != answers[edit]:
+                    answers['Q08'] = preserved_kind('legacy')
         else:
             print('Enter a question ID to edit a server setting. SSH destinations, key and import path are selected on your computer.')
 
@@ -237,11 +307,11 @@ def start(nodes, session, imported):
             break
         print('Choose a listed number or action name.')
     if action == 'new':
-        c = configure()
+        c = configure(nodes=nodes, imported=imported)
     elif action == 'preview':
         ident = deployment_id()
         saved = remote.readjson('/var/lib/empire-vpn/' + ident + '/deployment.json')
-        c = configure(saved or {'id': ident})
+        c = configure(saved or {'id': ident}, nodes, imported)
     else:
         while True:
             ident = deployment_id()
@@ -249,7 +319,7 @@ def start(nodes, session, imported):
             if saved is not None:
                 break
             print('No saved deployment with this ID on entry. Enter another ID or press Ctrl+C to stop.')
-        c = configure(saved) if action == 'apply-saved' else validate(saved)
+        c = configure(saved, nodes, imported) if action == 'apply-saved' else validate(saved)
     users = clients(c, imported)
     state = {'config': c, 'changed': [], 'action': action}
     if action == 'rollback':

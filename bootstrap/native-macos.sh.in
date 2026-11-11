@@ -142,7 +142,10 @@ authenticate() {
   status=$(probe "$role")
  fi
  while [ "$status" = authentication ]; do
-  choice=$(ask Q17 "$role: password / console / retry / stop" retry)
+  printf 'SSH login to %s failed. How would you like to get access?\n' "$role" >&2
+  printf '%s\n' '  1  Unlock the existing key and retry SSH login' '  2  Use the server password to add your public key' '  3  Show a public-key command for the provider console' '  0  Stop setup' >&2
+  choice=$(ask Q17 'Enter 1/2/3/0' 1)
+  case "$choice" in 1) choice=retry;; 2) choice=password;; 3) choice=console;; 0) choice=stop;; esac
   if [ "$choice" = retry ]; then
    local retry_key="$IDENTITY" candidate='' target=''
    case "$role" in entry) candidate="$E_identityfile"; target="$ENTRY";; exit) candidate="$X_identityfile"; target="$EXIT_NODE";; esac

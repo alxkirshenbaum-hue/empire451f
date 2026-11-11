@@ -38,7 +38,7 @@ QUESTIONS = {
  'Q12': ('Exit WireGuard UDP port', 'Use a free port for a parallel tunnel.'),
  'Q13': ('Client export file (optional)', 'Import empire-vpn-clients v1 to keep existing credentials.'),
  'Q14': ('New client username', 'Used when creating credentials.'),
- 'Q15': ('Protected IPs, separated by commas', 'These servers cannot be deployment targets.'),
+ 'Q15': ('Which servers should this installer protect?', 'Optional: enter the public IPs of servers to exclude from deployment and block for VPN clients, separated by commas. For a migration you can list the old entry and a spare server. Leave empty if none.'),
  'Q16': ('TLS verification: ready / defer', 'Use ready if DNS points to entry, or defer to verify later.'),
  'Q17': ('Initial SSH access', 'Use password or provider console to install the public key, or retry login.'),
  'Q18': ('SSH route', 'Choose a displayed jump host or enter 0 to stop.'),
@@ -49,8 +49,37 @@ QUESTIONS = {
 }
 
 
+CHOICES = {
+    'Q01': [('fresh', 'Set up two new servers'),
+            ('replace-entry', 'Set up a new entry and keep the current exit'),
+            ('replace-exit', 'Keep the current entry and set up a new exit')],
+    'Q08': [('legacy', 'Keep the original personal-vpn setup that predates this installer'),
+            ('managed', 'Keep a node previously set up by this installer with the same deployment ID')],
+    'Q16': [('ready', 'DNS already points to the entry: verify HTTPS and VPN traffic before committing'),
+            ('defer', 'Verify the network now and run HTTPS and client checks after DNS is ready')],
+    'Q20': [('continue', 'Keep these answers and continue'), ('edit', 'Change an answer by question ID')],
+}
+
+
 def ask(q, default='', secret=False):
     title, helptext = QUESTIONS[q]
+    if q in CHOICES:
+        print('\n[' + q + '] ' + title)
+        values = {}
+        selected = None
+        for i, (value, label) in enumerate(CHOICES[q], 1):
+            values[str(i)] = value
+            print(f'  {i}  {label} ({value})')
+            if value == default or (q == 'Q20' and value == 'edit' and default.startswith('Q')):
+                selected = str(i)
+        while True:
+            answer = input(f'Enter a number [{selected}]: ').strip() or selected
+            value = values.get(answer, answer)
+            if q == 'Q20' and value == 'edit':
+                value = input('Question ID to edit (for example Q04): ').strip().upper() or default
+            if value in values.values() or (q == 'Q20' and re.fullmatch(r'Q\d{2}', value or '')):
+                return value
+            print('Invalid choice. Enter a listed number or option name.')
     print('\n[' + q + '] ' + title + '\n' + helptext)
     prompt = (' [' + default + ']' if default else '') + ': '
     return (getpass.getpass(prompt) if secret else input(prompt)).strip() or default

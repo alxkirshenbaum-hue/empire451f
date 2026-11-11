@@ -204,9 +204,21 @@ try{
   if($status[$role] -eq 'network'){
    $other=if($role -eq 'entry'){'exit'}else{'entry'}
    $jump=$Nodes[$role]['proxyjump']
-   $default=if($jump -and $jump -ne 'none'){'configured'}else{'other-node'}
-   $choice=Ask Q18 ($role+': direct network unavailable; configured / other-node / no') $default
-   if($choice -eq 'configured'){
+   $choices=@('0')
+   Write-Host ("Direct SSH to "+$role+" ("+$Nodes[$role]['hostname']+") failed. Choose how this computer should reach it.")
+   if($jump -and $jump -ne 'none' -and !$jump.Contains(',')){
+    $choices+='1'
+    Write-Host ("  1  Connect via "+$jump+" (from your SSH settings)")
+   }
+   if($status[$other] -eq 'ok' -and !$Jumps.ContainsKey($other)){
+    $choices+='2'
+    Write-Host ("  2  Connect via the "+$other+" server ("+$Nodes[$other]['hostname']+")")
+   }
+   Write-Host '  0  Stop setup'
+   $default=if($choices.Count -gt 1){$choices[1]}else{'0'}
+   do {$choice=Ask Q18 ('Enter '+($choices -join '/')) $default} until ($choice -in $choices)
+   if($choice -eq '0'){throw 'Setup stopped at SSH route selection.'}
+   if($choice -eq '1'){
     if(!$jump -or $jump -eq 'none' -or $jump.Contains(',')){throw 'Configured single-hop ProxyJump unavailable'}
     $transit=Resolve-Target $jump
     if($transit['identityfile']){
@@ -214,7 +226,7 @@ try{
      if(Test-Path -LiteralPath $candidate){$transit['key']=(Resolve-Path -LiteralPath $candidate).ProviderPath}
     }
     $Nodes['transit']=$transit;$Jumps[$role]='transit'
-   }elseif($choice -eq 'other-node' -and $status[$other] -eq 'ok'){$Jumps[$role]=$other}
+   }elseif($choice -eq '2'){$Jumps[$role]=$other}
    else{throw 'No reachable SSH route selected'}
    Write-Config;$status[$role]=Authenticate $role
   }

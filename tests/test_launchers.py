@@ -131,9 +131,10 @@ class Stub {
   if(args.Contains("-G")) {
    Console.WriteLine("hostname "+(last.Contains("198.51")?"198.51.100.10":"203.0.113.20"));
    if(last=="existing-exit") Console.WriteLine("identityfile "+Environment.GetEnvironmentVariable("EVPN_TEST_KEY")+".exit");
-   Console.WriteLine("user root\nport 22\nproxyjump none"); return 0;
+   Console.WriteLine("user root\nport 22\nproxyjump "+(last=="existing-exit"?"saved-hop":"none")); return 0;
   }
   if(last=="true") {
+   if(args.Contains("exit") && !File.ReadAllText(args[Array.IndexOf(args,"-F")+1]).Contains("ProxyJump transit")) return 7;
    if(args.Contains("exit") && !File.ReadAllText(args[Array.IndexOf(args,"-F")+1]).Split(new[]{"Host exit\n"},StringSplitOptions.None)[1].Split(new[]{"\nHost "},StringSplitOptions.None)[0].Contains(".exit\"")) return 6;
    File.AppendAllText(trace,"ssh-check\n"); return 0;
   }
@@ -170,6 +171,8 @@ $global:EVPNTestAnswers.Enqueue('existing-exit')
 $global:EVPNTestAnswers.Enqueue($env:EVPN_TEST_KEY + '.pub')
 $global:EVPNTestAnswers.Enqueue($env:EVPN_TEST_KEY + '.missing')
 $global:EVPNTestAnswers.Enqueue($env:EVPN_TEST_KEY)
+$global:EVPNTestAnswers.Enqueue('wrong')
+$global:EVPNTestAnswers.Enqueue('')
 $global:EVPNTestAnswers.Enqueue('')
 function Read-Host {param([string]$Prompt); if(!$global:EVPNTestAnswers.Count){throw ('Unexpected prompt: '+$Prompt)};return $global:EVPNTestAnswers.Dequeue()}
 & $env:EVPN_TEST_LAUNCHER

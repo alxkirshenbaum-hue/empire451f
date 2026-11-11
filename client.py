@@ -41,7 +41,7 @@ QUESTIONS = {
  'Q15': ('Дополнительные запрещённые IP через запятую', 'Например, адрес резервной VDS. Эти адреса также нельзя выбирать целями установки.'),
  'Q16': ('TLS: ready / defer', 'ready — DNS уже указывает на новый вход; defer — установить сеть сейчас, проверить HTTPS позже.'),
  'Q17': ('Первоначальный доступ: password / console / retry', 'password добавит только выбранный публичный ключ; console покажет команду для консоли провайдера.'),
- 'Q18': ('ProxyJump: configured / other-node / no', 'configured — прежний ProxyJump из SSH alias (например, старый вход); other-node — другая нода этой установки. Только при сетевой ошибке.'),
+ 'Q18': ('Как компьютеру подключиться к серверу по SSH? 1 / 2 / 0', '1 — через сервер из SSH-настроек; 2 — через другую VDS установки; 0 — остановиться. Только при сетевой ошибке.'),
  'Q19': ('Подтвердить применение: APPLY', 'Проверьте адреса, список файлов, пакеты и 30-минутный таймер отката.'),
  'Q20': ('Продолжить или исправить: continue / Qxx', 'Номер вопроса возвращает к соответствующему ответу. До APPLY серверы не изменяются.'),
  'Q21': ('Запустить ssh-agent для защищённого ключа? yes / no', 'Windows запросит права администратора для службы; macOS запустит агент только для текущего установщика.'),
@@ -279,7 +279,8 @@ class SSH:
             if error == 'network' and self.interactive:
                 print('Прямое SSH к ' + role + ' недоступно по сети.')
                 configured = self.resolved[role].get('proxyjump', 'none')
-                choice = ask('Q18', 'configured' if configured != 'none' else ('other-node' if other not in failures else 'no'))
+                number = ask('Q18', '1' if configured != 'none' else ('2' if other not in failures else '0'))
+                choice = {'1': 'configured', '2': 'other-node'}.get(number, 'no')
                 if choice == 'configured':
                     require(configured != 'none' and ',' not in configured and re.fullmatch(r'[A-Za-z0-9_.@:-]+', configured) and not configured.startswith('-'), 'Configured single-hop ProxyJump unavailable')
                     p = subprocess.run(['ssh', '-G', configured], capture_output=True, text=True)

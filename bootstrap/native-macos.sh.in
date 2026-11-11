@@ -139,15 +139,29 @@ for role in entry exit; do
  if [ "$role" = entry ]; then prefix=E; other=exit; other_status="$X_status"; else prefix=X; other=entry; other_status="$E_status"; fi
  status_name="${prefix}_status"; jump_name="${prefix}_proxyjump"
  if [ "${!status_name}" = network ]; then
-  default=other-node; [ -z "${!jump_name}" ] || [ "${!jump_name}" = none ] || default=configured
-  choice=$(ask Q18 "$role direct network unavailable: configured / other-node / no" "$default")
-  if [ "$choice" = configured ]; then
+  host_name="${prefix}_hostname"; choices=0; default=0
+  printf 'Direct SSH to %s (%s) failed. Choose how this computer should reach it.\n' "$role" "${!host_name}" >&2
+  case "${!jump_name}" in ''|none|*,*) ;; *)
+   printf '  1  Connect via %s (from your SSH settings)\n' "${!jump_name}" >&2
+   choices="$choices/1"; default=1;;
+  esac
+  if [ "$other" = entry ]; then other_host="$E_hostname"; other_jump="$E_jump"; else other_host="$X_hostname"; other_jump="$X_jump"; fi
+  if [ "$other_status" = ok ] && [ -z "$other_jump" ]; then
+   printf '  2  Connect via the %s server (%s)\n' "$other" "$other_host" >&2
+   choices="$choices/2"; [ "$default" != 0 ] || default=2
+  fi
+  printf '  0  Stop setup\n' >&2
+  while :; do
+   choice=$(ask Q18 "Enter $choices" "$default")
+   case "$choice" in 0) die 'Setup stopped at SSH route selection.';; 1|2) case "/$choices/" in *"/$choice/"*) break;; esac;; esac
+  done
+  if [ "$choice" = 1 ]; then
    case "${!jump_name}" in ''|none|*,*) die 'Single-hop configured ProxyJump unavailable';; esac
    resolve_target T "${!jump_name}"
    case "$T_identityfile" in '~'*) T_identityfile="$HOME${T_identityfile#\~}";; esac
    [ ! -f "$T_identityfile" ] || T_key="$T_identityfile"
    printf -v "${prefix}_jump" '%s' transit
-  elif [ "$choice" = other-node ] && [ "$other_status" = ok ]; then printf -v "${prefix}_jump" '%s' "$other"
+  elif [ "$choice" = 2 ]; then printf -v "${prefix}_jump" '%s' "$other"
   else die 'No reachable SSH route selected'; fi
   write_config
   printf -v "$status_name" '%s' "$(authenticate "$role")"

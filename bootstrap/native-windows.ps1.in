@@ -38,6 +38,47 @@ function Write-Config{
  }
  [IO.File]::WriteAllText($Config,($lines -join "`n")+"`n",(New-Object Text.UTF8Encoding($false)))
 }
+function Offer-Alias($role,$dir=(Join-Path $HOME '.ssh')){
+ if(!$Nodes[$role]['enteredIPv4']){return}
+ $node=$Nodes[$role]
+ $aliasName=Ask Q23 ("Save an SSH shortcut for "+$role+" ("+$node.hostname+")? Enter a new name, or press Enter to skip")
+ if(!$aliasName){return}
+ if($aliasName -notmatch '^[a-zA-Z][a-zA-Z0-9_-]{0,39}$'){Write-Host 'Alias skipped: use a letter followed by letters, digits, dashes or underscores.';return}
+ $path=Join-Path $dir 'config'
+ try{
+  $raw=[IO.File]::ReadAllText($Config)
+  $roles=@($role);$names=@{};$names[$role]=$aliasName
+  if($Jumps.ContainsKey($role)){
+   $hop=$Jumps[$role];$roles+=$hop;$names[$hop]=$aliasName+'-hop'
+  }
+  $append=""
+  foreach($r in $roles){
+   $name=$names[$r]
+   # Refuse a name matched by any specific existing Host stanza, including Include files.
+   $previous=$ErrorActionPreference
+   try{$ErrorActionPreference='Continue';$effective=& ssh -v -G $name 2>&1 | Out-String}finally{$ErrorActionPreference=$previous}
+   if($LASTEXITCODE -ne 0 -or ($effective -split "`n" | Where-Object {$_ -match 'Applying options for (.+)' -and $Matches[1].Trim() -ne '*'})){
+    Write-Host ("Alias skipped: existing SSH settings match "+$name);return
+   }
+   $section=[regex]::Match($raw,('(?m)^Host '+$r+'\n(?: [^\n]*\n)+')).Value
+   if(!$section){throw 'Missing SSH route'}
+   $section=$section.Replace(('Host '+$r+"`n"),('Host '+$name+"`n"))
+   if($Jumps.ContainsKey($r)){$section=$section.Replace((' ProxyJump '+$Jumps[$r]+"`n"),(' ProxyJump '+$names[$Jumps[$r]]+"`n"))}
+   $append+="`n"+$section+" IdentitiesOnly yes`n ForwardAgent no`n StrictHostKeyChecking yes`n"
+  }
+  [void][IO.Directory]::CreateDirectory($dir)
+  $bytes=[Text.Encoding]::UTF8.GetBytes($append)
+  if([IO.File]::Exists($path)){
+   $old=[IO.File]::ReadAllText($path)
+   foreach($name in $names.Values){
+    if($old -match ('(?im)^\s*Host\s+[^#\r\n]*\b'+[regex]::Escape($name)+'(?=\s|$)')){Write-Host 'Alias already present; skipped.';return}
+   }
+  }
+  $stream=[IO.File]::Open($path,[IO.FileMode]::Append,[IO.FileAccess]::Write,[IO.FileShare]::Read)
+  try{$stream.Write($bytes,0,$bytes.Length)}finally{$stream.Dispose()}
+  Write-Host ("Saved to "+$path+". Connect with: ssh "+$aliasName)
+ }catch{Write-Host 'Could not save SSH shortcut. Continuing with the verified session settings.'}
+}
 function Invoke-SshCheck([string[]]$Arguments){
  $info=New-Object Diagnostics.ProcessStartInfo
  $info.FileName=(Get-Command ssh.exe).Source
@@ -167,7 +208,7 @@ foreach($tool in @('ssh.exe','ssh-keygen.exe')){
 function Ask-Node($id,$label){
  while($true){
   $target=Ask $id ($label+' root@IP or existing SSH alias')
-  try{$node=Resolve-Target $target;if($node.user -eq 'root'){return $node}}catch{}
+  try{$node=Resolve-Target $target;if($node.user -eq 'root'){$node['enteredIPv4']=$target -match '^(root@)?(\d{1,3}\.){3}\d{1,3}$';return $node}}catch{}
   Write-Host 'Enter a valid root destination or SSH alias for root.'
  }
 }
@@ -260,6 +301,7 @@ try{
   }
   if($status[$role] -ne 'ok'){throw ($role+': SSH '+$status[$role]+'; no deployment changes made')}
  }
+ foreach($role in @('entry','exit')){Offer-Alias $role}
  $env:LC_EVPN_PROBE='1'
  foreach($role in @('entry','exit')){
   while($true){

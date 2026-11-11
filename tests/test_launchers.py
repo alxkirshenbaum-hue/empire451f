@@ -223,6 +223,7 @@ $global:EVPNTestAnswers.Enqueue('wrong')
 $global:EVPNTestAnswers.Enqueue('2')
 $global:EVPNTestAnswers.Enqueue('')
 $global:EVPNTestAnswers.Enqueue('')
+$global:EVPNTestAnswers.Enqueue('')
 function Read-Host {param([string]$Prompt); if(!$global:EVPNTestAnswers.Count){throw ('Unexpected prompt: '+$Prompt)};return $global:EVPNTestAnswers.Dequeue()}
 & $env:EVPN_TEST_LAUNCHER
 ''')

@@ -1,7 +1,7 @@
 # Native Windows launcher: no local Python, module bundle, or server templates.
 $ErrorActionPreference='Stop'
 [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
-$Boot='python3 -c exec\(__import__\(\''base64\''\).b64decode\(\''aW1wb3J0IHNpZ25hbCxoYXNobGliLGlvLGpzb24sb3Msc3lzLHR5cGVzLHVybGxpYi5yZXF1ZXN0LHppcGZpbGUKdHJ5OgogICAgaWYgb3MuZ2V0ZXVpZCgpIT0wOiByYWlzZSBSdW50aW1lRXJyb3IoJ3Jvb3QgcmVxdWlyZWQnKQogICAgcmVsZWFzZT1kaWN0KGxpbmUuc3BsaXQoJz0nLDEpIGZvciBsaW5lIGluIG9wZW4oJy9ldGMvb3MtcmVsZWFzZScpIGlmICc9JyBpbiBsaW5lKQogICAgaWYgcmVsZWFzZS5nZXQoJ0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0ndWJ1bnR1JyBvciByZWxlYXNlLmdldCgnVkVSU0lPTl9JRCcsJycpLnN0cmlwKCkuc3RyaXAoJyInKSBub3QgaW4gKCcyNC4wNCcsJzI2LjA0Jykgb3Igb3MudW5hbWUoKS5tYWNoaW5lIT0neDg2XzY0JzogcmFpc2UgUnVudGltZUVycm9yKCdVYnVudHUgMjQuMDQgb3IgMjYuMDQgYW1kNjQgcmVxdWlyZWQnKQogICAgZGVmIGV4cGlyZWQoKmFyZ3MpOiByYWlzZSBUaW1lb3V0RXJyb3IoIkJ1bmRsZSBkb3dubG9hZCB0aW1lZCBvdXQiKQogICAgc2lnbmFsLnNpZ25hbChzaWduYWwuU0lHQUxSTSxleHBpcmVkKQogICAgc2lnbmFsLmFsYXJtKDY1KQogICAgZGF0YT11cmxsaWIucmVxdWVzdC51cmxvcGVuKCdodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vYWx4a2lyc2hlbmJhdW0taHVlL2VtcGlyZTQ1MWYvdjAuMi4xMi9kaXN0L2luc3RhbGxlci56aXAnLHRpbWVvdXQ9NjApLnJlYWQoMioxMDI0KjEwMjQpCiAgICBzaWduYWwuYWxhcm0oMCkKICAgIGlmIGhhc2hsaWIuc2hhMjU2KGRhdGEpLmhleGRpZ2VzdCgpIT0nMzIyNTQ4ZDEyZDkwNmU5MDdkOWU0OTIyZDNlYTcwODE3MzVlMTVkNTU3ZjVkYzQ3NThkMDcyNjU5ZjQ5ZmI5Nic6IHJhaXNlIFJ1bnRpbWVFcnJvcignSW5zdGFsbGVyIFNIQTI1NiBtaXNtYXRjaCcpCiAgICBhcmNoaXZlPXppcGZpbGUuWmlwRmlsZShpby5CeXRlc0lPKGRhdGEpKQogICAgYnVuZGxlPXtuYW1lOmFyY2hpdmUucmVhZChuYW1lKS5kZWNvZGUoJ3V0Zi04JykgZm9yIG5hbWUgaW4gYXJjaGl2ZS5uYW1lbGlzdCgpfQogICAgZm9yIG5hbWUgaW4gKCdyZW5kZXInLCdyZW1vdGUnLCdjbGllbnQnLCdjb250cm9sbGVyJyk6CiAgICAgICAgbW9kdWxlPXR5cGVzLk1vZHVsZVR5cGUobmFtZSk7IG1vZHVsZS5fX2ZpbGVfXz0nL3J1bi9lbXBpcmUtc291cmNlLycrbmFtZSsnLnB5JwogICAgICAgIHN5cy5tb2R1bGVzW25hbWVdPW1vZHVsZQogICAgICAgIGlmIG5hbWU9PSdjb250cm9sbGVyJzogbW9kdWxlLkJVTkRMRT1idW5kbGUKICAgICAgICBleGVjKGNvbXBpbGUoYnVuZGxlW25hbWUrJy5weSddLG5hbWUrJy5weScsJ2V4ZWMnKSxtb2R1bGUuX19kaWN0X18pCiAgICBzeXMuZXhpdChzeXMubW9kdWxlc1snY29udHJvbGxlciddLm1haW4oc3lzLmFyZ3ZbMTpdKSkKZXhjZXB0IEV4Y2VwdGlvbiBhcyBlOgogICAgcHJpbnQoJ0luc3RhbGxlciBib290c3RyYXAgZmFpbGVkOiAnK3R5cGUoZSkuX19uYW1lX18sZmlsZT1zeXMuc3RkZXJyKQogICAgc3lzLmV4aXQoMSkK\''\)\)'
+$Boot='python3 -c exec\(__import__\(\''base64\''\).b64decode\(\''aW1wb3J0IHNpZ25hbCxoYXNobGliLGlvLGpzb24sb3Msc3lzLHR5cGVzLHVybGxpYi5yZXF1ZXN0LHppcGZpbGUKdHJ5OgogICAgaWYgb3MuZ2V0ZXVpZCgpIT0wOiByYWlzZSBSdW50aW1lRXJyb3IoJ3Jvb3QgcmVxdWlyZWQnKQogICAgcmVsZWFzZT1kaWN0KGxpbmUuc3BsaXQoJz0nLDEpIGZvciBsaW5lIGluIG9wZW4oJy9ldGMvb3MtcmVsZWFzZScpIGlmICc9JyBpbiBsaW5lKQogICAgaWYgcmVsZWFzZS5nZXQoJ0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0ndWJ1bnR1JyBvciByZWxlYXNlLmdldCgnVkVSU0lPTl9JRCcsJycpLnN0cmlwKCkuc3RyaXAoJyInKSBub3QgaW4gKCcyNC4wNCcsJzI2LjA0Jykgb3Igb3MudW5hbWUoKS5tYWNoaW5lIT0neDg2XzY0JzogcmFpc2UgUnVudGltZUVycm9yKCdVYnVudHUgMjQuMDQgb3IgMjYuMDQgYW1kNjQgcmVxdWlyZWQnKQogICAgZGVmIGV4cGlyZWQoKmFyZ3MpOiByYWlzZSBUaW1lb3V0RXJyb3IoIkJ1bmRsZSBkb3dubG9hZCB0aW1lZCBvdXQiKQogICAgc2lnbmFsLnNpZ25hbChzaWduYWwuU0lHQUxSTSxleHBpcmVkKQogICAgc2lnbmFsLmFsYXJtKDY1KQogICAgZGF0YT11cmxsaWIucmVxdWVzdC51cmxvcGVuKCdodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vYWx4a2lyc2hlbmJhdW0taHVlL2VtcGlyZTQ1MWYvdjAuMi4xMy9kaXN0L2luc3RhbGxlci56aXAnLHRpbWVvdXQ9NjApLnJlYWQoMioxMDI0KjEwMjQpCiAgICBzaWduYWwuYWxhcm0oMCkKICAgIGlmIGhhc2hsaWIuc2hhMjU2KGRhdGEpLmhleGRpZ2VzdCgpIT0nZmM2NDBjYmJkMjgyYzk2N2VhZTZmZWU0YjIyOTk3ZDA4YjkzYjIwZDdiMTNiYTIwNzE1NmIxMDdhNWQ4ZmY1MCc6IHJhaXNlIFJ1bnRpbWVFcnJvcignSW5zdGFsbGVyIFNIQTI1NiBtaXNtYXRjaCcpCiAgICBhcmNoaXZlPXppcGZpbGUuWmlwRmlsZShpby5CeXRlc0lPKGRhdGEpKQogICAgYnVuZGxlPXtuYW1lOmFyY2hpdmUucmVhZChuYW1lKS5kZWNvZGUoJ3V0Zi04JykgZm9yIG5hbWUgaW4gYXJjaGl2ZS5uYW1lbGlzdCgpfQogICAgZm9yIG5hbWUgaW4gKCdyZW5kZXInLCdyZW1vdGUnLCdjbGllbnQnLCdjb250cm9sbGVyJyk6CiAgICAgICAgbW9kdWxlPXR5cGVzLk1vZHVsZVR5cGUobmFtZSk7IG1vZHVsZS5fX2ZpbGVfXz0nL3J1bi9lbXBpcmUtc291cmNlLycrbmFtZSsnLnB5JwogICAgICAgIHN5cy5tb2R1bGVzW25hbWVdPW1vZHVsZQogICAgICAgIGlmIG5hbWU9PSdjb250cm9sbGVyJzogbW9kdWxlLkJVTkRMRT1idW5kbGUKICAgICAgICBleGVjKGNvbXBpbGUoYnVuZGxlW25hbWUrJy5weSddLG5hbWUrJy5weScsJ2V4ZWMnKSxtb2R1bGUuX19kaWN0X18pCiAgICBzeXMuZXhpdChzeXMubW9kdWxlc1snY29udHJvbGxlciddLm1haW4oc3lzLmFyZ3ZbMTpdKSkKZXhjZXB0IEV4Y2VwdGlvbiBhcyBlOgogICAgcHJpbnQoJ0luc3RhbGxlciBib290c3RyYXAgZmFpbGVkOiAnK3R5cGUoZSkuX19uYW1lX18sZmlsZT1zeXMuc3RkZXJyKQogICAgc3lzLmV4aXQoMSkK\''\)\)'
 function Ask([string]$Id,[string]$Text,[string]$Default=''){
  $answer=Read-Host ('['+$Id+'] '+$Text+$(if($Default){' ['+$Default+']'}else{''}))
  if(!$answer){return $Default};return $answer
@@ -37,6 +37,47 @@ function Write-Config{
   if($Jumps.ContainsKey($role)){$lines+=' ProxyJump '+$Jumps[$role]}
  }
  [IO.File]::WriteAllText($Config,($lines -join "`n")+"`n",(New-Object Text.UTF8Encoding($false)))
+}
+function Offer-Alias($role,$dir=(Join-Path $HOME '.ssh')){
+ if(!$Nodes[$role]['enteredIPv4']){return}
+ $node=$Nodes[$role]
+ $aliasName=Ask Q23 ("Save an SSH shortcut for "+$role+" ("+$node.hostname+")? Enter a new name, or press Enter to skip")
+ if(!$aliasName){return}
+ if($aliasName -notmatch '^[a-zA-Z][a-zA-Z0-9_-]{0,39}$'){Write-Host 'Alias skipped: use a letter followed by letters, digits, dashes or underscores.';return}
+ $path=Join-Path $dir 'config'
+ try{
+  $raw=[IO.File]::ReadAllText($Config)
+  $roles=@($role);$names=@{};$names[$role]=$aliasName
+  if($Jumps.ContainsKey($role)){
+   $hop=$Jumps[$role];$roles+=$hop;$names[$hop]=$aliasName+'-hop'
+  }
+  $append=""
+  foreach($r in $roles){
+   $name=$names[$r]
+   # Refuse a name matched by any specific existing Host stanza, including Include files.
+   $previous=$ErrorActionPreference
+   try{$ErrorActionPreference='Continue';$effective=& ssh -v -G $name 2>&1 | Out-String}finally{$ErrorActionPreference=$previous}
+   if($LASTEXITCODE -ne 0 -or ($effective -split "`n" | Where-Object {$_ -match 'Applying options for (.+)' -and $Matches[1].Trim() -ne '*'})){
+    Write-Host ("Alias skipped: existing SSH settings match "+$name);return
+   }
+   $section=[regex]::Match($raw,('(?m)^Host '+$r+'\n(?: [^\n]*\n)+')).Value
+   if(!$section){throw 'Missing SSH route'}
+   $section=$section.Replace(('Host '+$r+"`n"),('Host '+$name+"`n"))
+   if($Jumps.ContainsKey($r)){$section=$section.Replace((' ProxyJump '+$Jumps[$r]+"`n"),(' ProxyJump '+$names[$Jumps[$r]]+"`n"))}
+   $append+="`n"+$section+" IdentitiesOnly yes`n ForwardAgent no`n StrictHostKeyChecking yes`n"
+  }
+  [void][IO.Directory]::CreateDirectory($dir)
+  $bytes=[Text.Encoding]::UTF8.GetBytes($append)
+  if([IO.File]::Exists($path)){
+   $old=[IO.File]::ReadAllText($path)
+   foreach($name in $names.Values){
+    if($old -match ('(?im)^\s*Host\s+[^#\r\n]*\b'+[regex]::Escape($name)+'(?=\s|$)')){Write-Host 'Alias already present; skipped.';return}
+   }
+  }
+  $stream=[IO.File]::Open($path,[IO.FileMode]::Append,[IO.FileAccess]::Write,[IO.FileShare]::Read)
+  try{$stream.Write($bytes,0,$bytes.Length)}finally{$stream.Dispose()}
+  Write-Host ("Saved to "+$path+". Connect with: ssh "+$aliasName)
+ }catch{Write-Host 'Could not save SSH shortcut. Continuing with the verified session settings.'}
 }
 function Invoke-SshCheck([string[]]$Arguments){
  $info=New-Object Diagnostics.ProcessStartInfo
@@ -167,7 +208,7 @@ foreach($tool in @('ssh.exe','ssh-keygen.exe')){
 function Ask-Node($id,$label){
  while($true){
   $target=Ask $id ($label+' root@IP or existing SSH alias')
-  try{$node=Resolve-Target $target;if($node.user -eq 'root'){return $node}}catch{}
+  try{$node=Resolve-Target $target;if($node.user -eq 'root'){$node['enteredIPv4']=$target -match '^(root@)?(\d{1,3}\.){3}\d{1,3}$';return $node}}catch{}
   Write-Host 'Enter a valid root destination or SSH alias for root.'
  }
 }
@@ -260,6 +301,7 @@ try{
   }
   if($status[$role] -ne 'ok'){throw ($role+': SSH '+$status[$role]+'; no deployment changes made')}
  }
+ foreach($role in @('entry','exit')){Offer-Alias $role}
  $env:LC_EVPN_PROBE='1'
  foreach($role in @('entry','exit')){
   while($true){

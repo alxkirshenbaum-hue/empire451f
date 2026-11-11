@@ -203,6 +203,35 @@ for role in entry exit; do
  done
  [ "${!status_name}" = ok ] || die "$role: SSH ${!status_name}; no deployment changes"
 done
+offer_alias() {
+ local role="$1" target="$2" name r saved roles hop='' old_umask stanza append='' info
+ [[ "$target" =~ ^(root@)?([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] || return 0
+ name=$(ask Q23 "Save an SSH shortcut for $role ($target)? Enter a new name, or press Enter to skip")
+ [ -n "$name" ] || return 0
+ if ! [[ "$name" =~ ^[a-zA-Z][a-zA-Z0-9_-]{0,39}$ ]]; then printf '%s\n' 'Invalid shortcut name; skipping.' >&2; return 0; fi
+ if [ "$role" = entry ]; then hop="$E_jump"; else hop="$X_jump"; fi
+ roles="$role"; [ -z "$hop" ] || roles="$role $hop"
+ for r in $roles; do
+  saved="$name"; [ "$r" = "$role" ] || saved="$name-hop"
+  info=$(ssh -v -G "$saved" 2>&1) || { printf '%s\n' 'Could not check shortcut; skipping.' >&2; return 0; }
+  if printf '%s\n' "$info" | awk '/Applying options for / && $NF!="*"{found=1} END{exit !found}'; then printf 'Shortcut already matches SSH settings: %s. Skipping.\n' "$saved" >&2; return 0; fi
+  stanza=$(awk -v role="$r" -v name="$saved" -v hop="$name-hop" '/^Host /{inside=($2==role); if(inside) print "Host "name; next} inside && $1=="ProxyJump"{print " ProxyJump "hop; next} inside{print}' "$CONFIG")
+  [ -n "$stanza" ] || return 0
+  append="$append
+$stanza
+ IdentitiesOnly yes
+ ForwardAgent no
+ StrictHostKeyChecking yes
+"
+ done
+ old_umask=$(umask); umask 077
+ if mkdir -p "$HOME/.ssh" && printf '%s' "$append" >> "$HOME/.ssh/config"; then
+  printf 'Saved to ~/.ssh/config. Connect with: ssh %s\n' "$name" >&2
+ else printf '%s\n' 'Could not save shortcut. Continuing with this session.' >&2; fi
+ umask "$old_umask"
+}
+offer_alias entry "$ENTRY"
+offer_alias exit "$EXIT_NODE"
 export LC_EVPN_PROBE=1
 for role in entry exit; do
  while :; do

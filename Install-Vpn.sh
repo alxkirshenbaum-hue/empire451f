@@ -1,4 +1,4 @@
 #!/bin/bash
 set -eu
-code=$(curl -fsSL --proto '=https' https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.2.12/bootstrap/macos.sh)
+code=$(curl -fsSL --proto '=https' https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.2.13/bootstrap/macos.sh)
 exec /bin/bash -c "$code"

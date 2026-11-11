@@ -2,7 +2,7 @@
 # Bash 3.2 / standard macOS tools; no local Python or downloaded module bundle.
 set +x
 set -eu
-BOOT='python3 -c exec\(__import__\(\'"'"'base64\'"'"'\).b64decode\(\'"'"'aW1wb3J0IHNpZ25hbCxoYXNobGliLGlvLGpzb24sb3Msc3lzLHR5cGVzLHVybGxpYi5yZXF1ZXN0LHppcGZpbGUKdHJ5OgogICAgaWYgb3MuZ2V0ZXVpZCgpIT0wOiByYWlzZSBSdW50aW1lRXJyb3IoJ3Jvb3QgcmVxdWlyZWQnKQogICAgcmVsZWFzZT1kaWN0KGxpbmUuc3BsaXQoJz0nLDEpIGZvciBsaW5lIGluIG9wZW4oJy9ldGMvb3MtcmVsZWFzZScpIGlmICc9JyBpbiBsaW5lKQogICAgaWYgcmVsZWFzZS5nZXQoJ0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0ndWJ1bnR1JyBvciByZWxlYXNlLmdldCgnVkVSU0lPTl9JRCcsJycpLnN0cmlwKCkuc3RyaXAoJyInKSBub3QgaW4gKCcyNC4wNCcsJzI2LjA0Jykgb3Igb3MudW5hbWUoKS5tYWNoaW5lIT0neDg2XzY0JzogcmFpc2UgUnVudGltZUVycm9yKCdVYnVudHUgMjQuMDQgb3IgMjYuMDQgYW1kNjQgcmVxdWlyZWQnKQogICAgZGVmIGV4cGlyZWQoKmFyZ3MpOiByYWlzZSBUaW1lb3V0RXJyb3IoIkJ1bmRsZSBkb3dubG9hZCB0aW1lZCBvdXQiKQogICAgc2lnbmFsLnNpZ25hbChzaWduYWwuU0lHQUxSTSxleHBpcmVkKQogICAgc2lnbmFsLmFsYXJtKDY1KQogICAgZGF0YT11cmxsaWIucmVxdWVzdC51cmxvcGVuKCdodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vYWx4a2lyc2hlbmJhdW0taHVlL2VtcGlyZTQ1MWYvdjAuMi4xMi9kaXN0L2luc3RhbGxlci56aXAnLHRpbWVvdXQ9NjApLnJlYWQoMioxMDI0KjEwMjQpCiAgICBzaWduYWwuYWxhcm0oMCkKICAgIGlmIGhhc2hsaWIuc2hhMjU2KGRhdGEpLmhleGRpZ2VzdCgpIT0nMzIyNTQ4ZDEyZDkwNmU5MDdkOWU0OTIyZDNlYTcwODE3MzVlMTVkNTU3ZjVkYzQ3NThkMDcyNjU5ZjQ5ZmI5Nic6IHJhaXNlIFJ1bnRpbWVFcnJvcignSW5zdGFsbGVyIFNIQTI1NiBtaXNtYXRjaCcpCiAgICBhcmNoaXZlPXppcGZpbGUuWmlwRmlsZShpby5CeXRlc0lPKGRhdGEpKQogICAgYnVuZGxlPXtuYW1lOmFyY2hpdmUucmVhZChuYW1lKS5kZWNvZGUoJ3V0Zi04JykgZm9yIG5hbWUgaW4gYXJjaGl2ZS5uYW1lbGlzdCgpfQogICAgZm9yIG5hbWUgaW4gKCdyZW5kZXInLCdyZW1vdGUnLCdjbGllbnQnLCdjb250cm9sbGVyJyk6CiAgICAgICAgbW9kdWxlPXR5cGVzLk1vZHVsZVR5cGUobmFtZSk7IG1vZHVsZS5fX2ZpbGVfXz0nL3J1bi9lbXBpcmUtc291cmNlLycrbmFtZSsnLnB5JwogICAgICAgIHN5cy5tb2R1bGVzW25hbWVdPW1vZHVsZQogICAgICAgIGlmIG5hbWU9PSdjb250cm9sbGVyJzogbW9kdWxlLkJVTkRMRT1idW5kbGUKICAgICAgICBleGVjKGNvbXBpbGUoYnVuZGxlW25hbWUrJy5weSddLG5hbWUrJy5weScsJ2V4ZWMnKSxtb2R1bGUuX19kaWN0X18pCiAgICBzeXMuZXhpdChzeXMubW9kdWxlc1snY29udHJvbGxlciddLm1haW4oc3lzLmFyZ3ZbMTpdKSkKZXhjZXB0IEV4Y2VwdGlvbiBhcyBlOgogICAgcHJpbnQoJ0luc3RhbGxlciBib290c3RyYXAgZmFpbGVkOiAnK3R5cGUoZSkuX19uYW1lX18sZmlsZT1zeXMuc3RkZXJyKQogICAgc3lzLmV4aXQoMSkK\'"'"'\)\)'
+BOOT='python3 -c exec\(__import__\(\'"'"'base64\'"'"'\).b64decode\(\'"'"'aW1wb3J0IHNpZ25hbCxoYXNobGliLGlvLGpzb24sb3Msc3lzLHR5cGVzLHVybGxpYi5yZXF1ZXN0LHppcGZpbGUKdHJ5OgogICAgaWYgb3MuZ2V0ZXVpZCgpIT0wOiByYWlzZSBSdW50aW1lRXJyb3IoJ3Jvb3QgcmVxdWlyZWQnKQogICAgcmVsZWFzZT1kaWN0KGxpbmUuc3BsaXQoJz0nLDEpIGZvciBsaW5lIGluIG9wZW4oJy9ldGMvb3MtcmVsZWFzZScpIGlmICc9JyBpbiBsaW5lKQogICAgaWYgcmVsZWFzZS5nZXQoJ0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0ndWJ1bnR1JyBvciByZWxlYXNlLmdldCgnVkVSU0lPTl9JRCcsJycpLnN0cmlwKCkuc3RyaXAoJyInKSBub3QgaW4gKCcyNC4wNCcsJzI2LjA0Jykgb3Igb3MudW5hbWUoKS5tYWNoaW5lIT0neDg2XzY0JzogcmFpc2UgUnVudGltZUVycm9yKCdVYnVudHUgMjQuMDQgb3IgMjYuMDQgYW1kNjQgcmVxdWlyZWQnKQogICAgZGVmIGV4cGlyZWQoKmFyZ3MpOiByYWlzZSBUaW1lb3V0RXJyb3IoIkJ1bmRsZSBkb3dubG9hZCB0aW1lZCBvdXQiKQogICAgc2lnbmFsLnNpZ25hbChzaWduYWwuU0lHQUxSTSxleHBpcmVkKQogICAgc2lnbmFsLmFsYXJtKDY1KQogICAgZGF0YT11cmxsaWIucmVxdWVzdC51cmxvcGVuKCdodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vYWx4a2lyc2hlbmJhdW0taHVlL2VtcGlyZTQ1MWYvdjAuMi4xMy9kaXN0L2luc3RhbGxlci56aXAnLHRpbWVvdXQ9NjApLnJlYWQoMioxMDI0KjEwMjQpCiAgICBzaWduYWwuYWxhcm0oMCkKICAgIGlmIGhhc2hsaWIuc2hhMjU2KGRhdGEpLmhleGRpZ2VzdCgpIT0nZmM2NDBjYmJkMjgyYzk2N2VhZTZmZWU0YjIyOTk3ZDA4YjkzYjIwZDdiMTNiYTIwNzE1NmIxMDdhNWQ4ZmY1MCc6IHJhaXNlIFJ1bnRpbWVFcnJvcignSW5zdGFsbGVyIFNIQTI1NiBtaXNtYXRjaCcpCiAgICBhcmNoaXZlPXppcGZpbGUuWmlwRmlsZShpby5CeXRlc0lPKGRhdGEpKQogICAgYnVuZGxlPXtuYW1lOmFyY2hpdmUucmVhZChuYW1lKS5kZWNvZGUoJ3V0Zi04JykgZm9yIG5hbWUgaW4gYXJjaGl2ZS5uYW1lbGlzdCgpfQogICAgZm9yIG5hbWUgaW4gKCdyZW5kZXInLCdyZW1vdGUnLCdjbGllbnQnLCdjb250cm9sbGVyJyk6CiAgICAgICAgbW9kdWxlPXR5cGVzLk1vZHVsZVR5cGUobmFtZSk7IG1vZHVsZS5fX2ZpbGVfXz0nL3J1bi9lbXBpcmUtc291cmNlLycrbmFtZSsnLnB5JwogICAgICAgIHN5cy5tb2R1bGVzW25hbWVdPW1vZHVsZQogICAgICAgIGlmIG5hbWU9PSdjb250cm9sbGVyJzogbW9kdWxlLkJVTkRMRT1idW5kbGUKICAgICAgICBleGVjKGNvbXBpbGUoYnVuZGxlW25hbWUrJy5weSddLG5hbWUrJy5weScsJ2V4ZWMnKSxtb2R1bGUuX19kaWN0X18pCiAgICBzeXMuZXhpdChzeXMubW9kdWxlc1snY29udHJvbGxlciddLm1haW4oc3lzLmFyZ3ZbMTpdKSkKZXhjZXB0IEV4Y2VwdGlvbiBhcyBlOgogICAgcHJpbnQoJ0luc3RhbGxlciBib290c3RyYXAgZmFpbGVkOiAnK3R5cGUoZSkuX19uYW1lX18sZmlsZT1zeXMuc3RkZXJyKQogICAgc3lzLmV4aXQoMSkK\'"'"'\)\)'
 ask() {
  printf '[%s] %s [%s]: ' "$1" "$2" "${3:-}" >&2
  IFS= read -r answer || exit 130
@@ -203,6 +203,35 @@ for role in entry exit; do
  done
  [ "${!status_name}" = ok ] || die "$role: SSH ${!status_name}; no deployment changes"
 done
+offer_alias() {
+ local role="$1" target="$2" name r saved roles hop='' old_umask stanza append='' info
+ [[ "$target" =~ ^(root@)?([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] || return 0
+ name=$(ask Q23 "Save an SSH shortcut for $role ($target)? Enter a new name, or press Enter to skip")
+ [ -n "$name" ] || return 0
+ if ! [[ "$name" =~ ^[a-zA-Z][a-zA-Z0-9_-]{0,39}$ ]]; then printf '%s\n' 'Invalid shortcut name; skipping.' >&2; return 0; fi
+ if [ "$role" = entry ]; then hop="$E_jump"; else hop="$X_jump"; fi
+ roles="$role"; [ -z "$hop" ] || roles="$role $hop"
+ for r in $roles; do
+  saved="$name"; [ "$r" = "$role" ] || saved="$name-hop"
+  info=$(ssh -v -G "$saved" 2>&1) || { printf '%s\n' 'Could not check shortcut; skipping.' >&2; return 0; }
+  if printf '%s\n' "$info" | awk '/Applying options for / && $NF!="*"{found=1} END{exit !found}'; then printf 'Shortcut already matches SSH settings: %s. Skipping.\n' "$saved" >&2; return 0; fi
+  stanza=$(awk -v role="$r" -v name="$saved" -v hop="$name-hop" '/^Host /{inside=($2==role); if(inside) print "Host "name; next} inside && $1=="ProxyJump"{print " ProxyJump "hop; next} inside{print}' "$CONFIG")
+  [ -n "$stanza" ] || return 0
+  append="$append
+$stanza
+ IdentitiesOnly yes
+ ForwardAgent no
+ StrictHostKeyChecking yes
+"
+ done
+ old_umask=$(umask); umask 077
+ if mkdir -p "$HOME/.ssh" && printf '%s' "$append" >> "$HOME/.ssh/config"; then
+  printf 'Saved to ~/.ssh/config. Connect with: ssh %s\n' "$name" >&2
+ else printf '%s\n' 'Could not save shortcut. Continuing with this session.' >&2; fi
+ umask "$old_umask"
+}
+offer_alias entry "$ENTRY"
+offer_alias exit "$EXIT_NODE"
 export LC_EVPN_PROBE=1
 for role in entry exit; do
  while :; do

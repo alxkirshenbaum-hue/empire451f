@@ -22,6 +22,17 @@ from test_installer import config, users
 
 
 class ServerControllerTests(unittest.TestCase):
+    def test_preview_reuses_accepted_id(self):
+        answers = {'Q04': '198.51.100.10', 'Q06': '203.0.113.20', 'Q07': 'vpn.example.com'}
+        ids = iter(['newhhentry1', 'nhh1'])
+        def answer(q, default):
+            return next(ids) if q == 'Q02' else answers.get(q, default)
+        with patch.object(controller, 'ask', side_effect=answer), contextlib.redirect_stdout(io.StringIO()) as output:
+            ident = controller.deployment_id()
+            configured = controller.configure({'id': ident})
+        self.assertEqual(configured['id'], 'nhh1')
+        self.assertIn('ID is too long: 11 characters (maximum 10). Please enter the deployment ID again.', output.getvalue())
+
     def test_missing_saved_clients_cannot_rotate_passwords(self):
         def read(path):
             return {'installed': True} if str(path).endswith('manifest.json') else None

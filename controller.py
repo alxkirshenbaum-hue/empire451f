@@ -145,7 +145,12 @@ def configure(saved=None):
     for role in ('entry', 'exit'):
         if saved.get(role, {}).get('kind') == 'managed':
             default['Q08'] = 'managed'
-    answers = {q: ask(q, value) for q, value in default.items()}
+    answers = {}
+    for q, value in default.items():
+        if q == 'Q02':
+            answers[q] = saved['id'] if 'id' in saved else deployment_id()
+        else:
+            answers[q] = ask(q, value)
     while True:
         try:
             a = answers
@@ -164,7 +169,7 @@ def configure(saved=None):
             print('Check your answers: ' + str(error))
             edit = ask('Q20', 'Q01')
         if edit in answers:
-            answers[edit] = ask(edit, answers[edit])
+            answers[edit] = deployment_id(answers[edit]) if edit == 'Q02' else ask(edit, answers[edit])
         else:
             print('Enter a question ID to edit a server setting. SSH destinations, key and import path are selected on your computer.')
 
@@ -308,12 +313,20 @@ def start(nodes, session, imported):
         raise
 
 
-def deployment_id():
+def deployment_id(default='personal'):
     while True:
-        ident = ask('Q02', 'personal')
+        ident = ask('Q02', default)
         if re.fullmatch(r'[a-z][a-z0-9]{2,9}', ident):
             return ident
-        print('Use 3-10 lowercase letters or digits, starting with a letter.')
+        if len(ident) > 10:
+            reason = f'ID is too long: {len(ident)} characters (maximum 10).'
+        elif len(ident) < 3:
+            reason = f'ID is too short: {len(ident)} characters (minimum 3).'
+        elif not re.match('[a-z]', ident):
+            reason = 'ID must start with a lowercase letter (a-z).'
+        else:
+            reason = 'ID contains an invalid character. Use only a-z and 0-9.'
+        print(reason + ' Please enter the deployment ID again.')
 
 
 def finish(nodes, session, operation):

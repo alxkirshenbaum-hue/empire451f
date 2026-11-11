@@ -172,6 +172,7 @@ $global:EVPNTestAnswers.Enqueue($env:EVPN_TEST_KEY + '.pub')
 $global:EVPNTestAnswers.Enqueue($env:EVPN_TEST_KEY + '.missing')
 $global:EVPNTestAnswers.Enqueue($env:EVPN_TEST_KEY)
 $global:EVPNTestAnswers.Enqueue('wrong')
+$global:EVPNTestAnswers.Enqueue('2')
 $global:EVPNTestAnswers.Enqueue('')
 $global:EVPNTestAnswers.Enqueue('')
 function Read-Host {param([string]$Prompt); if(!$global:EVPNTestAnswers.Count){throw ('Unexpected prompt: '+$Prompt)};return $global:EVPNTestAnswers.Dequeue()}
@@ -190,6 +191,7 @@ function Read-Host {param([string]$Prompt); if(!$global:EVPNTestAnswers.Count){t
                 self.assertEqual(events[start + 1:finish], ['ssh-check', 'ssh-check'])
                 self.assertIn(b'REMOTE_DIALOG_STUB', result.stdout)
                 self.assertIn(b'COMMIT_STUB', result.stdout)
+                self.assertIn(b'Route 2 did not reach exit', result.stdout)
 
     def test_real_shells_parse_and_generate_ssh_config(self):
         source = (ROOT / 'bootstrap/native-windows.ps1.in').read_text()

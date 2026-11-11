@@ -201,7 +201,7 @@ try{
  $status=@{}
  foreach($role in @('entry','exit')){$status[$role]=Authenticate $role}
  foreach($role in @('entry','exit')){
-  if($status[$role] -eq 'network'){
+  while($status[$role] -eq 'network'){
    $other=if($role -eq 'entry'){'exit'}else{'entry'}
    $jump=$Nodes[$role]['proxyjump']
    $choices=@('0')
@@ -229,6 +229,10 @@ try{
    }elseif($choice -eq '2'){$Jumps[$role]=$other}
    else{throw 'No reachable SSH route selected'}
    Write-Config;$status[$role]=Authenticate $role
+   if($status[$role] -eq 'network'){
+    Write-Host ("Route "+$choice+" did not reach "+$role+". Choose another route, retry, or enter 0 to stop.")
+    $Jumps.Remove($role)
+   }
   }
   if($status[$role] -ne 'ok'){throw ($role+': SSH '+$status[$role]+'; no deployment changes made')}
  }

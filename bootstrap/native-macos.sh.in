@@ -138,7 +138,7 @@ E_status=$(authenticate entry); X_status=$(authenticate exit)
 for role in entry exit; do
  if [ "$role" = entry ]; then prefix=E; other=exit; other_status="$X_status"; else prefix=X; other=entry; other_status="$E_status"; fi
  status_name="${prefix}_status"; jump_name="${prefix}_proxyjump"
- if [ "${!status_name}" = network ]; then
+ while [ "${!status_name}" = network ]; do
   host_name="${prefix}_hostname"; choices=0; default=0
   printf 'Direct SSH to %s (%s) failed. Choose how this computer should reach it.\n' "$role" "${!host_name}" >&2
   case "${!jump_name}" in ''|none|*,*) ;; *)
@@ -164,8 +164,13 @@ for role in entry exit; do
   elif [ "$choice" = 2 ]; then printf -v "${prefix}_jump" '%s' "$other"
   else die 'No reachable SSH route selected'; fi
   write_config
-  printf -v "$status_name" '%s' "$(authenticate "$role")"
- fi
+  route_status=$(authenticate "$role") || exit 1
+  printf -v "$status_name" '%s' "$route_status"
+  if [ "$route_status" = network ]; then
+   printf 'Route %s did not reach %s. Choose another route, retry, or enter 0 to stop.\n' "$choice" "$role" >&2
+   printf -v "${prefix}_jump" '%s' ''
+  fi
+ done
  [ "${!status_name}" = ok ] || die "$role: SSH ${!status_name}; no deployment changes"
 done
 export LC_EVPN_PROBE=1

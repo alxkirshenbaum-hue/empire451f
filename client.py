@@ -42,7 +42,7 @@ QUESTIONS = {
  'Q16': ('TLS verification: ready / defer', 'Use ready if DNS points to entry, or defer to verify later.'),
  'Q17': ('Initial SSH access', 'Use password or provider console to install the public key, or retry login.'),
  'Q18': ('SSH route', 'Choose a displayed jump host or enter 0 to stop.'),
- 'Q19': ('Apply these changes?', 'Type APPLY after reviewing both nodes.'),
+ 'Q19': ('Apply this plan to the two servers listed above?', 'Type APPLY to install and configure them. Press Enter to stop here.'),
  'Q20': ('Continue or edit an answer', 'Type continue or a question ID such as Q04.'),
  'Q21': ('Start ssh-agent?', 'Unlock the private key on your computer.'),
  'Q22': ('Install Python for inventory?', 'Type INSTALL-PYTHON for a minimal Ubuntu image.'),

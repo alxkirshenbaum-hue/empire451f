@@ -22,6 +22,18 @@ from test_installer import config, users
 
 
 class ServerControllerTests(unittest.TestCase):
+    def test_migration_summary_names_live_firewall_and_preserved_tunnel(self):
+        c = config()
+        c['mode'] = 'replace-entry'
+        c['exit']['kind'] = 'legacy'
+        plans = {'entry': {'changes': [{'path':'/example','action':'create'}]},
+                 'exit': {'changes': [{'path':'/etc/nftables.conf','action':'update'}]}}
+        with contextlib.redirect_stdout(io.StringIO()) as output:
+            controller.explain_plan(c, plans)
+        summary = output.getvalue()
+        for expected in (c['entry']['address'], c['exit']['address'], '/etc/nftables.conf', 'Keep the original tunnel', 'DNS and client profiles'):
+            self.assertIn(expected, summary)
+
     def test_network_defaults_skip_used_ranges_and_ports(self):
         class Inventory:
             def call(self, role, action, c):

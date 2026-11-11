@@ -284,6 +284,36 @@ def abort(nodes, state):
         print('Rollback unconfirmed: ' + ','.join(errors) + '. Check rollback timers in the provider consoles.')
 
 
+def explain_plan(c, plans):
+    print('\nWhat applying this plan means')
+    preserved = {'replace-entry': 'exit', 'replace-exit': 'entry'}.get(c['mode'])
+    for role in ('entry', 'exit'):
+        node = c[role]
+        changes = plans[role]['changes']
+        label = 'Existing' if role == preserved else 'Target'
+        print(f"  {label} {role} ({node['address']}):")
+        if all(item['action'] == 'unchanged' for item in changes):
+            print('    The reviewed configuration files already match.')
+        elif node['kind'] == 'legacy' and role == 'exit':
+            print(f"    Add a separate tunnel for the new entry using UDP {c['wg_port']}. Keep the original tunnel, its peer and the exit WireGuard key.")
+            if any(i['path'] == '/etc/nftables.conf' and i['action'] == 'update' for i in changes):
+                print('    Update the live firewall and /etc/nftables.conf with rules for the additional tunnel. Keep the existing rules.')
+        elif node['kind'] == 'legacy':
+            print('    Switch the existing WireGuard peer and firewall rules to the new exit. Keep the entry WireGuard key, proxy services and client credentials.')
+        elif role == 'entry':
+            print(f"    Configure the HTTPS site for {c['domain']}, Caddy, sing-box and isolated VPN routing to the exit.")
+        else:
+            print(f"    Configure the WireGuard peer, forwarding and firewall for traffic from {c['entry']['address']}.")
+        if role == preserved and node['kind'] == 'managed':
+            print('    Keep the node key. The file list above shows which installer-managed settings will change.')
+    if preserved:
+        old = 'entry' if preserved == 'exit' else 'exit'
+        print(f'  Only the two addresses above are deployment targets. There is no step to remove files or stop services on a separate former {old}.')
+    print('  DNS and client profiles stay as they are.')
+    print('  Before commit: open fresh SSH sessions to both nodes and check the VPN exit IP.')
+    print('  HTTPS and client traffic checks: ' + ('deferred until you run verify after DNS is ready.' if c['tls'] == 'defer' else 'included before commit.'))
+
+
 def start(nodes, session, imported):
     print('Connected. The wizard is running on the entry server.')
     actions = {
@@ -345,11 +375,12 @@ def start(nodes, session, imported):
     keys = {r: facts[r].get('public_key', ('A' if r == 'entry' else 'B') * 43 + '=') for r in facts}
     plans = {r: nodes.call(r, 'plan', c, keys=keys, clients=users) for r in facts}
     print('Packages: wireguard-tools nftables iproute2 ca-certificates curl python3; entry also uses git, build-essential and pinned Go, Caddy and sing-box.')
-    print('The existing node keeps its WireGuard key. The new node gets a new key. Rollback timer: 30 minutes.')
+    print('Missing WireGuard keys are generated on their nodes. Network rollback timer: 30 minutes.')
     for role, p in plans.items():
-        print('\n' + role + ':')
+        print(f"\nPlanned files on {role} ({c[role]['address']}):")
         for item in p['changes']:
             print('  ' + item['action'] + ' ' + item['path'])
+    explain_plan(c, plans)
     if action == 'preview':
         print('PREVIEW: no installation changes applied.')
         return 0

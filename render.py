@@ -67,7 +67,7 @@ def validate(config):
 
 def credentials(value):
     require(value.get('format') == 'empire-vpn-clients' and value.get('schema_version') == 1, 'Unsupported client export format')
-    require(isinstance(value.get('clients'), list) and 0 < len(value['clients']) <= 100, 'Expected 1-100 clients')
+    require(isinstance(value.get('clients'), list) and 0 < len(value['clients']) <= 101, 'Expected up to 100 clients plus master_user')
     names = set()
     for user in value['clients']:
         require(set(user) == {'username', 'password'}, 'Client fields must be username/password')
@@ -77,6 +77,7 @@ def credentials(value):
         require('{$' not in user['password'], 'Password cannot contain Caddy environment expansion sequence')
         require(user['username'] not in names, 'Duplicate client username')
         names.add(user['username'])
+    require(len(names - {'master_user'}) <= 100, 'Limit: 100 clients plus master_user')
     return copy.deepcopy(value)
 
 

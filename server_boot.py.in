@@ -6,12 +6,12 @@ try:
     def expired(*args): raise TimeoutError("Bundle download timed out")
     signal.signal(signal.SIGALRM,expired)
     signal.alarm(65)
-    data=urllib.request.urlopen('https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.2.13/dist/installer.zip',timeout=60).read(2*1024*1024)
+    data=urllib.request.urlopen('https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.3.0/dist/installer.zip',timeout=60).read(2*1024*1024)
     signal.alarm(0)
     if hashlib.sha256(data).hexdigest()!='__BUNDLE_SHA256__': raise RuntimeError('Installer SHA256 mismatch')
     archive=zipfile.ZipFile(io.BytesIO(data))
     bundle={name:archive.read(name).decode('utf-8') for name in archive.namelist()}
-    for name in ('render','remote','client','controller'):
+    for name in ('render','remote','client','delivery','controller'):
         module=types.ModuleType(name); module.__file__='/run/empire-source/'+name+'.py'
         sys.modules[name]=module
         if name=='controller': module.BUNDLE=bundle

@@ -1,7 +1,7 @@
 # Native Windows launcher: no local Python, module bundle, or server templates.
 $ErrorActionPreference='Stop'
 [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
-$Boot='python3 -c exec\(__import__\(\''base64\''\).b64decode\(\''aW1wb3J0IHNpZ25hbCxoYXNobGliLGlvLGpzb24sb3Msc3lzLHR5cGVzLHVybGxpYi5yZXF1ZXN0LHppcGZpbGUKdHJ5OgogICAgaWYgb3MuZ2V0ZXVpZCgpIT0wOiByYWlzZSBSdW50aW1lRXJyb3IoJ3Jvb3QgcmVxdWlyZWQnKQogICAgcmVsZWFzZT1kaWN0KGxpbmUuc3BsaXQoJz0nLDEpIGZvciBsaW5lIGluIG9wZW4oJy9ldGMvb3MtcmVsZWFzZScpIGlmICc9JyBpbiBsaW5lKQogICAgaWYgcmVsZWFzZS5nZXQoJ0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0ndWJ1bnR1JyBvciByZWxlYXNlLmdldCgnVkVSU0lPTl9JRCcsJycpLnN0cmlwKCkuc3RyaXAoJyInKSBub3QgaW4gKCcyNC4wNCcsJzI2LjA0Jykgb3Igb3MudW5hbWUoKS5tYWNoaW5lIT0neDg2XzY0JzogcmFpc2UgUnVudGltZUVycm9yKCdVYnVudHUgMjQuMDQgb3IgMjYuMDQgYW1kNjQgcmVxdWlyZWQnKQogICAgZGVmIGV4cGlyZWQoKmFyZ3MpOiByYWlzZSBUaW1lb3V0RXJyb3IoIkJ1bmRsZSBkb3dubG9hZCB0aW1lZCBvdXQiKQogICAgc2lnbmFsLnNpZ25hbChzaWduYWwuU0lHQUxSTSxleHBpcmVkKQogICAgc2lnbmFsLmFsYXJtKDY1KQogICAgZGF0YT11cmxsaWIucmVxdWVzdC51cmxvcGVuKCdodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vYWx4a2lyc2hlbmJhdW0taHVlL2VtcGlyZTQ1MWYvdjAuMi4xMy9kaXN0L2luc3RhbGxlci56aXAnLHRpbWVvdXQ9NjApLnJlYWQoMioxMDI0KjEwMjQpCiAgICBzaWduYWwuYWxhcm0oMCkKICAgIGlmIGhhc2hsaWIuc2hhMjU2KGRhdGEpLmhleGRpZ2VzdCgpIT0nZmM2NDBjYmJkMjgyYzk2N2VhZTZmZWU0YjIyOTk3ZDA4YjkzYjIwZDdiMTNiYTIwNzE1NmIxMDdhNWQ4ZmY1MCc6IHJhaXNlIFJ1bnRpbWVFcnJvcignSW5zdGFsbGVyIFNIQTI1NiBtaXNtYXRjaCcpCiAgICBhcmNoaXZlPXppcGZpbGUuWmlwRmlsZShpby5CeXRlc0lPKGRhdGEpKQogICAgYnVuZGxlPXtuYW1lOmFyY2hpdmUucmVhZChuYW1lKS5kZWNvZGUoJ3V0Zi04JykgZm9yIG5hbWUgaW4gYXJjaGl2ZS5uYW1lbGlzdCgpfQogICAgZm9yIG5hbWUgaW4gKCdyZW5kZXInLCdyZW1vdGUnLCdjbGllbnQnLCdjb250cm9sbGVyJyk6CiAgICAgICAgbW9kdWxlPXR5cGVzLk1vZHVsZVR5cGUobmFtZSk7IG1vZHVsZS5fX2ZpbGVfXz0nL3J1bi9lbXBpcmUtc291cmNlLycrbmFtZSsnLnB5JwogICAgICAgIHN5cy5tb2R1bGVzW25hbWVdPW1vZHVsZQogICAgICAgIGlmIG5hbWU9PSdjb250cm9sbGVyJzogbW9kdWxlLkJVTkRMRT1idW5kbGUKICAgICAgICBleGVjKGNvbXBpbGUoYnVuZGxlW25hbWUrJy5weSddLG5hbWUrJy5weScsJ2V4ZWMnKSxtb2R1bGUuX19kaWN0X18pCiAgICBzeXMuZXhpdChzeXMubW9kdWxlc1snY29udHJvbGxlciddLm1haW4oc3lzLmFyZ3ZbMTpdKSkKZXhjZXB0IEV4Y2VwdGlvbiBhcyBlOgogICAgcHJpbnQoJ0luc3RhbGxlciBib290c3RyYXAgZmFpbGVkOiAnK3R5cGUoZSkuX19uYW1lX18sZmlsZT1zeXMuc3RkZXJyKQogICAgc3lzLmV4aXQoMSkK\''\)\)'
+$Boot='python3 -c exec\(__import__\(\''base64\''\).b64decode\(\''aW1wb3J0IHNpZ25hbCxoYXNobGliLGlvLGpzb24sb3Msc3lzLHR5cGVzLHVybGxpYi5yZXF1ZXN0LHppcGZpbGUKdHJ5OgogICAgaWYgb3MuZ2V0ZXVpZCgpIT0wOiByYWlzZSBSdW50aW1lRXJyb3IoJ3Jvb3QgcmVxdWlyZWQnKQogICAgcmVsZWFzZT1kaWN0KGxpbmUuc3BsaXQoJz0nLDEpIGZvciBsaW5lIGluIG9wZW4oJy9ldGMvb3MtcmVsZWFzZScpIGlmICc9JyBpbiBsaW5lKQogICAgaWYgcmVsZWFzZS5nZXQoJ0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0ndWJ1bnR1JyBvciByZWxlYXNlLmdldCgnVkVSU0lPTl9JRCcsJycpLnN0cmlwKCkuc3RyaXAoJyInKSBub3QgaW4gKCcyNC4wNCcsJzI2LjA0Jykgb3Igb3MudW5hbWUoKS5tYWNoaW5lIT0neDg2XzY0JzogcmFpc2UgUnVudGltZUVycm9yKCdVYnVudHUgMjQuMDQgb3IgMjYuMDQgYW1kNjQgcmVxdWlyZWQnKQogICAgZGVmIGV4cGlyZWQoKmFyZ3MpOiByYWlzZSBUaW1lb3V0RXJyb3IoIkJ1bmRsZSBkb3dubG9hZCB0aW1lZCBvdXQiKQogICAgc2lnbmFsLnNpZ25hbChzaWduYWwuU0lHQUxSTSxleHBpcmVkKQogICAgc2lnbmFsLmFsYXJtKDY1KQogICAgZGF0YT11cmxsaWIucmVxdWVzdC51cmxvcGVuKCdodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vYWx4a2lyc2hlbmJhdW0taHVlL2VtcGlyZTQ1MWYvdjAuMy4wL2Rpc3QvaW5zdGFsbGVyLnppcCcsdGltZW91dD02MCkucmVhZCgyKjEwMjQqMTAyNCkKICAgIHNpZ25hbC5hbGFybSgwKQogICAgaWYgaGFzaGxpYi5zaGEyNTYoZGF0YSkuaGV4ZGlnZXN0KCkhPSc2YmVlMDgyZTI5NDQ1ZjMyMzJjM2QxNDRhMTUwMzE1ZTdmMjE2ZWI4NjM4OTE0OTJiNjUwODdjOTk4MTJkODM0JzogcmFpc2UgUnVudGltZUVycm9yKCdJbnN0YWxsZXIgU0hBMjU2IG1pc21hdGNoJykKICAgIGFyY2hpdmU9emlwZmlsZS5aaXBGaWxlKGlvLkJ5dGVzSU8oZGF0YSkpCiAgICBidW5kbGU9e25hbWU6YXJjaGl2ZS5yZWFkKG5hbWUpLmRlY29kZSgndXRmLTgnKSBmb3IgbmFtZSBpbiBhcmNoaXZlLm5hbWVsaXN0KCl9CiAgICBmb3IgbmFtZSBpbiAoJ3JlbmRlcicsJ3JlbW90ZScsJ2NsaWVudCcsJ2RlbGl2ZXJ5JywnY29udHJvbGxlcicpOgogICAgICAgIG1vZHVsZT10eXBlcy5Nb2R1bGVUeXBlKG5hbWUpOyBtb2R1bGUuX19maWxlX189Jy9ydW4vZW1waXJlLXNvdXJjZS8nK25hbWUrJy5weScKICAgICAgICBzeXMubW9kdWxlc1tuYW1lXT1tb2R1bGUKICAgICAgICBpZiBuYW1lPT0nY29udHJvbGxlcic6IG1vZHVsZS5CVU5ETEU9YnVuZGxlCiAgICAgICAgZXhlYyhjb21waWxlKGJ1bmRsZVtuYW1lKycucHknXSxuYW1lKycucHknLCdleGVjJyksbW9kdWxlLl9fZGljdF9fKQogICAgc3lzLmV4aXQoc3lzLm1vZHVsZXNbJ2NvbnRyb2xsZXInXS5tYWluKHN5cy5hcmd2WzE6XSkpCmV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgIHByaW50KCdJbnN0YWxsZXIgYm9vdHN0cmFwIGZhaWxlZDogJyt0eXBlKGUpLl9fbmFtZV9fLGZpbGU9c3lzLnN0ZGVycikKICAgIHN5cy5leGl0KDEpCg==\''\)\)'
 function Ask([string]$Id,[string]$Text,[string]$Default=''){
  $answer=Read-Host ('['+$Id+'] '+$Text+$(if($Default){' ['+$Default+']'}else{''}))
  if(!$answer){return $Default};return $answer
@@ -185,6 +185,37 @@ function Run-Wizard([string]$Operation){
  & ssh -F $Config -tt -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -R ('127.0.0.1:'+$RelayPort+':127.0.0.1:'+$LocalPort) entry ($Boot+' wizard '+$RelayPort+' '+$Operation)
  $script:WizardExit=$LASTEXITCODE
 }
+function Finish-Handoff {
+ $prefix='/var/lib/empire-vpn-sessions/'+$env:LC_EVPN_SESSION
+ while($true){
+  $target=Ask Q24 'Save the private Android profile? Enter a NEW local JSON file path, or Enter to skip'
+  if(!$target){break}
+  $tmp=$null
+  try{
+   $dest=$ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($target)
+   if([IO.File]::Exists($dest)){throw 'File already exists'}
+   $tmp=Join-Path ([IO.Path]::GetDirectoryName($dest)) ([guid]::NewGuid().ToString('N')+'.tmp')
+   [IO.File]::Open($tmp,'CreateNew','Write','None').Dispose()
+   $sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+   & icacls.exe $tmp /inheritance:r /grant:r ('*'+$sid+':(F)') | Out-Null
+   if($LASTEXITCODE){throw 'Private file permissions unavailable'}
+   & scp -q -F $Config ('entry:'+$prefix+'.profile.json') $tmp
+   if($LASTEXITCODE){throw 'Transfer failed'}
+   [IO.File]::Move($tmp,$dest); Write-Host ('Saved private profile: '+$dest);break
+  }catch{Write-Host 'Could not save the profile. Choose a new path in a private writable folder.'}
+  finally{if($tmp -and [IO.File]::Exists($tmp)){[IO.File]::Delete($tmp)}}
+ }
+ while($true){
+  $zip=Ask Q25 'Publish a static website now? Enter a local handoff ZIP path, or Enter to keep the current site'
+  if(!$zip){return}
+  try{$f=Get-Item -LiteralPath $zip -ErrorAction Stop;if($f.PSIsContainer -or $f.Length -gt 209715200){throw 'Invalid file'}}catch{Write-Host 'Select a ZIP up to 200 MiB.';continue}
+  Write-Host 'Uploading site ZIP to entry. Only files under site/ will be published.'
+  & scp -F $Config $f.FullName ('entry:'+$prefix+'.zip')
+  if($LASTEXITCODE){Write-Host 'Upload failed. Retry or press Enter to skip.';continue}
+  Run-Wizard publish-site
+  if($script:WizardExit -eq 0){return}
+ }
+}
 function Fresh-Sessions{
  foreach($role in @('entry','exit')){if((Probe $role) -ne 'ok'){return $false}}
  Write-Host 'New key-authenticated SSH sessions to both nodes: PASS';return $true
@@ -354,7 +385,7 @@ try{
   if($code -eq 46){Read-ClientExport}
  }while($code -eq 46)
  if($code -eq 42){
-  if(Fresh-Sessions){Run-Wizard finish;$code=$script:WizardExit}else{Run-Wizard abort;throw 'New SSH session failed; rollback requested'}
+  if(Fresh-Sessions){Run-Wizard finish;$code=$script:WizardExit;if($code -eq 0){Finish-Handoff}}else{Run-Wizard abort;throw 'New SSH session failed; rollback requested'}
  }
  if($code -eq 44){
   Wait-Reboot exit

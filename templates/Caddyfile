@@ -11,13 +11,20 @@
  }
 }
 :443, ${domain} {
- forward_proxy {
-  import ${base}/auth.caddy
-  hide_ip
-  hide_via
-  probe_resistance
-  upstream http://127.0.0.1:1081
+ route {
+  forward_proxy {
+   import ${base}/auth.caddy
+   hide_ip
+   hide_via
+   probe_resistance
+   upstream http://127.0.0.1:1081
+  }
+  file_server {
+   root ${base}/site-current
+   pass_thru
+  }
+  file_server {
+   root ${base}/site
+  }
  }
- root * ${base}/site
- file_server
 }

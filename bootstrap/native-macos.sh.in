@@ -277,6 +277,28 @@ run_wizard() {
  ssh -F "$CONFIG" -tt -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -R "127.0.0.1:$RELAY_PORT:127.0.0.1:$LOCAL_PORT" entry "$BOOT wizard $RELAY_PORT $1"
 }
 fresh_sessions() { [ "$(probe entry)" = ok ] && [ "$(probe exit)" = ok ]; }
+finish_handoff() {
+ local prefix="/var/lib/empire-vpn-sessions/$LC_EVPN_SESSION" dest tmp archive
+ while :; do
+  dest=$(ask Q24 'Save the private Android profile? Enter a NEW local JSON file path, or Enter to skip')
+  [ -n "$dest" ] || break
+  case "$dest" in '~/'*) dest="$HOME/${dest#\~/}";; /*) ;; *) dest="$PWD/$dest";; esac
+  if [ -e "$dest" ] || [ -L "$dest" ] || [ ! -d "$(dirname "$dest")" ]; then printf '%s\n' 'Choose a new path in an existing folder.' >&2; continue; fi
+  tmp=$(mktemp "$(dirname "$dest")/.empire-profile.XXXXXX") || continue
+  if scp -q -F "$CONFIG" "entry:$prefix.profile.json" "$tmp" && chmod 600 "$tmp" && ln "$tmp" "$dest"; then
+   rm -f "$tmp"; printf 'Saved private profile: %s\n' "$dest"; break
+  fi
+  rm -f "$tmp"; printf '%s\n' 'Profile transfer failed; retry or skip.' >&2
+ done
+ while :; do
+  archive=$(ask Q25 'Publish a static website now? Enter a local handoff ZIP path, or Enter to keep the current site')
+  [ -n "$archive" ] || return 0
+  case "$archive" in '~/'*) archive="$HOME/${archive#\~/}";; /*) ;; *) archive="$PWD/$archive";; esac
+  if [ ! -f "$archive" ] || [ "$(wc -c < "$archive")" -gt 209715200 ]; then printf '%s\n' 'Select a ZIP up to 200 MiB.' >&2; continue; fi
+  printf '%s\n' 'Uploading site ZIP to entry. Only files under site/ will be published.' >&2
+  if scp -F "$CONFIG" "$archive" "entry:$prefix.zip" && run_wizard publish-site; then return 0; fi
+ done
+}
 wait_reboot() {
  sleep 8
  local deadline=$((SECONDS+240))
@@ -290,7 +312,7 @@ while :; do
  read_client_export
 done
 if [ "$code" -eq 42 ]; then
- if fresh_sessions; then code=0; run_wizard finish || code=$?; else run_wizard abort || true; die 'New SSH session failed; rollback requested'; fi
+ if fresh_sessions; then code=0; run_wizard finish || code=$?; if [ "$code" = 0 ]; then finish_handoff; fi; else run_wizard abort || true; die 'New SSH session failed; rollback requested'; fi
 fi
 if [ "$code" -eq 44 ]; then
  wait_reboot exit

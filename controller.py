@@ -25,6 +25,8 @@ import urllib.request
 import uuid
 
 import remote
+import delivery
+import secrets
 from render import Invalid, credentials, names, require, validate
 from client import QUESTIONS, ask
 
@@ -175,7 +177,7 @@ def configure(saved=None, nodes=None, imported=None):
                'Q04': saved.get('entry', {}).get('address', ''), 'Q06': saved.get('exit', {}).get('address', ''),
                'Q07': saved.get('domain', ''), 'Q08': 'legacy', 'Q10': saved.get('tunnel', '10.203.71.0/30'),
                'Q11': saved.get('relay', '10.203.72.0/30'), 'Q12': str(saved.get('wg_port', 51830)),
-               'Q14': saved.get('username', 'owner'), 'Q15': ','.join(saved.get('protected_addresses', [])), 'Q16': saved.get('tls', 'defer')}
+               'Q14': saved.get('username', delivery.MASTER), 'Q15': ','.join(saved.get('protected_addresses', [])), 'Q16': saved.get('tls', 'defer')}
     for role in ('entry', 'exit'):
         if saved.get(role, {}).get('kind') == 'managed':
             default['Q08'] = 'managed'
@@ -251,15 +253,19 @@ def clients(c, imported, create=False):
             'Saved client export is missing; import existing credentials instead of generating replacements')
     if imported:
         result = credentials(imported)
+        if old and not any(u['username'] == delivery.MASTER for u in result['clients']):
+            result['clients'].extend(u for u in old['clients'] if u['username'] == delivery.MASTER)
         require(old is None or result == old, 'Imported clients differ; refusing silent credential rotation')
     elif old:
         result = credentials(old)
     elif not create:
         result = {'format': 'empire-vpn-clients', 'schema_version': 1, 'clients': [{'username': c['username'], 'password': 'PREVIEW-ONLY-NOT-A-CREDENTIAL'}]}
     else:
-        import secrets
-        password = getpass.getpass('[Q14-P] Client password (hidden; empty generates one): ')
+        password = '' if c['username'] == delivery.MASTER else getpass.getpass('[Q14-P] Client password (hidden; empty generates one): ')
         result = credentials({'format': 'empire-vpn-clients', 'schema_version': 1, 'clients': [{'username': c['username'], 'password': password or secrets.token_urlsafe(32)}]})
+    if not any(u['username'] == delivery.MASTER for u in result['clients']):
+        result['clients'].append({'username': delivery.MASTER, 'password': secrets.token_urlsafe(32) if create else 'PREVIEW-ONLY-NOT-A-CREDENTIAL'})
+    result = credentials(result)
     if create:
         path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         path.parent.chmod(0o700)
@@ -381,6 +387,7 @@ def start(nodes, session, imported):
         for item in p['changes']:
             print('  ' + item['action'] + ' ' + item['path'])
     explain_plan(c, plans)
+    print('Entry: enable the master_user VPN login. After commit, the terminal will display its password and offer a private Android profile and an optional static-site ZIP.')
     if action == 'preview':
         print('PREVIEW: no installation changes applied.')
         return 0
@@ -437,6 +444,24 @@ def finish(nodes, session, operation):
     state = remote.readjson(session_path(session))
     require(state is not None, 'Session state missing; timers remain armed')
     c = state['config']
+    if operation == 'publish-site':
+        require(state.get('committed'), 'Website upload requires a committed deployment')
+        archive = session_path(session).with_suffix('.zip')
+        try:
+            if c['entry']['kind'] == 'legacy':
+                base = Path('/var/www/empire-tomorrow')
+                require(str(base / 'current') in Path('/etc/naive/Caddyfile').read_text(), 'Unrecognised legacy site root')
+                delivery.publish_site(archive, base/'releases', base/'current', legacy=True)
+            else:
+                base = Path(names(c)['base'])
+                delivery.publish_site(archive, base/'site-releases', base/'site-current')
+            print('Site published: https://' + c['domain'] + '/')
+            return 0
+        except Exception:
+            print('Site ZIP rejected or could not be published. The previous site is still active.', file=sys.stderr)
+            return 1
+        finally:
+            archive.unlink(missing_ok=True)
     users = clients(c, None)
     if operation == 'abort':
         abort(nodes, state)
@@ -461,10 +486,32 @@ def finish(nodes, session, operation):
         for role in state['changed']:
             print(role + ': ' + nodes.call(role, 'commit', c, transaction=state['transaction'])['status'])
         print('Deployment committed.' + (' TLS verification deferred. Run verify after DNS is ready.' if c.get('tls') == 'defer' else ' HTTPS/TCP/UoT checks passed.'))
-        return 0
     except BaseException:
         abort(nodes, state)
         raise
+    state['committed'] = True
+    store_session(session,state)
+    handoff_profile(c, users, session)
+    return 0
+
+
+def handoff_profile(c, users, session):
+    user = next(u for u in users['clients'] if u['username'] == delivery.MASTER)
+    content = delivery.profile(BUNDLE['templates/sfa-profile.json'], c, user['password'])
+    path = Path(names(c)['state']) / 'master_user.sfa.json'
+    remote.atomic(path,json.dumps(content,indent=2))
+    local_copy = session_path(session).with_suffix('.profile.json')
+    if local_copy.is_symlink():
+        require(local_copy.resolve()==path,'Profile pointer conflict')
+    else:
+        local_copy.symlink_to(path)
+    print('VPN login: master_user')
+    if sys.stdout.isatty():
+        print('VPN password (private): ' + user['password'])
+    print('Private client profile on entry: ' + str(path))
+    print('Android: import the JSON in sing-box for Android (SFA), SagerNet releases: ' + delivery.RELEASES)
+    print('TUN + TLS/443 + UoT v2. DNS uses HTTPS via VPN. Russian destinations, local networks and most Android Download Manager traffic go direct; other traffic uses VPN.')
+    print('Planned VPN-only management URL: ' + delivery.PANEL + ' (reserved; panel not deployed).')
 
 
 def main(argv):

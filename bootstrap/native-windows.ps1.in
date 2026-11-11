@@ -185,6 +185,37 @@ function Run-Wizard([string]$Operation){
  & ssh -F $Config -tt -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -R ('127.0.0.1:'+$RelayPort+':127.0.0.1:'+$LocalPort) entry ($Boot+' wizard '+$RelayPort+' '+$Operation)
  $script:WizardExit=$LASTEXITCODE
 }
+function Finish-Handoff {
+ $prefix='/var/lib/empire-vpn-sessions/'+$env:LC_EVPN_SESSION
+ while($true){
+  $target=Ask Q24 'Save the private Android profile? Enter a NEW local JSON file path, or Enter to skip'
+  if(!$target){break}
+  $tmp=$null
+  try{
+   $dest=$ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($target)
+   if([IO.File]::Exists($dest)){throw 'File already exists'}
+   $tmp=Join-Path ([IO.Path]::GetDirectoryName($dest)) ([guid]::NewGuid().ToString('N')+'.tmp')
+   [IO.File]::Open($tmp,'CreateNew','Write','None').Dispose()
+   $sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+   & icacls.exe $tmp /inheritance:r /grant:r ('*'+$sid+':(F)') | Out-Null
+   if($LASTEXITCODE){throw 'Private file permissions unavailable'}
+   & scp -q -F $Config ('entry:'+$prefix+'.profile.json') $tmp
+   if($LASTEXITCODE){throw 'Transfer failed'}
+   [IO.File]::Move($tmp,$dest); Write-Host ('Saved private profile: '+$dest);break
+  }catch{Write-Host 'Could not save the profile. Choose a new path in a private writable folder.'}
+  finally{if($tmp -and [IO.File]::Exists($tmp)){[IO.File]::Delete($tmp)}}
+ }
+ while($true){
+  $zip=Ask Q25 'Publish a static website now? Enter a local handoff ZIP path, or Enter to keep the current site'
+  if(!$zip){return}
+  try{$f=Get-Item -LiteralPath $zip -ErrorAction Stop;if($f.PSIsContainer -or $f.Length -gt 209715200){throw 'Invalid file'}}catch{Write-Host 'Select a ZIP up to 200 MiB.';continue}
+  Write-Host 'Uploading site ZIP to entry. Only files under site/ will be published.'
+  & scp -F $Config $f.FullName ('entry:'+$prefix+'.zip')
+  if($LASTEXITCODE){Write-Host 'Upload failed. Retry or press Enter to skip.';continue}
+  Run-Wizard publish-site
+  if($script:WizardExit -eq 0){return}
+ }
+}
 function Fresh-Sessions{
  foreach($role in @('entry','exit')){if((Probe $role) -ne 'ok'){return $false}}
  Write-Host 'New key-authenticated SSH sessions to both nodes: PASS';return $true
@@ -354,7 +385,7 @@ try{
   if($code -eq 46){Read-ClientExport}
  }while($code -eq 46)
  if($code -eq 42){
-  if(Fresh-Sessions){Run-Wizard finish;$code=$script:WizardExit}else{Run-Wizard abort;throw 'New SSH session failed; rollback requested'}
+  if(Fresh-Sessions){Run-Wizard finish;$code=$script:WizardExit;if($code -eq 0){Finish-Handoff}}else{Run-Wizard abort;throw 'New SSH session failed; rollback requested'}
  }
  if($code -eq 44){
   Wait-Reboot exit

@@ -126,6 +126,8 @@ def probe(c, role):
         require('table inet personal_host' in nft and 'chain input {' in nft and 'chain forward {' in nft, 'Unknown legacy firewall')
         f['legacy_hashes'] = {p: digest(p) for p in ['/usr/local/sbin/personal-vpn', '/etc/nftables.conf', '/etc/wireguard/peer.pub']}
         if role == 'entry':
+            require('import /etc/naive/auth.caddy' in Path('/etc/naive/Caddyfile').read_text(), 'Unknown legacy authentication layout')
+            f['legacy_hashes']['/etc/naive/auth.caddy'] = digest('/etc/naive/auth.caddy')
             ep = re.findall(r'endpoint ([0-9.]+):(\d+)', script)
             require(len(ep) == 1, 'Unknown legacy endpoint')
             f['old_endpoint'] = ep[0][0] + ':' + ep[0][1]
@@ -295,6 +297,23 @@ def desired(c, role, f, keys, clients, templates):
             if path == '/etc/nftables.conf':
                 content = re.sub(r'(ip saddr ' + re.escape(old_ip) + r' udp sport )' + old.split(':')[1] + r'\b', lambda m: m[1] + str(c['wg_port']), content)
             out[path] = file(re.sub(r'(?<![\d.])' + re.escape(old_ip) + r'(?![\d.])', c['exit']['address'], content), 0o600 if 'wireguard' in path else 0o644)
+        import shlex
+        auth = '/etc/naive/auth.caddy'
+        original = Path(auth).read_text()
+        master = next(u for u in clients['clients'] if u['username'] == 'master_user')
+        found = False
+        for line in original.splitlines():
+            parts = shlex.split(line,comments=True)
+            if not parts:
+                continue
+            require(len(parts)==3 and parts[0]=='basic_auth', 'Unknown legacy authentication syntax')
+            if parts[1] == 'master_user':
+                require(parts[2]==master['password'], 'Import the existing master_user credentials before migration')
+                found = True
+        if not found:
+            out[auth] = file(original.rstrip('\n')+'\nbasic_auth "master_user" '+json.dumps(master['password']),0o640,'naive')
+        elif auth in f['owned']:
+            out[auth] = file(original,0o640,'naive')
         return out
     out = render(c, role, f, keys, clients, templates)
     if f['legacy']:
@@ -466,6 +485,8 @@ def apply(c, role, request):
             run(['systemctl', 'restart', n['prefix'] + '-firewall.service'])
         if f['legacy']:
             legacy_runtime(c, role, f)
+            if any(ch['path']=='/etc/naive/auth.caddy' and ch['action']=='update' for ch in changes):
+                run(['systemctl','restart','naive-caddy.service'])
         if not (f['legacy'] and role == 'entry'):
             run(['systemctl', 'enable', '--now'] + units(c, role))
         journal['phase'] = 'applied'
@@ -504,6 +525,8 @@ def rollback_local(txdir):
             os.chown(p, saved['uid'], saved['gid'])
     if f['legacy']:
         legacy_runtime(c, role, f, undo=True)
+        if '/etc/naive/auth.caddy' in j['files']:
+            run(['systemctl', 'restart', 'naive-caddy.service'])
     if run(['nft', 'list', 'table', 'inet', n['table']], check=False).returncode == 0:
         run(['nft', 'delete', 'table', 'inet', n['table']])
     if j['nft']:

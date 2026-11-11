@@ -101,8 +101,9 @@ class ServerControllerTests(unittest.TestCase):
             self.assertEqual(controller.start(Nodes(), 'a' * 32, None), 42)
         self.assertNotIn(('entry', 'commit'), calls)
         self.assertNotIn(('exit', 'commit'), calls)
-        with patch.object(controller.remote, 'readjson', return_value=captured), patch.object(controller, 'clients', return_value=users()), contextlib.redirect_stdout(io.StringIO()):
+        with patch.object(controller.remote, 'readjson', return_value=captured), patch.object(controller, 'clients', return_value=users()), patch.object(controller,'store_session'), patch.object(controller,'handoff_profile') as handoff, contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(controller.finish(Nodes(), 'a' * 32, 'finish'), 0)
+            handoff.assert_called_once()
         self.assertIn(('entry', 'commit'), calls)
         self.assertIn(('exit', 'commit'), calls)
 
@@ -165,6 +166,10 @@ using System.Threading;
 class Stub {
  static int Main(string[] args) {
   string exe=Path.GetFileName(Process.GetCurrentProcess().MainModule.FileName);
+  if(exe.Contains("scp")) {
+   if(args.Any(x=>x.EndsWith(".profile.json"))) File.WriteAllText(args[args.Length-1],"{\"fixture\":true}");
+   return 0;
+  }
   if(exe.Contains("keygen")) return 1;
   if(exe.Contains("ssh-add")) {
    if(args.Contains("-l")) return 0;
@@ -194,6 +199,7 @@ class Stub {
    if(!args.Contains("-tt")) return 8;
    if(last.EndsWith(" start")) {File.AppendAllText(trace,"apply-pending\n");Console.WriteLine("REMOTE_DIALOG_STUB");return 42;}
    if(last.EndsWith(" finish")) {File.AppendAllText(trace,"commit\n");Console.WriteLine("COMMIT_STUB");return 0;}
+   if(last.EndsWith(" publish-site")) {File.AppendAllText(trace,"publish-site\n");return 0;}
   }
   return 7;
  }
@@ -203,6 +209,7 @@ class Stub {
             self.assertEqual(result.returncode, 0, result.stdout)
             shutil.copy2(root / 'ssh.exe', root / 'ssh-keygen.exe')
             shutil.copy2(root / 'ssh.exe', root / 'ssh-add.exe')
+            shutil.copy2(root / 'ssh.exe', root / 'scp.exe')
             key = root / 'existing key'
             key.write_text('non-secret process-stub fixture')
             Path(str(key)+'.exit').touch()
@@ -224,7 +231,7 @@ $global:EVPNTestAnswers.Enqueue('2')
 $global:EVPNTestAnswers.Enqueue('')
 $global:EVPNTestAnswers.Enqueue('')
 $global:EVPNTestAnswers.Enqueue('')
-function Read-Host {param([string]$Prompt); if(!$global:EVPNTestAnswers.Count){throw ('Unexpected prompt: '+$Prompt)};return $global:EVPNTestAnswers.Dequeue()}
+function Read-Host {param([string]$Prompt); if($Prompt -match '^\[Q24\]'){if($global:Asked24){return ''};$global:Asked24=$true;return ($env:EVPN_TEST_TRACE+'.profile')};if($Prompt -match '^\[Q25\]'){if($global:Asked25){return ''};$global:Asked25=$true;return $env:EVPN_TEST_KEY};if(!$global:EVPNTestAnswers.Count){throw ('Unexpected prompt: '+$Prompt)};return $global:EVPNTestAnswers.Dequeue()}
 & $env:EVPN_TEST_LAUNCHER
 ''')
             for name in ('powershell.exe', 'pwsh.exe'):
@@ -240,6 +247,8 @@ function Read-Host {param([string]$Prompt); if(!$global:EVPNTestAnswers.Count){t
                 self.assertEqual(events[start + 1:finish], ['ssh-check', 'ssh-check'])
                 self.assertIn(b'REMOTE_DIALOG_STUB', result.stdout)
                 self.assertIn(b'COMMIT_STUB', result.stdout)
+                self.assertIn('publish-site',events[finish+1:])
+                self.assertEqual(json.loads(Path(str(trace)+'.profile').read_text()),{'fixture':True})
                 self.assertIn(b'Key was not unlocked', result.stdout)
                 self.assertIn(b'Route 2 did not reach exit', result.stdout)
 

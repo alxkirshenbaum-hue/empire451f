@@ -11,9 +11,16 @@ ROOT = Path(__file__).resolve().parent
 
 def build():
     paths = [ROOT / p for p in ['client.py', 'controller.py', 'remote.py', 'render.py', 'verify.py', 'versions.json', 'README.md', 'GUIDE.md', 'CLIENT_EXPORT_V1.md', 'TEST_RESULTS.md', 'MIGRATION_TEST.md']]
+    paths.append(ROOT / 'delivery.py')
     paths += sorted((ROOT / 'templates').glob('*'))
     destination = ROOT / 'dist'
     destination.mkdir(exist_ok=True)
+    sample = ROOT / 'examples/site-handoff'
+    with zipfile.ZipFile(destination / 'site-handoff-example.zip', 'w') as z:
+        for path in sorted(sample.rglob('*')):
+            if path.is_file():
+                info = zipfile.ZipInfo('site-handoff/' + path.relative_to(sample).as_posix())
+                z.writestr(info, path.read_bytes().replace(b'\r\n', b'\n'), compress_type=zipfile.ZIP_DEFLATED)
     with zipfile.ZipFile(destination / 'installer.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
         for path in paths:
             data = path.read_bytes().replace(b'\r\n', b'\n')

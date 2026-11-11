@@ -1,0 +1,137 @@
+{
+  "log": {
+    "level": "warn"
+  },
+  "dns": {
+    "servers": [
+      {
+        "type": "https",
+        "tag": "remote-dns",
+        "server": "1.1.1.1",
+        "server_port": 443,
+        "path": "/dns-query",
+        "tls": {
+          "enabled": true,
+          "server_name": "cloudflare-dns.com"
+        },
+        "detour": "naive-out"
+      }
+    ]
+  },
+  "inbounds": [
+    {
+      "type": "tun",
+      "tag": "tun-in",
+      "address": [
+        "172.19.0.1/30"
+      ],
+      "auto_route": true,
+      "mtu": 1380
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "naive",
+      "tag": "naive-out",
+      "server": "ENTRY_IPV4",
+      "server_port": 443,
+      "username": "MASTER_USERNAME",
+      "password": "GENERATED_AT_INSTALLATION",
+      "tls": {
+        "enabled": true,
+        "server_name": "DEPLOYMENT_DOMAIN"
+      },
+      "udp_over_tcp": {
+        "enabled": true,
+        "version": 2
+      }
+    },
+    {
+      "type": "direct",
+      "tag": "direct",
+      "domain_resolver": "remote-dns"
+    }
+  ],
+  "route": {
+    "rules": [
+      {
+        "port": 53,
+        "action": "hijack-dns"
+      },
+      {
+        "package_name": [
+          "com.android.providers.downloads",
+          "com.android.providers.downloads.ui"
+        ],
+        "domain": [
+          "chatgpt.com",
+          "openai.com",
+          "oaiusercontent.com",
+          "oaistatic.com"
+        ],
+        "domain_suffix": [
+          ".chatgpt.com",
+          ".openai.com",
+          ".oaiusercontent.com",
+          ".oaistatic.com"
+        ],
+        "action": "route",
+        "outbound": "naive-out"
+      },
+      {
+        "package_name": [
+          "com.android.providers.downloads",
+          "com.android.providers.downloads.ui"
+        ],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "ip_is_private": true,
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "domain_suffix": [
+          ".ru",
+          ".su",
+          ".xn--p1ai"
+        ],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "rule_set": [
+          "geosite-ru",
+          "geoip-ru"
+        ],
+        "action": "route",
+        "outbound": "direct"
+      }
+    ],
+    "final": "naive-out",
+    "auto_detect_interface": true,
+    "rule_set": [
+      {
+        "type": "remote",
+        "tag": "geosite-ru",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/hiddify/hiddify-geo/rule-set/country/geosite-ru.srs",
+        "http_client": {
+          "detour": "naive-out"
+        },
+        "update_interval": "120h"
+      },
+      {
+        "type": "remote",
+        "tag": "geoip-ru",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/hiddify/hiddify-geo/rule-set/country/geoip-ru.srs",
+        "http_client": {
+          "detour": "naive-out"
+        },
+        "update_interval": "120h"
+      }
+    ]
+  }
+}

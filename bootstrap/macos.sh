@@ -2,7 +2,7 @@
 # Bash 3.2 / standard macOS tools; no local Python or downloaded module bundle.
 set +x
 set -eu
-BOOT='python3 -c exec\(__import__\(\'"'"'base64\'"'"'\).b64decode\(\'"'"'aW1wb3J0IHNpZ25hbCxoYXNobGliLGlvLGpzb24sb3Msc3lzLHR5cGVzLHVybGxpYi5yZXF1ZXN0LHppcGZpbGUKdHJ5OgogICAgaWYgb3MuZ2V0ZXVpZCgpIT0wOiByYWlzZSBSdW50aW1lRXJyb3IoJ3Jvb3QgcmVxdWlyZWQnKQogICAgcmVsZWFzZT1kaWN0KGxpbmUuc3BsaXQoJz0nLDEpIGZvciBsaW5lIGluIG9wZW4oJy9ldGMvb3MtcmVsZWFzZScpIGlmICc9JyBpbiBsaW5lKQogICAgaWYgcmVsZWFzZS5nZXQoJ0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0ndWJ1bnR1JyBvciByZWxlYXNlLmdldCgnVkVSU0lPTl9JRCcsJycpLnN0cmlwKCkuc3RyaXAoJyInKSBub3QgaW4gKCcyNC4wNCcsJzI2LjA0Jykgb3Igb3MudW5hbWUoKS5tYWNoaW5lIT0neDg2XzY0JzogcmFpc2UgUnVudGltZUVycm9yKCdVYnVudHUgMjQuMDQgb3IgMjYuMDQgYW1kNjQgcmVxdWlyZWQnKQogICAgZGVmIGV4cGlyZWQoKmFyZ3MpOiByYWlzZSBUaW1lb3V0RXJyb3IoIkJ1bmRsZSBkb3dubG9hZCB0aW1lZCBvdXQiKQogICAgc2lnbmFsLnNpZ25hbChzaWduYWwuU0lHQUxSTSxleHBpcmVkKQogICAgc2lnbmFsLmFsYXJtKDY1KQogICAgZGF0YT11cmxsaWIucmVxdWVzdC51cmxvcGVuKCdodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vYWx4a2lyc2hlbmJhdW0taHVlL2VtcGlyZTQ1MWYvdjAuMi4xMy9kaXN0L2luc3RhbGxlci56aXAnLHRpbWVvdXQ9NjApLnJlYWQoMioxMDI0KjEwMjQpCiAgICBzaWduYWwuYWxhcm0oMCkKICAgIGlmIGhhc2hsaWIuc2hhMjU2KGRhdGEpLmhleGRpZ2VzdCgpIT0nZmM2NDBjYmJkMjgyYzk2N2VhZTZmZWU0YjIyOTk3ZDA4YjkzYjIwZDdiMTNiYTIwNzE1NmIxMDdhNWQ4ZmY1MCc6IHJhaXNlIFJ1bnRpbWVFcnJvcignSW5zdGFsbGVyIFNIQTI1NiBtaXNtYXRjaCcpCiAgICBhcmNoaXZlPXppcGZpbGUuWmlwRmlsZShpby5CeXRlc0lPKGRhdGEpKQogICAgYnVuZGxlPXtuYW1lOmFyY2hpdmUucmVhZChuYW1lKS5kZWNvZGUoJ3V0Zi04JykgZm9yIG5hbWUgaW4gYXJjaGl2ZS5uYW1lbGlzdCgpfQogICAgZm9yIG5hbWUgaW4gKCdyZW5kZXInLCdyZW1vdGUnLCdjbGllbnQnLCdjb250cm9sbGVyJyk6CiAgICAgICAgbW9kdWxlPXR5cGVzLk1vZHVsZVR5cGUobmFtZSk7IG1vZHVsZS5fX2ZpbGVfXz0nL3J1bi9lbXBpcmUtc291cmNlLycrbmFtZSsnLnB5JwogICAgICAgIHN5cy5tb2R1bGVzW25hbWVdPW1vZHVsZQogICAgICAgIGlmIG5hbWU9PSdjb250cm9sbGVyJzogbW9kdWxlLkJVTkRMRT1idW5kbGUKICAgICAgICBleGVjKGNvbXBpbGUoYnVuZGxlW25hbWUrJy5weSddLG5hbWUrJy5weScsJ2V4ZWMnKSxtb2R1bGUuX19kaWN0X18pCiAgICBzeXMuZXhpdChzeXMubW9kdWxlc1snY29udHJvbGxlciddLm1haW4oc3lzLmFyZ3ZbMTpdKSkKZXhjZXB0IEV4Y2VwdGlvbiBhcyBlOgogICAgcHJpbnQoJ0luc3RhbGxlciBib290c3RyYXAgZmFpbGVkOiAnK3R5cGUoZSkuX19uYW1lX18sZmlsZT1zeXMuc3RkZXJyKQogICAgc3lzLmV4aXQoMSkK\'"'"'\)\)'
+BOOT='python3 -c exec\(__import__\(\'"'"'base64\'"'"'\).b64decode\(\'"'"'aW1wb3J0IHNpZ25hbCxoYXNobGliLGlvLGpzb24sb3Msc3lzLHR5cGVzLHVybGxpYi5yZXF1ZXN0LHppcGZpbGUKdHJ5OgogICAgaWYgb3MuZ2V0ZXVpZCgpIT0wOiByYWlzZSBSdW50aW1lRXJyb3IoJ3Jvb3QgcmVxdWlyZWQnKQogICAgcmVsZWFzZT1kaWN0KGxpbmUuc3BsaXQoJz0nLDEpIGZvciBsaW5lIGluIG9wZW4oJy9ldGMvb3MtcmVsZWFzZScpIGlmICc9JyBpbiBsaW5lKQogICAgaWYgcmVsZWFzZS5nZXQoJ0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0ndWJ1bnR1JyBvciByZWxlYXNlLmdldCgnVkVSU0lPTl9JRCcsJycpLnN0cmlwKCkuc3RyaXAoJyInKSBub3QgaW4gKCcyNC4wNCcsJzI2LjA0Jykgb3Igb3MudW5hbWUoKS5tYWNoaW5lIT0neDg2XzY0JzogcmFpc2UgUnVudGltZUVycm9yKCdVYnVudHUgMjQuMDQgb3IgMjYuMDQgYW1kNjQgcmVxdWlyZWQnKQogICAgZGVmIGV4cGlyZWQoKmFyZ3MpOiByYWlzZSBUaW1lb3V0RXJyb3IoIkJ1bmRsZSBkb3dubG9hZCB0aW1lZCBvdXQiKQogICAgc2lnbmFsLnNpZ25hbChzaWduYWwuU0lHQUxSTSxleHBpcmVkKQogICAgc2lnbmFsLmFsYXJtKDY1KQogICAgZGF0YT11cmxsaWIucmVxdWVzdC51cmxvcGVuKCdodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vYWx4a2lyc2hlbmJhdW0taHVlL2VtcGlyZTQ1MWYvdjAuMy4wL2Rpc3QvaW5zdGFsbGVyLnppcCcsdGltZW91dD02MCkucmVhZCgyKjEwMjQqMTAyNCkKICAgIHNpZ25hbC5hbGFybSgwKQogICAgaWYgaGFzaGxpYi5zaGEyNTYoZGF0YSkuaGV4ZGlnZXN0KCkhPSc2YmVlMDgyZTI5NDQ1ZjMyMzJjM2QxNDRhMTUwMzE1ZTdmMjE2ZWI4NjM4OTE0OTJiNjUwODdjOTk4MTJkODM0JzogcmFpc2UgUnVudGltZUVycm9yKCdJbnN0YWxsZXIgU0hBMjU2IG1pc21hdGNoJykKICAgIGFyY2hpdmU9emlwZmlsZS5aaXBGaWxlKGlvLkJ5dGVzSU8oZGF0YSkpCiAgICBidW5kbGU9e25hbWU6YXJjaGl2ZS5yZWFkKG5hbWUpLmRlY29kZSgndXRmLTgnKSBmb3IgbmFtZSBpbiBhcmNoaXZlLm5hbWVsaXN0KCl9CiAgICBmb3IgbmFtZSBpbiAoJ3JlbmRlcicsJ3JlbW90ZScsJ2NsaWVudCcsJ2RlbGl2ZXJ5JywnY29udHJvbGxlcicpOgogICAgICAgIG1vZHVsZT10eXBlcy5Nb2R1bGVUeXBlKG5hbWUpOyBtb2R1bGUuX19maWxlX189Jy9ydW4vZW1waXJlLXNvdXJjZS8nK25hbWUrJy5weScKICAgICAgICBzeXMubW9kdWxlc1tuYW1lXT1tb2R1bGUKICAgICAgICBpZiBuYW1lPT0nY29udHJvbGxlcic6IG1vZHVsZS5CVU5ETEU9YnVuZGxlCiAgICAgICAgZXhlYyhjb21waWxlKGJ1bmRsZVtuYW1lKycucHknXSxuYW1lKycucHknLCdleGVjJyksbW9kdWxlLl9fZGljdF9fKQogICAgc3lzLmV4aXQoc3lzLm1vZHVsZXNbJ2NvbnRyb2xsZXInXS5tYWluKHN5cy5hcmd2WzE6XSkpCmV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgIHByaW50KCdJbnN0YWxsZXIgYm9vdHN0cmFwIGZhaWxlZDogJyt0eXBlKGUpLl9fbmFtZV9fLGZpbGU9c3lzLnN0ZGVycikKICAgIHN5cy5leGl0KDEpCg==\'"'"'\)\)'
 ask() {
  printf '[%s] %s [%s]: ' "$1" "$2" "${3:-}" >&2
  IFS= read -r answer || exit 130
@@ -277,6 +277,28 @@ run_wizard() {
  ssh -F "$CONFIG" -tt -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -R "127.0.0.1:$RELAY_PORT:127.0.0.1:$LOCAL_PORT" entry "$BOOT wizard $RELAY_PORT $1"
 }
 fresh_sessions() { [ "$(probe entry)" = ok ] && [ "$(probe exit)" = ok ]; }
+finish_handoff() {
+ local prefix="/var/lib/empire-vpn-sessions/$LC_EVPN_SESSION" dest tmp archive
+ while :; do
+  dest=$(ask Q24 'Save the private Android profile? Enter a NEW local JSON file path, or Enter to skip')
+  [ -n "$dest" ] || break
+  case "$dest" in '~/'*) dest="$HOME/${dest#\~/}";; /*) ;; *) dest="$PWD/$dest";; esac
+  if [ -e "$dest" ] || [ -L "$dest" ] || [ ! -d "$(dirname "$dest")" ]; then printf '%s\n' 'Choose a new path in an existing folder.' >&2; continue; fi
+  tmp=$(mktemp "$(dirname "$dest")/.empire-profile.XXXXXX") || continue
+  if scp -q -F "$CONFIG" "entry:$prefix.profile.json" "$tmp" && chmod 600 "$tmp" && ln "$tmp" "$dest"; then
+   rm -f "$tmp"; printf 'Saved private profile: %s\n' "$dest"; break
+  fi
+  rm -f "$tmp"; printf '%s\n' 'Profile transfer failed; retry or skip.' >&2
+ done
+ while :; do
+  archive=$(ask Q25 'Publish a static website now? Enter a local handoff ZIP path, or Enter to keep the current site')
+  [ -n "$archive" ] || return 0
+  case "$archive" in '~/'*) archive="$HOME/${archive#\~/}";; /*) ;; *) archive="$PWD/$archive";; esac
+  if [ ! -f "$archive" ] || [ "$(wc -c < "$archive")" -gt 209715200 ]; then printf '%s\n' 'Select a ZIP up to 200 MiB.' >&2; continue; fi
+  printf '%s\n' 'Uploading site ZIP to entry. Only files under site/ will be published.' >&2
+  if scp -F "$CONFIG" "$archive" "entry:$prefix.zip" && run_wizard publish-site; then return 0; fi
+ done
+}
 wait_reboot() {
  sleep 8
  local deadline=$((SECONDS+240))
@@ -290,7 +312,7 @@ while :; do
  read_client_export
 done
 if [ "$code" -eq 42 ]; then
- if fresh_sessions; then code=0; run_wizard finish || code=$?; else run_wizard abort || true; die 'New SSH session failed; rollback requested'; fi
+ if fresh_sessions; then code=0; run_wizard finish || code=$?; if [ "$code" = 0 ]; then finish_handoff; fi; else run_wizard abort || true; die 'New SSH session failed; rollback requested'; fi
 fi
 if [ "$code" -eq 44 ]; then
  wait_reboot exit

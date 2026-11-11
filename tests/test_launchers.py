@@ -48,6 +48,17 @@ class ServerControllerTests(unittest.TestCase):
             self.assertEqual(controller.ask('Q01', 'replace-entry'), 'replace-entry')
         self.assertIn('Invalid choice', output.getvalue())
 
+    def test_edit_saved_domain_keeps_network_and_id(self):
+        saved = config()
+        answers = {'Q07': 'production.example.org', 'Q16': 'defer'}
+        with patch.object(controller, 'ask', side_effect=lambda q, default: answers.get(q, default)), contextlib.redirect_stdout(io.StringIO()):
+            edited = controller.configure(saved)
+        self.assertEqual(edited['domain'], answers['Q07'])
+        for key in ('mode', 'id', 'tunnel', 'relay', 'wg_port'):
+            self.assertEqual(edited[key], saved[key])
+        for role in ('entry','exit'):
+            self.assertEqual(edited[role]['address'], saved[role]['address'])
+
     def test_preview_reuses_accepted_id(self):
         answers = {'Q04': '198.51.100.10', 'Q06': '203.0.113.20', 'Q07': 'vpn.example.com'}
         ids = iter(['newhhentry1', 'nhh1'])

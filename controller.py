@@ -315,7 +315,7 @@ def explain_plan(c, plans):
     if preserved:
         old = 'entry' if preserved == 'exit' else 'exit'
         print(f'  Only the two addresses above are deployment targets. There is no step to remove files or stop services on a separate former {old}.')
-    print('  DNS and client profiles stay as they are.')
+    print('  DNS and client profiles already on your devices stay as they are. Q24 offers a new profile for the reviewed domain after commit.')
     print('  Before commit: open fresh SSH sessions to both nodes and check the VPN exit IP.')
     print('  HTTPS and client traffic checks: ' + ('deferred until you run verify after DNS is ready.' if c['tls'] == 'defer' else 'included before commit.'))
 
@@ -323,13 +323,13 @@ def explain_plan(c, plans):
 def start(nodes, session, imported):
     print('Connected. The wizard is running on the entry server.')
     actions = {
-        'preview': 'Show proposed changes for a new or saved deployment',
-        'new': 'Configure a deployment and review changes before applying',
-        'apply-saved': 'Load saved settings and review changes before applying',
-        'verify': 'Test the existing site, TCP, UDP and exit IP',
-        'rollback': 'Restore files from the last installation transaction',
-        'acceptance': 'Test the deployed VPN, including a WireGuard outage',
-        'reboot-test': 'Test recovery after rebooting each node',
+        'preview': 'See what would change, then exit without installing',
+        'new': 'Set up new servers or replace an entry or exit',
+        'apply-saved': 'Change the domain or other settings of an existing VPN, or retry a previous installation',
+        'verify': 'Check that the site and VPN work (use after switching DNS)',
+        'rollback': 'Undo the last installation changes on both servers',
+        'acceptance': 'Test that traffic stops if the tunnel fails (briefly disconnects WireGuard)',
+        'reboot-test': 'Restart both servers in turn and check that the VPN recovers',
     }
     print('[Q00] What would you like to do on this run?')
     numbers = {}
@@ -355,7 +355,12 @@ def start(nodes, session, imported):
             if saved is not None:
                 break
             print('No saved deployment with this ID on entry. Enter another ID or press Ctrl+C to stop.')
-        c = configure(saved, nodes, imported) if action == 'apply-saved' else validate(saved)
+        if action == 'apply-saved':
+            print(f"Editing {ident}. Current domain: {saved['domain']}. Press Enter to keep each saved answer.")
+            print("To change the domain, enter its new name at Q07. At Q16 choose whether DNS already points here. Review the plan before typing APPLY.")
+            c = configure(saved, nodes, imported)
+        else:
+            c = validate(saved)
     users = clients(c, imported)
     state = {'config': c, 'changed': [], 'action': action}
     if action == 'rollback':
@@ -510,7 +515,7 @@ def handoff_profile(c, users, session):
         print('VPN password (private): ' + user['password'])
     print('Private client profile on entry: ' + str(path))
     print('Android: import the JSON in sing-box for Android (SFA), SagerNet releases: ' + delivery.RELEASES)
-    print('TUN + TLS/443 + UoT v2. DNS uses HTTPS via VPN. Russian destinations, local networks and most Android Download Manager traffic go direct; other traffic uses VPN.')
+    print('TUN + TLS/443 + UoT v2. The entry name is resolved via direct HTTPS DNS. Other DNS uses HTTPS via VPN. Russian destinations, local networks and most Android Download Manager traffic go direct; other traffic uses VPN.')
     print('Planned VPN-only management URL: ' + delivery.PANEL + ' (reserved; panel not deployed).')
 
 

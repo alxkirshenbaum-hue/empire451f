@@ -24,14 +24,14 @@ ROOT = Path(__file__).resolve().parent
 sys.dont_write_bytecode = True
 
 QUESTIONS = {
- 'Q01': ('Deployment mode', 'fresh: two new servers. replace-entry or replace-exit: keep the other node.'),
- 'Q02': ('Deployment ID', 'Use 3-10 lowercase letters or digits starting with a letter. Reuse this ID for later actions.'),
+ 'Q01': ('Which servers are part of this installation?', 'fresh: two new servers. replace-entry or replace-exit: keep the other node.'),
+ 'Q02': ('Name used to find this installation later', 'Use 3-10 lowercase letters or digits starting with a letter. Reuse this ID for later actions.'),
  'Q03': ('Entry SSH destination', 'Enter root@IP or an existing alias for the new entry.'),
  'Q04': ('Entry public IPv4', 'Check your provider panel.'),
  'Q05': ('Exit SSH destination', 'For an entry migration, select the existing exit.'),
  'Q06': ('Exit public IPv4', 'Expected public IP of VPN traffic.'),
- 'Q07': ('HTTPS domain', 'Use a test domain pointing to the new entry for migration.'),
- 'Q08': ('Preserved node type: legacy / managed', 'Choose legacy for the original installation, managed for a node installed with this ID.'),
+ 'Q07': ('Domain for the VPN and website', 'Enter the hostname clients should use. For a domain change, enter the new hostname here. Caddy will request its certificate when DNS reaches the entry.'),
+ 'Q08': ('How was the server you are keeping installed?', 'Choose legacy for the original installation, managed for a node installed with this ID.'),
  'Q09': ('SSH key path or new', 'The private key stays on this computer.'),
  'Q10': ('WireGuard subnet (/30)', 'Choose a separate subnet for a new entry. Keep the original subnet when replacing the exit.'),
  'Q11': ('Local relay subnet (/30)', 'Avoid existing routes and the WireGuard subnet.'),
@@ -39,11 +39,11 @@ QUESTIONS = {
  'Q13': ('Client export file (optional)', 'Import empire-vpn-clients v1 to keep existing credentials.'),
  'Q14': ('New client username', 'Used when creating credentials.'),
  'Q15': ('Which servers should this installer protect?', 'Optional: enter the public IPs of servers to exclude from deployment and block for VPN clients, separated by commas. For a migration you can list the old entry and a spare server. Leave empty if none.'),
- 'Q16': ('TLS verification: ready / defer', 'Use ready if DNS points to entry, or defer to verify later.'),
+ 'Q16': ('Does public DNS for this domain already point to the entry?', 'Use ready if DNS points to entry, or defer to verify later.'),
  'Q17': ('Initial SSH access', 'Use password or provider console to install the public key, or retry login.'),
  'Q18': ('SSH route', 'Choose a displayed jump host or enter 0 to stop.'),
  'Q19': ('Apply this plan to the two servers listed above?', 'Type APPLY to install and configure them. Press Enter to stop here.'),
- 'Q20': ('Continue or edit an answer', 'Type continue or a question ID such as Q04.'),
+ 'Q20': ('Ready to see the changes for these servers?', 'Type continue or a question ID such as Q04.'),
  'Q21': ('Start ssh-agent?', 'Unlock the private key on your computer.'),
  'Q22': ('Install Python for inventory?', 'Type INSTALL-PYTHON for a minimal Ubuntu image.'),
 }
@@ -55,9 +55,9 @@ CHOICES = {
             ('replace-exit', 'Keep the current entry and set up a new exit')],
     'Q08': [('legacy', 'Keep the original personal-vpn setup that predates this installer'),
             ('managed', 'Keep a node previously set up by this installer with the same deployment ID')],
-    'Q16': [('ready', 'DNS already points to the entry: verify HTTPS and VPN traffic before committing'),
-            ('defer', 'Verify the network now and run HTTPS and client checks after DNS is ready')],
-    'Q20': [('continue', 'Keep these answers and continue'), ('edit', 'Change an answer by question ID')],
+    'Q16': [('ready', 'Yes: check HTTPS and VPN now, before finishing'),
+            ('defer', 'Not yet: prepare the server now. After switching DNS, run option 4 from the main menu')],
+    'Q20': [('continue', 'Show the plan for these answers (review only)'), ('edit', 'Change an answer by question ID')],
 }
 
 

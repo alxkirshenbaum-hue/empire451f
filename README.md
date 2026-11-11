@@ -1,4 +1,4 @@
-# Персональная VPN — v0.3.0
+# Персональная VPN — v0.3.1
 
 **Установщик работает на VPS; диалог — в вашем терминале через SSH.** На компьютер не скачиваются комплект, шаблоны или сборки; локальный Python и Git не нужны. Короткий запускающий текст выполняется в памяти штатной оболочки. Обе VPS сами получают закреплённый комплект из Git, проверяют SHA256 и устанавливают компоненты из официальных источников.
 
@@ -9,16 +9,16 @@
 **Windows10/11**, Windows PowerShell5.1 или PowerShell7 — одна команда:
 
 ```powershell
-& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.3.0/bootstrap/windows.ps1').Content))
+& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.3.1/bootstrap/windows.ps1').Content))
 ```
 
 **macOS11+**, Terminal с zsh или bash — одна команда, без PowerShell:
 
 ```sh
-/bin/bash -c 'set -e; code=$(curl -fsSL --proto "=https" https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.3.0/bootstrap/macos.sh); /bin/bash -c "$code"'
+/bin/bash -c 'set -e; code=$(curl -fsSL --proto "=https" https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.3.1/bootstrap/macos.sh); /bin/bash -c "$code"'
 ```
 
-**[Пройти установку шаг за шагом](GUIDE.md)** — от первого подключения до проверки VPN на телефоне. Для реальной замены входа выберите Q00 → 2 и Q01 → 2. Для просмотра плана выберите Q00 → 1.
+**[Пройти установку шаг за шагом](GUIDE.md)** — от первого подключения до проверки VPN на телефоне. Для реальной замены входа выберите Q00 → 2 и Q01 → 2. Для просмотра плана выберите Q00 → 1. Чтобы сменить домен действующей установки, выберите Q00 → 3. [Переход с тестового домена на рабочий](GUIDE.md#как-сменить-тестовый-домен-на-рабочий).
 
 После успешного входа по IP мастер предложит сохранить короткое SSH-имя на этом компьютере (Q23). Например, имя `nnh1` позволит подключаться командой `ssh nnh1`. Enter пропускает этот шаг.
 
@@ -33,4 +33,4 @@
 
 **Статус: кандидат для испытания на новой VDS.** Локальные проверки не заменяют первую установку с Windows. Настоящий macOS и Linux/systemd/netns пока не испытаны. Рабочие серверы и DNS при разработке не менялись.
 
-После успешной установки мастер выводит пароль VPN-пользователя `master_user`. Q24 сохраняет JSON для импорта в [sing-box for Android](https://sing-box.sagernet.org/clients/android/). Q25 предлагает опубликовать готовый ZIP со статическим сайтом. [Скачать ZIP-заготовку с заданием для агента](https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.3.0/dist/site-handoff-example.zip). Передайте агенту ZIP и тему, затем выберите возвращённый им архив в Q25.
+После успешной установки мастер выводит пароль VPN-пользователя `master_user`. Q24 сохраняет JSON для импорта в [sing-box for Android](https://sing-box.sagernet.org/clients/android/). Q25 предлагает опубликовать готовый ZIP со статическим сайтом. [Скачать ZIP-заготовку с заданием для агента](https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.3.1/dist/site-handoff-example.zip). Передайте агенту ZIP и тему, затем выберите возвращённый им архив в Q25.

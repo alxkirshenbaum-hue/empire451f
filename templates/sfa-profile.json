@@ -15,8 +15,18 @@
           "server_name": "cloudflare-dns.com"
         },
         "detour": "naive-out"
+      },
+      {
+        "type": "https",
+        "tag": "entry-bootstrap",
+        "server": "1.1.1.1",
+        "tls": {
+          "enabled": true,
+          "server_name": "cloudflare-dns.com"
+        }
       }
-    ]
+    ],
+    "final": "remote-dns"
   },
   "inbounds": [
     {
@@ -33,17 +43,20 @@
     {
       "type": "naive",
       "tag": "naive-out",
-      "server": "ENTRY_IPV4",
+      "server": "DEPLOYMENT_DOMAIN",
       "server_port": 443,
       "username": "MASTER_USERNAME",
       "password": "GENERATED_AT_INSTALLATION",
       "tls": {
-        "enabled": true,
-        "server_name": "DEPLOYMENT_DOMAIN"
+        "enabled": true
       },
       "udp_over_tcp": {
         "enabled": true,
         "version": 2
+      },
+      "domain_resolver": {
+        "server": "entry-bootstrap",
+        "strategy": "ipv4_only"
       }
     },
     {

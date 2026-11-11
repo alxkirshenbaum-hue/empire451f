@@ -31,7 +31,14 @@ class DeliveryTests(unittest.TestCase):
         text = (Path(__file__).resolve().parents[1]/'templates/sfa-profile.json').read_text()
         result = delivery.profile(text,config(),'synthetic-password')
         proxy = result['outbounds'][0]
-        self.assertEqual((proxy['server'],proxy['tls']['server_name']),(config()['entry']['address'],config()['domain']))
+        self.assertEqual(proxy['server'],config()['domain'])
+        self.assertTrue(proxy['tls']['enabled'])
+        self.assertNotIn('server_name',proxy['tls'])
+        self.assertNotIn(config()['entry']['address'],json.dumps(result))
+        resolvers = {item['tag']:item for item in result['dns']['servers']}
+        self.assertNotIn('detour', resolvers[proxy['domain_resolver']['server']])
+        self.assertEqual(proxy['domain_resolver']['strategy'], 'ipv4_only')
+        self.assertEqual(resolvers[result['dns']['final']]['detour'],proxy['tag'])
         self.assertEqual((proxy['username'],proxy['password']),('master_user','synthetic-password'))
         self.assertEqual(proxy['udp_over_tcp']['version'],2)
         self.assertEqual(result['route']['rules'][1]['domain'],['panel.home.arpa'])

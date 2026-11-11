@@ -21,8 +21,7 @@ MAX_ZIP = 200 * 1024 * 1024
 def profile(template, config, password):
     result = json.loads(template)
     outbound = next(o for o in result['outbounds'] if o['type'] == 'naive')
-    outbound.update(server=config['entry']['address'], username=MASTER, password=password)
-    outbound['tls']['server_name'] = config['domain']
+    outbound.update(server=config['domain'], username=MASTER, password=password)
     # Reserve the private panel destination before Android's local/direct exceptions.
     result['route']['rules'].insert(1, {'domain': ['panel.home.arpa'], 'action': 'route', 'outbound': 'naive-out'})
     return result

@@ -2,7 +2,7 @@
 # Bash 3.2 / standard macOS tools; no local Python or downloaded module bundle.
 set +x
 set -eu
-BOOT='python3 -c exec\(__import__\(\'"'"'base64\'"'"'\).b64decode\(\'"'"'aW1wb3J0IGhhc2hsaWIsaW8sanNvbixvcyxzeXMsdHlwZXMsdXJsbGliLnJlcXVlc3QsemlwZmlsZQp0cnk6CiAgICBpZiBvcy5nZXRldWlkKCkhPTA6IHJhaXNlIFJ1bnRpbWVFcnJvcigncm9vdCByZXF1aXJlZCcpCiAgICByZWxlYXNlPWRpY3QobGluZS5zcGxpdCgnPScsMSkgZm9yIGxpbmUgaW4gb3BlbignL2V0Yy9vcy1yZWxlYXNlJykgaWYgJz0nIGluIGxpbmUpCiAgICBpZiByZWxlYXNlLmdldCgnSUQnLCcnKS5zdHJpcCgpLnN0cmlwKCciJykhPSd1YnVudHUnIG9yIHJlbGVhc2UuZ2V0KCdWRVJTSU9OX0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0nMjQuMDQnIG9yIG9zLnVuYW1lKCkubWFjaGluZSE9J3g4Nl82NCc6IHJhaXNlIFJ1bnRpbWVFcnJvcignVWJ1bnR1IDI0LjA0IGFtZDY0IHJlcXVpcmVkJykKICAgIGRhdGE9dXJsbGliLnJlcXVlc3QudXJsb3BlbignaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FseGtpcnNoZW5iYXVtLWh1ZS9lbXBpcmU0NTFmL3YwLjIuMS9kaXN0L2luc3RhbGxlci56aXAnLHRpbWVvdXQ9NjApLnJlYWQoMioxMDI0KjEwMjQpCiAgICBpZiBoYXNobGliLnNoYTI1NihkYXRhKS5oZXhkaWdlc3QoKSE9JzE2Y2IyZGE4MzU5NWI4NDg4ZWQ5MzE2ZDM4ODA2NTg0NGFjZWY1MDZjMjdhZjUyMzkxNDBiMzU5NTFjNzMxMTgnOiByYWlzZSBSdW50aW1lRXJyb3IoJ0luc3RhbGxlciBTSEEyNTYgbWlzbWF0Y2gnKQogICAgYXJjaGl2ZT16aXBmaWxlLlppcEZpbGUoaW8uQnl0ZXNJTyhkYXRhKSkKICAgIGJ1bmRsZT17bmFtZTphcmNoaXZlLnJlYWQobmFtZSkuZGVjb2RlKCd1dGYtOCcpIGZvciBuYW1lIGluIGFyY2hpdmUubmFtZWxpc3QoKX0KICAgIGZvciBuYW1lIGluICgncmVuZGVyJywncmVtb3RlJywnY2xpZW50JywnY29udHJvbGxlcicpOgogICAgICAgIG1vZHVsZT10eXBlcy5Nb2R1bGVUeXBlKG5hbWUpOyBtb2R1bGUuX19maWxlX189Jy9ydW4vZW1waXJlLXNvdXJjZS8nK25hbWUrJy5weScKICAgICAgICBzeXMubW9kdWxlc1tuYW1lXT1tb2R1bGUKICAgICAgICBpZiBuYW1lPT0nY29udHJvbGxlcic6IG1vZHVsZS5CVU5ETEU9YnVuZGxlCiAgICAgICAgZXhlYyhjb21waWxlKGJ1bmRsZVtuYW1lKycucHknXSxuYW1lKycucHknLCdleGVjJyksbW9kdWxlLl9fZGljdF9fKQogICAgc3lzLmV4aXQoc3lzLm1vZHVsZXNbJ2NvbnRyb2xsZXInXS5tYWluKHN5cy5hcmd2WzE6XSkpCmV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgIHByaW50KCdJbnN0YWxsZXIgYm9vdHN0cmFwIGZhaWxlZDogJyt0eXBlKGUpLl9fbmFtZV9fLGZpbGU9c3lzLnN0ZGVycikKICAgIHN5cy5leGl0KDEpCg==\'"'"'\)\)'
+BOOT='python3 -c exec\(__import__\(\'"'"'base64\'"'"'\).b64decode\(\'"'"'aW1wb3J0IGhhc2hsaWIsaW8sanNvbixvcyxzeXMsdHlwZXMsdXJsbGliLnJlcXVlc3QsemlwZmlsZQp0cnk6CiAgICBpZiBvcy5nZXRldWlkKCkhPTA6IHJhaXNlIFJ1bnRpbWVFcnJvcigncm9vdCByZXF1aXJlZCcpCiAgICByZWxlYXNlPWRpY3QobGluZS5zcGxpdCgnPScsMSkgZm9yIGxpbmUgaW4gb3BlbignL2V0Yy9vcy1yZWxlYXNlJykgaWYgJz0nIGluIGxpbmUpCiAgICBpZiByZWxlYXNlLmdldCgnSUQnLCcnKS5zdHJpcCgpLnN0cmlwKCciJykhPSd1YnVudHUnIG9yIHJlbGVhc2UuZ2V0KCdWRVJTSU9OX0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0nMjQuMDQnIG9yIG9zLnVuYW1lKCkubWFjaGluZSE9J3g4Nl82NCc6IHJhaXNlIFJ1bnRpbWVFcnJvcignVWJ1bnR1IDI0LjA0IGFtZDY0IHJlcXVpcmVkJykKICAgIGRhdGE9dXJsbGliLnJlcXVlc3QudXJsb3BlbignaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FseGtpcnNoZW5iYXVtLWh1ZS9lbXBpcmU0NTFmL3YwLjIuMi9kaXN0L2luc3RhbGxlci56aXAnLHRpbWVvdXQ9NjApLnJlYWQoMioxMDI0KjEwMjQpCiAgICBpZiBoYXNobGliLnNoYTI1NihkYXRhKS5oZXhkaWdlc3QoKSE9JzE0NWUyYWVjOWNmZjY2MzU5MTZjNjE3ZDNjMGEzYWI1OGRlZGYwOTVmMGFhNDFlYjBjNjFjZDI0MWM3Y2QyYWQnOiByYWlzZSBSdW50aW1lRXJyb3IoJ0luc3RhbGxlciBTSEEyNTYgbWlzbWF0Y2gnKQogICAgYXJjaGl2ZT16aXBmaWxlLlppcEZpbGUoaW8uQnl0ZXNJTyhkYXRhKSkKICAgIGJ1bmRsZT17bmFtZTphcmNoaXZlLnJlYWQobmFtZSkuZGVjb2RlKCd1dGYtOCcpIGZvciBuYW1lIGluIGFyY2hpdmUubmFtZWxpc3QoKX0KICAgIGZvciBuYW1lIGluICgncmVuZGVyJywncmVtb3RlJywnY2xpZW50JywnY29udHJvbGxlcicpOgogICAgICAgIG1vZHVsZT10eXBlcy5Nb2R1bGVUeXBlKG5hbWUpOyBtb2R1bGUuX19maWxlX189Jy9ydW4vZW1waXJlLXNvdXJjZS8nK25hbWUrJy5weScKICAgICAgICBzeXMubW9kdWxlc1tuYW1lXT1tb2R1bGUKICAgICAgICBpZiBuYW1lPT0nY29udHJvbGxlcic6IG1vZHVsZS5CVU5ETEU9YnVuZGxlCiAgICAgICAgZXhlYyhjb21waWxlKGJ1bmRsZVtuYW1lKycucHknXSxuYW1lKycucHknLCdleGVjJyksbW9kdWxlLl9fZGljdF9fKQogICAgc3lzLmV4aXQoc3lzLm1vZHVsZXNbJ2NvbnRyb2xsZXInXS5tYWluKHN5cy5hcmd2WzE6XSkpCmV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgIHByaW50KCdJbnN0YWxsZXIgYm9vdHN0cmFwIGZhaWxlZDogJyt0eXBlKGUpLl9fbmFtZV9fLGZpbGU9c3lzLnN0ZGVycikKICAgIHN5cy5leGl0KDEpCg==\'"'"'\)\)'
 ask() {
  printf '[%s] %s [%s]: ' "$1" "$2" "${3:-}" >&2
  IFS= read -r answer || exit 130
@@ -74,6 +74,16 @@ write_node() {
  local name="$1" prefix="$2" key="$3" h="${2}_hostname" u="${2}_user" p="${2}_port" a="${2}_hostkeyalias"
  case "${!h}" in ''|*[!A-Za-z0-9_.:-]*) die 'Invalid resolved hostname';; esac
  printf 'Host %s\n HostName %s\n User %s\n Port %s\n IdentityFile "%s"\n' "$name" "${!h}" "${!u}" "${!p}" "$key"
+ local target='' configured="${2}_identityfile" extra
+ case "$name" in entry) target="$ENTRY";; exit) target="$EXIT_NODE";; esac
+ case "$target" in ''|*@*|*:*|"${!h}") ;; *)
+  extra="${!configured}"
+  case "$extra" in '~/'*) extra="$HOME/${extra#\~/}";; esac
+  if [ -f "$extra" ] && [ "$extra" != "$key" ]; then
+   case "$extra" in *'"'*|*'\'*|*$'\n'*|*$'\r'*) die 'Unsupported alias SSH key path';; esac
+   printf ' IdentityFile "%s"\n' "$extra"
+  fi;;
+ esac
  if [ -n "${!a}" ] && [ "${!a}" != none ]; then printf ' HostKeyAlias %s\n' "${!a}"; fi
 }
 write_config() {
@@ -106,7 +116,12 @@ authenticate() {
  fi
  if [ "$status" = authentication ]; then
   choice=$(ask Q17 "$role: password / console / retry" retry)
-  if [ "$choice" = retry ]; then ssh-add "$IDENTITY" >&2
+  if [ "$choice" = retry ]; then
+   local retry_key="$IDENTITY" candidate='' target=''
+   case "$role" in entry) candidate="$E_identityfile"; target="$ENTRY";; exit) candidate="$X_identityfile"; target="$EXIT_NODE";; esac
+   case "$candidate" in '~/'*) candidate="$HOME/${candidate#\~/}";; esac
+   case "$target" in *@*|*:*) ;; *) [ ! -f "$candidate" ] || retry_key="$candidate";; esac
+   ssh-add "$retry_key" >&2
   elif [ "$choice" = password ] || [ "$choice" = console ]; then
    public=$(ssh-keygen -y -f "$IDENTITY" | awk '{print $1" "$2}')
    case "$public" in *[!A-Za-z0-9+/=._\ -]*) die 'Invalid public key';; esac

@@ -74,6 +74,16 @@ write_node() {
  local name="$1" prefix="$2" key="$3" h="${2}_hostname" u="${2}_user" p="${2}_port" a="${2}_hostkeyalias"
  case "${!h}" in ''|*[!A-Za-z0-9_.:-]*) die 'Invalid resolved hostname';; esac
  printf 'Host %s\n HostName %s\n User %s\n Port %s\n IdentityFile "%s"\n' "$name" "${!h}" "${!u}" "${!p}" "$key"
+ local target='' configured="${2}_identityfile" extra
+ case "$name" in entry) target="$ENTRY";; exit) target="$EXIT_NODE";; esac
+ case "$target" in ''|*@*|*:*|"${!h}") ;; *)
+  extra="${!configured}"
+  case "$extra" in '~/'*) extra="$HOME/${extra#\~/}";; esac
+  if [ -f "$extra" ] && [ "$extra" != "$key" ]; then
+   case "$extra" in *'"'*|*'\'*|*$'\n'*|*$'\r'*) die 'Unsupported alias SSH key path';; esac
+   printf ' IdentityFile "%s"\n' "$extra"
+  fi;;
+ esac
  if [ -n "${!a}" ] && [ "${!a}" != none ]; then printf ' HostKeyAlias %s\n' "${!a}"; fi
 }
 write_config() {
@@ -106,7 +116,12 @@ authenticate() {
  fi
  if [ "$status" = authentication ]; then
   choice=$(ask Q17 "$role: password / console / retry" retry)
-  if [ "$choice" = retry ]; then ssh-add "$IDENTITY" >&2
+  if [ "$choice" = retry ]; then
+   local retry_key="$IDENTITY" candidate='' target=''
+   case "$role" in entry) candidate="$E_identityfile"; target="$ENTRY";; exit) candidate="$X_identityfile"; target="$EXIT_NODE";; esac
+   case "$candidate" in '~/'*) candidate="$HOME/${candidate#\~/}";; esac
+   case "$target" in *@*|*:*) ;; *) [ ! -f "$candidate" ] || retry_key="$candidate";; esac
+   ssh-add "$retry_key" >&2
   elif [ "$choice" = password ] || [ "$choice" = console ]; then
    public=$(ssh-keygen -y -f "$IDENTITY" | awk '{print $1" "$2}')
    case "$public" in *[!A-Za-z0-9+/=._\ -]*) die 'Invalid public key';; esac

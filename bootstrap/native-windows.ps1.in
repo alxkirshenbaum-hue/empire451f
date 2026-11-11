@@ -14,6 +14,11 @@ function Resolve-Target([string]$Target){
  $result=@{}
  foreach($line in $lines){$parts=$line -split ' ',2;if($parts.Count -eq 2 -and !$result.ContainsKey($parts[0])){$result[$parts[0]]=$parts[1]}}
  if($result['hostname'] -notmatch '^[A-Za-z0-9_.:-]+$'){throw 'Invalid resolved hostname'}
+ if($Target -notmatch '@|:' -and $Target -ne $result['hostname'] -and $result['identityfile']){
+  $aliasKey=$result['identityfile']
+  if($aliasKey.StartsWith('~/')){$aliasKey=Join-Path $HOME $aliasKey.Substring(2)}
+  if(Test-Path -LiteralPath $aliasKey -PathType Leaf){$result['aliasKey']=(Resolve-Path -LiteralPath $aliasKey).ProviderPath}
+ }
  return $result
 }
 function Write-Config{
@@ -23,6 +28,11 @@ function Write-Config{
   if($node.ContainsKey('key')){$key=$node['key']}
   if($key.Contains('"') -or $key.Contains("`n")){throw 'Unsupported SSH key path'}
   $lines+=@("Host $role",(" HostName "+$node['hostname']),(" User "+$node['user']),(" Port "+$node['port']),(' IdentityFile "'+$key.Replace('\','/')+'"'))
+  if($node['aliasKey'] -and $node['aliasKey'] -ne $key){
+   $aliasKey=$node['aliasKey']
+   if($aliasKey -match '["\r\n]'){throw 'Unsupported alias SSH key path'}
+   $lines+=' IdentityFile "'+$aliasKey.Replace('\','/')+'"'
+  }
   if($node['hostkeyalias'] -and $node['hostkeyalias'] -ne 'none'){$lines+=' HostKeyAlias '+$node['hostkeyalias']}
   if($Jumps.ContainsKey($role)){$lines+=' ProxyJump '+$Jumps[$role]}
  }
@@ -58,7 +68,7 @@ function Authenticate([string]$Role){
  }
  if($status -eq 'authentication'){
   $choice=Ask Q17 ($Role+': password / console / retry') 'retry'
-  if($choice -eq 'retry'){& ssh-add $Identity}
+  if($choice -eq 'retry'){if($Nodes[$Role]['aliasKey']){& ssh-add $Nodes[$Role]['aliasKey']}else{& ssh-add $Identity}}
   elseif($choice -eq 'password' -or $choice -eq 'console'){
    $public=Public-Key
    if($public -notmatch '^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp\d+) [A-Za-z0-9+/=]+'){throw 'Invalid public key'}

@@ -130,9 +130,13 @@ class Stub {
   string trace=Environment.GetEnvironmentVariable("EVPN_TEST_TRACE");
   if(args.Contains("-G")) {
    Console.WriteLine("hostname "+(last.Contains("198.51")?"198.51.100.10":"203.0.113.20"));
+   if(last=="existing-exit") Console.WriteLine("identityfile "+Environment.GetEnvironmentVariable("EVPN_TEST_KEY")+".exit");
    Console.WriteLine("user root\nport 22\nproxyjump none"); return 0;
   }
-  if(last=="true") { File.AppendAllText(trace,"ssh-check\n"); return 0; }
+  if(last=="true") {
+   if(args.Contains("exit") && !File.ReadAllText(args[Array.IndexOf(args,"-F")+1]).Split(new[]{"Host exit\n"},StringSplitOptions.None)[1].Split(new[]{"\nHost "},StringSplitOptions.None)[0].Contains(".exit\"")) return 6;
+   File.AppendAllText(trace,"ssh-check\n"); return 0;
+  }
   if(all.Contains("MISSING_PYTHON")) { Console.WriteLine("READY"); return 0; }
   if(all.Contains(" rpc ")) {
    if(!last.Contains("exec\\(") || !last.Contains("\\'base64\\'")) return 10;
@@ -153,6 +157,7 @@ class Stub {
             shutil.copy2(root / 'ssh.exe', root / 'ssh-keygen.exe')
             key = root / 'existing key'
             key.write_text('non-secret process-stub fixture')
+            Path(str(key)+'.exit').touch()
             launcher = root / 'launcher.ps1'
             # Exercise the real encoded remote command through Windows argv parsing.
             launcher.write_text((ROOT / 'bootstrap/windows.ps1').read_text())
@@ -161,7 +166,7 @@ class Stub {
 $ErrorActionPreference='Stop'
 $global:EVPNTestAnswers=New-Object 'System.Collections.Generic.Queue[string]'
 $global:EVPNTestAnswers.Enqueue('root@198.51.100.10')
-$global:EVPNTestAnswers.Enqueue('root@203.0.113.20')
+$global:EVPNTestAnswers.Enqueue('existing-exit')
 $global:EVPNTestAnswers.Enqueue($env:EVPN_TEST_KEY + '.pub')
 $global:EVPNTestAnswers.Enqueue($env:EVPN_TEST_KEY + '.missing')
 $global:EVPNTestAnswers.Enqueue($env:EVPN_TEST_KEY)

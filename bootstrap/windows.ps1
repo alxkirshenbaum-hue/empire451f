@@ -1,7 +1,7 @@
 # Native Windows launcher: no local Python, module bundle, or server templates.
 $ErrorActionPreference='Stop'
 [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
-$Boot='python3 -c exec\(__import__\(\''base64\''\).b64decode\(\''aW1wb3J0IGhhc2hsaWIsaW8sanNvbixvcyxzeXMsdHlwZXMsdXJsbGliLnJlcXVlc3QsemlwZmlsZQp0cnk6CiAgICBpZiBvcy5nZXRldWlkKCkhPTA6IHJhaXNlIFJ1bnRpbWVFcnJvcigncm9vdCByZXF1aXJlZCcpCiAgICByZWxlYXNlPWRpY3QobGluZS5zcGxpdCgnPScsMSkgZm9yIGxpbmUgaW4gb3BlbignL2V0Yy9vcy1yZWxlYXNlJykgaWYgJz0nIGluIGxpbmUpCiAgICBpZiByZWxlYXNlLmdldCgnSUQnLCcnKS5zdHJpcCgpLnN0cmlwKCciJykhPSd1YnVudHUnIG9yIHJlbGVhc2UuZ2V0KCdWRVJTSU9OX0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0nMjQuMDQnIG9yIG9zLnVuYW1lKCkubWFjaGluZSE9J3g4Nl82NCc6IHJhaXNlIFJ1bnRpbWVFcnJvcignVWJ1bnR1IDI0LjA0IGFtZDY0IHJlcXVpcmVkJykKICAgIGRhdGE9dXJsbGliLnJlcXVlc3QudXJsb3BlbignaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FseGtpcnNoZW5iYXVtLWh1ZS9lbXBpcmU0NTFmL3YwLjIuMS9kaXN0L2luc3RhbGxlci56aXAnLHRpbWVvdXQ9NjApLnJlYWQoMioxMDI0KjEwMjQpCiAgICBpZiBoYXNobGliLnNoYTI1NihkYXRhKS5oZXhkaWdlc3QoKSE9JzE2Y2IyZGE4MzU5NWI4NDg4ZWQ5MzE2ZDM4ODA2NTg0NGFjZWY1MDZjMjdhZjUyMzkxNDBiMzU5NTFjNzMxMTgnOiByYWlzZSBSdW50aW1lRXJyb3IoJ0luc3RhbGxlciBTSEEyNTYgbWlzbWF0Y2gnKQogICAgYXJjaGl2ZT16aXBmaWxlLlppcEZpbGUoaW8uQnl0ZXNJTyhkYXRhKSkKICAgIGJ1bmRsZT17bmFtZTphcmNoaXZlLnJlYWQobmFtZSkuZGVjb2RlKCd1dGYtOCcpIGZvciBuYW1lIGluIGFyY2hpdmUubmFtZWxpc3QoKX0KICAgIGZvciBuYW1lIGluICgncmVuZGVyJywncmVtb3RlJywnY2xpZW50JywnY29udHJvbGxlcicpOgogICAgICAgIG1vZHVsZT10eXBlcy5Nb2R1bGVUeXBlKG5hbWUpOyBtb2R1bGUuX19maWxlX189Jy9ydW4vZW1waXJlLXNvdXJjZS8nK25hbWUrJy5weScKICAgICAgICBzeXMubW9kdWxlc1tuYW1lXT1tb2R1bGUKICAgICAgICBpZiBuYW1lPT0nY29udHJvbGxlcic6IG1vZHVsZS5CVU5ETEU9YnVuZGxlCiAgICAgICAgZXhlYyhjb21waWxlKGJ1bmRsZVtuYW1lKycucHknXSxuYW1lKycucHknLCdleGVjJyksbW9kdWxlLl9fZGljdF9fKQogICAgc3lzLmV4aXQoc3lzLm1vZHVsZXNbJ2NvbnRyb2xsZXInXS5tYWluKHN5cy5hcmd2WzE6XSkpCmV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgIHByaW50KCdJbnN0YWxsZXIgYm9vdHN0cmFwIGZhaWxlZDogJyt0eXBlKGUpLl9fbmFtZV9fLGZpbGU9c3lzLnN0ZGVycikKICAgIHN5cy5leGl0KDEpCg==\''\)\)'
+$Boot='python3 -c exec\(__import__\(\''base64\''\).b64decode\(\''aW1wb3J0IGhhc2hsaWIsaW8sanNvbixvcyxzeXMsdHlwZXMsdXJsbGliLnJlcXVlc3QsemlwZmlsZQp0cnk6CiAgICBpZiBvcy5nZXRldWlkKCkhPTA6IHJhaXNlIFJ1bnRpbWVFcnJvcigncm9vdCByZXF1aXJlZCcpCiAgICByZWxlYXNlPWRpY3QobGluZS5zcGxpdCgnPScsMSkgZm9yIGxpbmUgaW4gb3BlbignL2V0Yy9vcy1yZWxlYXNlJykgaWYgJz0nIGluIGxpbmUpCiAgICBpZiByZWxlYXNlLmdldCgnSUQnLCcnKS5zdHJpcCgpLnN0cmlwKCciJykhPSd1YnVudHUnIG9yIHJlbGVhc2UuZ2V0KCdWRVJTSU9OX0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0nMjQuMDQnIG9yIG9zLnVuYW1lKCkubWFjaGluZSE9J3g4Nl82NCc6IHJhaXNlIFJ1bnRpbWVFcnJvcignVWJ1bnR1IDI0LjA0IGFtZDY0IHJlcXVpcmVkJykKICAgIGRhdGE9dXJsbGliLnJlcXVlc3QudXJsb3BlbignaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FseGtpcnNoZW5iYXVtLWh1ZS9lbXBpcmU0NTFmL3YwLjIuMi9kaXN0L2luc3RhbGxlci56aXAnLHRpbWVvdXQ9NjApLnJlYWQoMioxMDI0KjEwMjQpCiAgICBpZiBoYXNobGliLnNoYTI1NihkYXRhKS5oZXhkaWdlc3QoKSE9JzE0NWUyYWVjOWNmZjY2MzU5MTZjNjE3ZDNjMGEzYWI1OGRlZGYwOTVmMGFhNDFlYjBjNjFjZDI0MWM3Y2QyYWQnOiByYWlzZSBSdW50aW1lRXJyb3IoJ0luc3RhbGxlciBTSEEyNTYgbWlzbWF0Y2gnKQogICAgYXJjaGl2ZT16aXBmaWxlLlppcEZpbGUoaW8uQnl0ZXNJTyhkYXRhKSkKICAgIGJ1bmRsZT17bmFtZTphcmNoaXZlLnJlYWQobmFtZSkuZGVjb2RlKCd1dGYtOCcpIGZvciBuYW1lIGluIGFyY2hpdmUubmFtZWxpc3QoKX0KICAgIGZvciBuYW1lIGluICgncmVuZGVyJywncmVtb3RlJywnY2xpZW50JywnY29udHJvbGxlcicpOgogICAgICAgIG1vZHVsZT10eXBlcy5Nb2R1bGVUeXBlKG5hbWUpOyBtb2R1bGUuX19maWxlX189Jy9ydW4vZW1waXJlLXNvdXJjZS8nK25hbWUrJy5weScKICAgICAgICBzeXMubW9kdWxlc1tuYW1lXT1tb2R1bGUKICAgICAgICBpZiBuYW1lPT0nY29udHJvbGxlcic6IG1vZHVsZS5CVU5ETEU9YnVuZGxlCiAgICAgICAgZXhlYyhjb21waWxlKGJ1bmRsZVtuYW1lKycucHknXSxuYW1lKycucHknLCdleGVjJyksbW9kdWxlLl9fZGljdF9fKQogICAgc3lzLmV4aXQoc3lzLm1vZHVsZXNbJ2NvbnRyb2xsZXInXS5tYWluKHN5cy5hcmd2WzE6XSkpCmV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgIHByaW50KCdJbnN0YWxsZXIgYm9vdHN0cmFwIGZhaWxlZDogJyt0eXBlKGUpLl9fbmFtZV9fLGZpbGU9c3lzLnN0ZGVycikKICAgIHN5cy5leGl0KDEpCg==\''\)\)'
 function Ask([string]$Id,[string]$Text,[string]$Default=''){
  $answer=Read-Host ('['+$Id+'] '+$Text+$(if($Default){' ['+$Default+']'}else{''}))
  if(!$answer){return $Default};return $answer
@@ -14,6 +14,11 @@ function Resolve-Target([string]$Target){
  $result=@{}
  foreach($line in $lines){$parts=$line -split ' ',2;if($parts.Count -eq 2 -and !$result.ContainsKey($parts[0])){$result[$parts[0]]=$parts[1]}}
  if($result['hostname'] -notmatch '^[A-Za-z0-9_.:-]+$'){throw 'Invalid resolved hostname'}
+ if($Target -notmatch '@|:' -and $Target -ne $result['hostname'] -and $result['identityfile']){
+  $aliasKey=$result['identityfile']
+  if($aliasKey.StartsWith('~/')){$aliasKey=Join-Path $HOME $aliasKey.Substring(2)}
+  if(Test-Path -LiteralPath $aliasKey -PathType Leaf){$result['aliasKey']=(Resolve-Path -LiteralPath $aliasKey).ProviderPath}
+ }
  return $result
 }
 function Write-Config{
@@ -23,6 +28,11 @@ function Write-Config{
   if($node.ContainsKey('key')){$key=$node['key']}
   if($key.Contains('"') -or $key.Contains("`n")){throw 'Unsupported SSH key path'}
   $lines+=@("Host $role",(" HostName "+$node['hostname']),(" User "+$node['user']),(" Port "+$node['port']),(' IdentityFile "'+$key.Replace('\','/')+'"'))
+  if($node['aliasKey'] -and $node['aliasKey'] -ne $key){
+   $aliasKey=$node['aliasKey']
+   if($aliasKey -match '["\r\n]'){throw 'Unsupported alias SSH key path'}
+   $lines+=' IdentityFile "'+$aliasKey.Replace('\','/')+'"'
+  }
   if($node['hostkeyalias'] -and $node['hostkeyalias'] -ne 'none'){$lines+=' HostKeyAlias '+$node['hostkeyalias']}
   if($Jumps.ContainsKey($role)){$lines+=' ProxyJump '+$Jumps[$role]}
  }
@@ -58,7 +68,7 @@ function Authenticate([string]$Role){
  }
  if($status -eq 'authentication'){
   $choice=Ask Q17 ($Role+': password / console / retry') 'retry'
-  if($choice -eq 'retry'){& ssh-add $Identity}
+  if($choice -eq 'retry'){if($Nodes[$Role]['aliasKey']){& ssh-add $Nodes[$Role]['aliasKey']}else{& ssh-add $Identity}}
   elseif($choice -eq 'password' -or $choice -eq 'console'){
    $public=Public-Key
    if($public -notmatch '^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp\d+) [A-Za-z0-9+/=]+'){throw 'Invalid public key'}

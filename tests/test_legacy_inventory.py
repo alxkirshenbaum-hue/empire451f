@@ -2,52 +2,16 @@
 import hashlib
 import json
 import secrets
+import subprocess
 import sys
+import tempfile
 import unittest
-from collections import Counter
 from pathlib import Path
 
 INSTALLER = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(INSTALLER))
-from render import credentials, file
-
-
-def auth_lines(data):
-    # Managed v0.3.6 format: the installer serializes each token as a JSON string.
-    decoder = json.JSONDecoder()
-    for line in data.decode().splitlines():
-        if not line.strip():
-            continue
-        directive, sep, tokens = line.strip().partition(' ')
-        if directive != 'basic_auth' or not sep:
-            raise ValueError('Unknown authentication directive')
-        name, end = decoder.raw_decode(tokens.lstrip())
-        tail = tokens.lstrip()[end:]
-        if not tail.startswith((' ', '\t')):
-            raise ValueError('Missing token separator')
-        password = json.loads(tail)
-        if not isinstance(name, str) or not isinstance(password, str):
-            raise ValueError('Invalid credential fields')
-        yield name, password
-
-
-def inspect(auth, export, digest, profiles):
-    rows = list(auth_lines(auth))
-    checked = credentials(export)['clients']
-    active = dict(rows)
-    saved = {u['username']: u['password'] for u in checked}
-    names = set(active) | set(saved)
-    collisions = Counter(name.lower() for name in names)
-    return {
-        'manifest_matches': hashlib.sha256(auth).hexdigest() == digest,
-        'duplicate_auth_names': len(rows) - len(active),
-        'case_collision_groups': sum(count > 1 for count in collisions.values()),
-        'caddy_only': len(active.keys() - saved.keys()),
-        'export_only': len(saved.keys() - active.keys()),
-        'password_conflicts': sum(active[n] != saved[n] for n in active.keys() & saved.keys()),
-        'master_in_both': 'master_user' in active and 'master_user' in saved,
-        'unmatched_profiles': sum(n not in active or active[n] != p for n, p in profiles),
-    }
+from render import file
+from inspect_legacy import inspect, inspect_snapshot
 
 
 class MigrationFixtures(unittest.TestCase):
@@ -80,6 +44,48 @@ class MigrationFixtures(unittest.TestCase):
     def test_unrecognized_auth_stops_inspection(self):
         with self.assertRaises(ValueError):
             inspect(b'import other-file', self.export, self.digest, [])
+
+    def test_snapshot_command(self):
+        with tempfile.TemporaryDirectory() as work:
+            root = Path(work)
+            def write(name, obj):
+                (root / name).write_text(json.dumps(obj), encoding='utf-8')
+
+            def run(code):
+                result = subprocess.run([sys.executable, '-B', str(INSTALLER / 'inspect_legacy.py'),
+                                         str(root)], capture_output=True, text=True)
+                self.assertEqual(result.returncode, code, result.stderr)
+                for user in self.users:
+                    self.assertNotIn(user['password'], result.stdout + result.stderr)
+                return json.loads(result.stdout) if code != 2 else result.stdout
+
+            (root / 'auth.caddy').write_bytes(self.auth)
+            write('manifest.json', {'files': {'/etc/empire-vpn/nh1/auth.caddy': self.digest},
+                                    'config': {'id': 'nh1', 'domain': 'vpn.invalid'}})
+            write('clients.json', self.export)
+            profile = {'outbounds': [dict(type='naive', server='vpn.invalid', **self.users[0])]}
+            write('master_user.sfa.json', profile)
+            before = {p: p.read_bytes() for p in root.iterdir()}
+            first = run(1)
+            self.assertEqual(first['case_collision_groups'], 1)
+            self.assertEqual(first, inspect_snapshot(root))
+            self.assertEqual(before, {p: p.read_bytes() for p in root.iterdir()})
+
+            self.users.pop()
+            clean = ('\n'.join(self.lines[:2]) + '\n').encode()
+            (root / 'auth.caddy').write_bytes(clean)
+            write('manifest.json', {'files': {'/etc/empire-vpn/nh1/auth.caddy': hashlib.sha256(clean).hexdigest()},
+                                    'config': {'id': 'nh1', 'domain': 'vpn.invalid'}})
+            write('clients.json', self.export)
+            second = run(0)
+            self.assertNotEqual(first['snapshot_sha256'], second['snapshot_sha256'])
+            write('vpn-Case.json', profile)
+            self.assertEqual(run(1)['profile_binding_conflicts'], 1)
+            write('pending.json', {})
+            self.assertEqual(run(2), '')
+            (root / 'pending.json').unlink()
+            (root / 'clients.json').write_text('{"clients":[],"clients":[]}', encoding='utf-8')
+            self.assertEqual(run(2), '')
 
 
 if __name__ == '__main__':

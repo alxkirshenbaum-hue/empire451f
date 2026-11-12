@@ -1,0 +1,103 @@
+#!/usr/bin/python3
+"""Issue one profile for a managed entry."""
+import fcntl
+import grp
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import secrets
+import subprocess
+import tempfile
+
+STATE = Path('@STATE@')
+AUTH = Path('@BASE@/auth.caddy')
+UNIT = '@PREFIX@-caddy.service'
+
+
+def write(path, data):
+    with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as temp:
+        stage = Path(temp.name)
+        try:
+            temp.write(data)
+            temp.flush()
+            if path == AUTH:
+                os.fchown(temp.fileno(), 0, grp.getgrnam('evpn').gr_gid)
+                os.fchmod(temp.fileno(), 0o640)
+            os.fsync(temp.fileno())
+            os.replace(stage, path)
+        finally:
+            stage.unlink(missing_ok=True)
+
+
+def restart():
+    subprocess.run(['systemctl', 'restart', UNIT], check=True)
+
+
+def issue(name):
+    manifest = STATE / 'manifest.json'
+    export = STATE / 'clients.json'
+    journal = STATE / 'user-rollback.json'
+    if (STATE / 'pending.json').exists():
+        raise SystemExit('Finish the installer transaction first.')
+
+    def recover():
+        saved = json.loads(journal.read_bytes())
+        for path in (AUTH, export, manifest):
+            write(path, saved[str(path)].encode())
+        restart()
+        (STATE / saved['profile']).unlink(missing_ok=True)
+        journal.unlink()
+
+    if journal.exists():
+        print('Recovering the interrupted user update.')
+        recover()
+    meta = json.loads(manifest.read_bytes())
+    users = json.loads(export.read_bytes())
+    original = AUTH.read_bytes()
+    if meta['files'].get(str(AUTH)) != hashlib.sha256(original).hexdigest():
+        raise SystemExit('Authentication file differs from the installer manifest.')
+    rows = users['clients']
+    if any(row['username'] == name for row in rows) or len(rows) >= 101:
+        raise SystemExit('Username already exists or the client limit was reached.')
+    target = STATE / ('vpn-' + name + '.json')
+    if target.exists():
+        raise SystemExit('Profile file already exists.')
+    profile = json.loads((STATE / 'master_user.sfa.json').read_bytes())
+    outbound, = [o for o in profile['outbounds'] if o['type'] == 'naive']
+    password = secrets.token_urlsafe(32)
+    outbound.update(username=name, password=password, server=meta['config']['domain'])
+    if input('Restart entry Caddy briefly to activate this user? [y/N] ').lower() != 'y':
+        return
+    backup = {str(p): p.read_text() for p in (AUTH, export, manifest)}
+    write(journal, json.dumps(dict(backup, profile=target.name)).encode())
+    try:
+        rows.append(dict(username=name, password=password))
+        data = original.rstrip(b'\n') + f'\nbasic_auth "{name}" "{password}"\n'.encode()
+        write(AUTH, data)
+        subprocess.run(['/opt/empire-vpn/bin/caddy', 'adapt', '--config',
+                        str(AUTH.with_name('Caddyfile')), '--adapter', 'caddyfile'],
+                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        restart()
+        write(export, json.dumps(users).encode())
+        meta['files'][str(AUTH)] = hashlib.sha256(data).hexdigest()
+        write(manifest, json.dumps(meta).encode())
+        write(target, json.dumps(profile, indent=2).encode())
+        journal.unlink()
+    except BaseException:
+        recover()
+        raise
+    print('Download from a local terminal (in your preferred download directory):')
+    print(f"scp {meta['config']['entry']['ssh']}:{target} .")
+
+
+if __name__ == '__main__':
+    name = input('New VPN username: ').strip()
+    if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,47}', name):
+        raise SystemExit('Use 1-48 ASCII letters, digits, underscores or hyphens.')
+    if os.geteuid():
+        raise SystemExit('Run as root on the entry.')
+    with open('/run/lock/empire-vpn.lock', 'a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        issue(name)

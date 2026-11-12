@@ -136,6 +136,8 @@ def render(c, role, facts, public_keys, clients, templates):
     out['/etc/systemd/system/' + n['prefix'] + '-network.service'] = file(tpl('network.service'))
     if role == 'entry':
         credentials(clients)
+        command = templates['vpn-add-user'].replace('@STATE@', n['state']).replace('@BASE@', base).replace('@PREFIX@', n['prefix'])
+        out['/usr/local/bin/vpn-add-user'] = file(command, 0o700)
         out[base + '/namespace.nft'] = file(tpl('namespace.nft'))
         out['/etc/netns/naive/resolv.conf'] = file('nameserver ' + c['dns'] + '\noptions timeout:2 attempts:2')
         out[base + '/auth.caddy'] = file('\n'.join('basic_auth ' + json.dumps(x['username']) + ' ' + json.dumps(x['password']) for x in clients['clients']), 0o640, 'evpn')

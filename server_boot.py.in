@@ -6,7 +6,7 @@ try:
     def expired(*args): raise TimeoutError("Bundle download timed out")
     signal.signal(signal.SIGALRM,expired)
     signal.alarm(65)
-    data=urllib.request.urlopen('https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.3.5/dist/installer.zip',timeout=60).read(2*1024*1024)
+    data=urllib.request.urlopen('https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.3.6/dist/installer.zip',timeout=60).read(2*1024*1024)
     signal.alarm(0)
     if hashlib.sha256(data).hexdigest()!='__BUNDLE_SHA256__': raise RuntimeError('Installer SHA256 mismatch')
     archive=zipfile.ZipFile(io.BytesIO(data))

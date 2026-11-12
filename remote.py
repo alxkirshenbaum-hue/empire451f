@@ -137,6 +137,7 @@ def probe(c, role):
             a = json.loads(text(['ip', '-n', 'naive', '-j', '-4', 'addr', 'show', 'dev', 'wg0']))
             f['tunnel'] = str(ipaddress.ip_interface(a[0]['addr_info'][0]['local'] + '/' + str(a[0]['addr_info'][0]['prefixlen'])).network)
             require(f['tunnel'] == c['tunnel'], 'Set tunnel to preserved entry subnet: ' + f['tunnel'])
+    require(not Path(n['state'], 'user-rollback.json').exists(), 'Run vpn-add-user to recover the interrupted user update first')
     manifest = readjson(n['state'] + '/manifest.json', {})
     if manifest:
         require(manifest.get('role') == role, 'Installed role differs from request')
@@ -333,8 +334,10 @@ def desired(c, role, f, keys, clients, templates):
     return out
 
 
-def plan(c, role, f, keys, clients, templates):
+def plan(c, role, f, keys, clients, templates, security_only=False):
     out = desired(c, role, f, keys, clients, templates)
+    if security_only and '/usr/local/bin/vpn-add-user' not in f['owned']:
+        out.pop('/usr/local/bin/vpn-add-user', None)
     existing = {p: digest(p) for p in out}
     owned = dict(f['owned'])
     if f['legacy']:
@@ -434,8 +437,8 @@ def apply(c, role, request):
     require(f['default_route'] == request['facts']['default_route'], 'Default route changed since preview')
     require(f.get('legacy_hashes') == request['facts'].get('legacy_hashes'), 'Legacy configuration changed since preview')
     c = dict(c, security=f.get('saved_security', {}) | c.get('security', {}))
-    out, changes = plan(c, role, f, request['keys'], request.get('clients'), request['templates'])
     security_only = request.get('action') == 'secure-apply'
+    out, changes = plan(c, role, f, request['keys'], request.get('clients'), request['templates'], security_only)
     ssh_file = '/etc/ssh/sshd_config.d/00-evpn-' + c['id'] + '.conf'
     changed = {item['path'] for item in changes if item['action'] != 'unchanged'}
     if security_only:

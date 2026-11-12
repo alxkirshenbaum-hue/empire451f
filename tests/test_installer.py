@@ -34,7 +34,12 @@ def files(role='entry'):
 class RenderingTests(unittest.TestCase):
     def test_both_roles_and_dynamic_addresses(self):
         entry, exitfiles = files(), files('exit')
-        self.assertEqual(len(entry), 17)
+        self.assertEqual(len(entry), 18)
+        command = '/usr/local/bin/vpn-add-user'
+        self.assertNotIn(command, exitfiles)
+        self.assertEqual(entry[command]['mode'], 0o700)
+        self.assertIn('/etc/empire-vpn/labtest/auth.caddy', entry[command]['content'])
+        compile(entry[command]['content'], command, 'exec')
         self.assertEqual(len(exitfiles), 5)
         e = '\n'.join(v['content'] for v in entry.values())
         x = '\n'.join(v['content'] for v in exitfiles.values())

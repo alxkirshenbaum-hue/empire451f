@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -43,6 +44,45 @@ func TestOwnerSession(t *testing.T) {
 	}
 	defer reader.Close()
 	h := s.Handler(reader.Handler())
+	t.Run("browser form", func(t *testing.T) {
+		callForm := func(path string, values url.Values, c *http.Cookie, origin string, want int) *httptest.ResponseRecorder {
+			t.Helper()
+			method := "POST"
+			if values == nil {
+				method = "GET"
+			}
+			req := httptest.NewRequest(method, path, strings.NewReader(values.Encode()))
+			req.Header.Set("Origin", origin)
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			if c != nil {
+				req.AddCookie(c)
+			}
+			w := httptest.NewRecorder()
+			h.ServeHTTP(w, req)
+			if w.Code != want {
+				t.Fatalf("%s got %d, want %d", path, w.Code, want)
+			}
+			return w
+		}
+		initial := callForm("/", nil, nil, "", 200)
+		if !strings.Contains(initial.Body.String(), `action="/login" method="post"`) {
+			t.Fatal("missing login form")
+		}
+		fields := url.Values{"username": {"owner"}, "password": {"synthetic password"}}
+		callForm("/login", fields, nil, "https://outside.invalid", 403)
+		login := callForm("/login", fields, nil, Origin, 303)
+		c := login.Result().Cookies()[0]
+		home := callForm("/", nil, c, "", 200)
+		if !strings.Contains(home.Body.String(), CSRF(c.Value)) || strings.Contains(home.Body.String(), c.Value) {
+			t.Fatal("invalid signed-in page")
+		}
+		callForm("/logout", url.Values{}, c, Origin, 403)
+		callForm("/logout", url.Values{"csrf": {CSRF(c.Value)}}, c, Origin, 303)
+		old := callForm("/", nil, c, "", 200)
+		if !strings.Contains(old.Body.String(), "Owner sign in") {
+			t.Fatal("revoked browser session")
+		}
+	})
 	call := func(method, path, origin, password string, c *http.Cookie, csrf string, want int) *httptest.ResponseRecorder {
 		t.Helper()
 		b, _ := json.Marshal(map[string]string{"username": "owner", "password": password})

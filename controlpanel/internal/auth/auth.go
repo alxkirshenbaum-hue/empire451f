@@ -108,6 +108,9 @@ func cookie(value string, age int) *http.Cookie {
 func fail(w http.ResponseWriter, code int) { http.Error(w, http.StatusText(code), code) }
 func (s *Service) Handler(operations http.Handler) http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /{$}", s.home)
+	mux.HandleFunc("POST /login", s.login)
+	mux.HandleFunc("POST /logout", s.logout)
 	mux.HandleFunc("POST /api/v1/auth/login", s.login)
 	mux.HandleFunc("POST /api/v1/auth/logout", s.logout)
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -125,6 +128,8 @@ func (s *Service) Handler(operations http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("Referrer-Policy", "no-referrer")
+		w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")
 		if r.Method == "POST" && r.Header.Get("Origin") != Origin {
 			fail(w, 403)
 			return
@@ -134,15 +139,26 @@ func (s *Service) Handler(operations http.Handler) http.Handler {
 }
 func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 	typ, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	if typ != "application/json" {
+	var input struct{ Username, Password string }
+	r.Body = http.MaxBytesReader(w, r.Body, 8192)
+	web := r.URL.Path == "/login"
+	switch {
+	case web && typ == "application/x-www-form-urlencoded":
+		if err := r.ParseForm(); err != nil {
+			fail(w, 400)
+			return
+		}
+		input.Username, input.Password = r.PostForm.Get("username"), r.PostForm.Get("password")
+	case !web && typ == "application/json":
+		if json.NewDecoder(r.Body).Decode(&input) != nil {
+			fail(w, 400)
+			return
+		}
+	default:
 		fail(w, 415)
 		return
 	}
-	var input struct{ Username, Password string }
-	b := http.MaxBytesReader(w, r.Body, 8192)
-	defer b.Close()
-	dec := json.NewDecoder(b)
-	if dec.Decode(&input) != nil || len(input.Username) > 128 || len(input.Password) > 1024 {
+	if len(input.Username) > 128 || len(input.Password) > 1024 {
 		fail(w, 400)
 		return
 	}
@@ -150,13 +166,13 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 	case s.gate <- struct{}{}:
 		defer func() { <-s.gate }()
 	default:
-		fail(w, 429)
+		loginError(w, web, 429)
 		return
 	}
 	var id, stored string
 	bucket := byte(maphash.String(s.seed, input.Username))
 	if time.Now().Before(s.next[bucket]) {
-		fail(w, 429)
+		loginError(w, web, 429)
 		return
 	}
 	err := s.db.QueryRowContext(r.Context(), "SELECT id,password_hash FROM admin_accounts WHERE username=? AND disabled=0", input.Username).Scan(&id, &stored)
@@ -166,7 +182,7 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 	}
 	if !verify(input.Password, stored) {
 		s.next[bucket] = time.Now().Add(time.Second)
-		fail(w, 401)
+		loginError(w, web, 401)
 		return
 	}
 	token := base64.RawURLEncoding.EncodeToString(randomBytes(32))
@@ -192,6 +208,10 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.SetCookie(w, cookie(token, 43200))
+	if web {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprintf(w, `{"csrf_token":%q}`, CSRF(token))
 }
@@ -201,7 +221,17 @@ func (s *Service) logout(w http.ResponseWriter, r *http.Request) {
 		fail(w, 401)
 		return
 	}
-	if subtle.ConstantTimeCompare([]byte(r.Header.Get("X-CSRF-Token")), []byte(CSRF(c.Value))) != 1 {
+	csrf := r.Header.Get("X-CSRF-Token")
+	web := r.URL.Path == "/logout"
+	if web {
+		r.Body = http.MaxBytesReader(w, r.Body, 1024)
+		if err := r.ParseForm(); err != nil {
+			fail(w, 400)
+			return
+		}
+		csrf = r.PostForm.Get("csrf")
+	}
+	if subtle.ConstantTimeCompare([]byte(csrf), []byte(CSRF(c.Value))) != 1 {
 		fail(w, 403)
 		return
 	}
@@ -220,5 +250,9 @@ func (s *Service) logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.SetCookie(w, cookie("", -1))
+	if web {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
 	w.WriteHeader(204)
 }

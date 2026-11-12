@@ -138,4 +138,10 @@ func TestOwnerSession(t *testing.T) {
 		}
 		call("GET", op, "", "", c, "", 401)
 	}
+	s.Close()
+	w := call("GET", op, "", "", second, "", 503)
+	var problem status.Response
+	if err = json.Unmarshal(w.Body.Bytes(), &problem); err != nil || problem.Error == nil || problem.Error.Code != "DEPENDENCY_UNAVAILABLE" || !problem.Error.Retryable || problem.Meta.RequestID == "" {
+		t.Fatal("missing OPS-02 dependency error")
+	}
 }

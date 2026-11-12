@@ -6,6 +6,8 @@ import (
 	"crypto/cipher"
 	"encoding/binary"
 	"errors"
+	"fmt"
+	"io"
 )
 
 const Algorithm = "AES-256-GCM"
@@ -30,6 +32,13 @@ func (b Binding) additionalData() ([]byte, error) {
 }
 
 type Vault struct{ aead cipher.AEAD }
+
+// PlainSecret requires an explicit conversion to expose its contents.
+type PlainSecret []byte
+
+func (PlainSecret) Format(w fmt.State, verb rune) { io.WriteString(w, "[REDACTED]") }
+func (PlainSecret) MarshalText() ([]byte, error)  { return []byte("[REDACTED]"), nil }
+func (PlainSecret) MarshalJSON() ([]byte, error)  { return []byte(`"[REDACTED]"`), nil }
 
 func New(key []byte) (*Vault, error) {
 	if len(key) != 32 {
@@ -59,7 +68,7 @@ func (v *Vault) Encrypt(b Binding, password []byte) (nonce, ciphertext []byte, e
 	return sealed[:nonceSize:nonceSize], sealed[nonceSize:], nil
 }
 
-func (v *Vault) Decrypt(b Binding, nonce, ciphertext []byte) ([]byte, error) {
+func (v *Vault) Decrypt(b Binding, nonce, ciphertext []byte) (PlainSecret, error) {
 	aad, err := b.additionalData()
 	if err != nil {
 		return nil, err

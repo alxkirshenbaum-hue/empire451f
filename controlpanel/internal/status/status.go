@@ -136,6 +136,22 @@ type Response struct {
 	Meta  Metadata   `json:"meta"`
 }
 
+func newResponse() Response {
+	var raw [16]byte
+	rand.Read(raw[:])
+	return Response{Meta: Metadata{RequestID: hex.EncodeToString(raw[:]), ObservedAt: time.Now().UTC().Format(time.RFC3339Nano)}}
+}
+
+// Unavailable preserves the OPS-02 envelope when session refresh fails before lookup.
+func Unavailable(w http.ResponseWriter) {
+	result := newResponse()
+	result.Error = &Problem{"DEPENDENCY_UNAVAILABLE", "Status unavailable", true}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(http.StatusServiceUnavailable)
+	json.NewEncoder(w).Encode(result)
+}
+
 func (r *Reader) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/operations/{id}", func(w http.ResponseWriter, req *http.Request) {
@@ -143,9 +159,7 @@ func (r *Reader) Handler() http.Handler {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
-		var raw [16]byte
-		rand.Read(raw[:])
-		result := Response{Meta: Metadata{RequestID: hex.EncodeToString(raw[:]), ObservedAt: time.Now().UTC().Format(time.RFC3339Nano)}}
+		result := newResponse()
 		code := http.StatusOK
 		id := req.PathValue("id")
 		cookie, err := req.Cookie("session")

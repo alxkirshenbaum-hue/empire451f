@@ -17,6 +17,13 @@ type LegacyReceipt struct {
 	OperationID string `json:"operation_id"`
 	Users       int    `json:"staged_users"`
 }
+
+var (
+	ErrLegacyConflict = errors.New("migration plan conflicts with current state")
+	ErrLegacyDrift    = errors.New("snapshot differs from approved plan")
+	ErrLegacyInput    = errors.New("invalid migration input")
+)
+
 type legacyAction struct {
 	Login          string
 	Kind           string
@@ -53,7 +60,7 @@ func legacyInputs(dir string) (string, map[string]string, error) {
 	for _, e := range entries {
 		name := e.Name()
 		if name == "pending.json" || name == "user-rollback.json" {
-			return "", nil, errors.New("pending installer transaction")
+			return "", nil, ErrLegacyConflict
 		}
 		if strings.HasPrefix(name, "vpn-") && strings.HasSuffix(name, ".json") {
 			names = append(names, name)
@@ -64,7 +71,7 @@ func legacyInputs(dir string) (string, map[string]string, error) {
 	for _, name := range names {
 		info, err := root.Lstat(name)
 		if err != nil || !info.Mode().IsRegular() {
-			return "", nil, errors.New("incomplete snapshot")
+			return "", nil, ErrLegacyInput
 		}
 		file, err := root.Open(name)
 		if err != nil {
@@ -118,8 +125,11 @@ func (r *Registry) StageLegacy(ctx context.Context, dir, run string) (LegacyRece
 		err = tx.QueryRowContext(ctx, `SELECT id,(SELECT count(*) FROM legacy_migration_items WHERE run_id=? AND imported_user_id IS NOT NULL) FROM operations WHERE actor_id='local-migration' AND idempotency_key=? AND kind='legacy.stage'`, run, run).Scan(&receipt.OperationID, &receipt.Users)
 		return receipt, err
 	}
+	if status == "stale" {
+		return receipt, ErrLegacyDrift
+	}
 	if phase != "planned" || status != "planned" {
-		return receipt, errors.New("plan unavailable")
+		return receipt, ErrLegacyConflict
 	}
 	var plan legacyPlan
 	if err = json.Unmarshal([]byte(body), &plan); err != nil || plan.RunID != run {
@@ -137,14 +147,14 @@ func (r *Registry) StageLegacy(ctx context.Context, dir, run string) (LegacyRece
 		if err = tx.Commit(); err != nil {
 			return receipt, err
 		}
-		return receipt, errors.New("snapshot differs from approved plan")
+		return receipt, ErrLegacyDrift
 	}
 	var users int
 	if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM users").Scan(&users); err != nil {
 		return receipt, err
 	}
 	if users != 0 || len(passwords) != len(plan.Users) || len(passwords) > 101 || passwords["master_user"] == "" {
-		return receipt, errors.New("staging preconditions failed")
+		return receipt, ErrLegacyConflict
 	}
 	for i, action := range plan.Users {
 		password := passwords[action.Login]

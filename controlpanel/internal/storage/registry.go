@@ -19,7 +19,6 @@ import (
 	"runtime"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/vault"
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/migrations"
@@ -27,6 +26,7 @@ import (
 )
 
 var ErrIdempotencyConflict = errors.New("idempotency key reused with a different request")
+var ErrVaultKey = errors.New("registry key verification failed")
 var loginPattern = regexp.MustCompile("^[A-Za-z0-9][A-Za-z0-9_-]{0,47}$")
 
 type Registry struct {
@@ -156,7 +156,7 @@ func (r *Registry) migrate(ctx context.Context) error {
 		}
 		plain, err := r.vault.Decrypt(binding, nonce, ciphertext)
 		if err != nil || version != r.keyVersion || !bytes.Equal(plain, marker) {
-			return errors.New("registry key verification failed")
+			return ErrVaultKey
 		}
 	}
 	return tx.Commit()
@@ -201,7 +201,7 @@ func id() string {
 // actor is the authenticated principal supplied by the application layer.
 func (r *Registry) QueueCreate(ctx context.Context, actor, key string, req CreateRequest) (Receipt, error) {
 	if actor == "" || key == "" || req.TemplateRevisionID == "" || req.TargetClient == "" || !loginPattern.MatchString(req.Login) || req.Login == "master_user" ||
-		!utf8.ValidString(req.DisplayName) || utf8.RuneCountInString(req.DisplayName) < 1 || utf8.RuneCountInString(req.DisplayName) > 80 || strings.ContainsRune(req.DisplayName, 0) {
+		!validDisplayName(req.DisplayName) {
 		return Receipt{}, errors.New("invalid user creation request")
 	}
 	tx, err := r.db.BeginTx(ctx, nil)
@@ -273,7 +273,7 @@ func (r *Registry) stageCreate(ctx context.Context, tx *sql.Tx, actor, key strin
 }
 
 // loadCredential is internal to the storage/worker path; no public API returns raw passwords.
-func (r *Registry) loadCredential(ctx context.Context, userID string) ([]byte, error) {
+func (r *Registry) loadCredential(ctx context.Context, userID string) (vault.PlainSecret, error) {
 	var version, keyVersion uint64
 	var nonce, ciphertext []byte
 	err := r.db.QueryRowContext(ctx, "SELECT c.secret_version,c.key_version,c.nonce,c.ciphertext FROM user_current_credentials u JOIN credentials c ON c.id=u.credential_id AND c.user_id=u.user_id JOIN users a ON a.id=u.user_id WHERE u.user_id=? AND c.revoked_at IS NULL AND a.status IN ('provisioning','active')", userID).Scan(&version, &keyVersion, &nonce, &ciphertext)

@@ -79,10 +79,10 @@ func TestStagePythonPlan(t *testing.T) {
 	}
 	run := inspect()["run_id"].(string)
 	inspect("--plan", run)
-	stage := func(id string, want int) []byte {
+	stage := func(id string, want int, extra ...string) []byte {
 		t.Helper()
 		var stdout, stderr bytes.Buffer
-		got := execute([]string{"migration", "execute", "--approved-plan", id, "--staging-db", dbPath, "--snapshot", snap, "--vault-key-file", keyFile}, &stdout, &stderr)
+		got := execute(append([]string{"migration", "execute", "--approved-plan", id, "--staging-db", dbPath, "--snapshot", snap, "--vault-key-file", keyFile}, extra...), &stdout, &stderr)
 		if got != want {
 			if got == 3 {
 				probe, openErr := storage.Open(context.Background(), dbPath, cipher, 1)
@@ -113,18 +113,20 @@ func TestStagePythonPlan(t *testing.T) {
 	if e := os.WriteFile(filepath.Join(snap, "auth.caddy"), append(raw, '\n'), 0600); e != nil {
 		t.Fatal(e)
 	}
-	stage(run, 1)
+	if !bytes.Contains(stage(run, 4, "--json"), []byte(`"code":"CONFIG_DRIFT"`)) {
+		t.Fatal("missing drift code")
+	}
 	checkCount("users", 0)
 	if e := os.WriteFile(filepath.Join(snap, "auth.caddy"), raw, 0600); e != nil {
 		t.Fatal(e)
 	}
-	stage(run, 1)
+	stage(run, 4)
 	run = inspect()["run_id"].(string)
 	inspect("--plan", run)
 	if _, err = db.Exec("CREATE TRIGGER injected_failure BEFORE INSERT ON users WHEN NEW.login='master_user' BEGIN SELECT RAISE(ABORT,'injected'); END;"); err != nil {
 		t.Fatal(err)
 	}
-	stage(run, 1)
+	stage(run, 9)
 	for _, table := range []string{"users", "user_current_credentials", "credentials", "operations", "legacy_migration_items"} {
 		checkCount(table, 0)
 	}
@@ -132,6 +134,9 @@ func TestStagePythonPlan(t *testing.T) {
 		t.Fatal(err)
 	}
 	first := stage(run, 0)
+	if !bytes.Equal(first, stage(run, 0, "--json")) || len(stage(run, 0, "--quiet")) != 0 {
+		t.Fatal("output mode contract")
+	}
 	if !bytes.Equal(first, stage(run, 0)) {
 		t.Fatal("receipt changed on replay")
 	}

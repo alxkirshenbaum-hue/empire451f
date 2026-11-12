@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/status"
 	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/crypto/argon2"
 )
@@ -119,7 +120,7 @@ func (s *Service) Handler(operations http.Handler) http.Handler {
 			// Refresh only active sessions, independently of the absolute expiry.
 			_, err = s.db.ExecContext(r.Context(), `UPDATE admin_sessions SET last_seen_at=CURRENT_TIMESTAMP WHERE token_hash=? AND revoked_at IS NULL AND julianday(expires_at)>julianday('now') AND julianday(last_seen_at)>julianday('now','-30 minutes') AND julianday(last_seen_at)<julianday('now','-1 second')`, digest(c.Value))
 			if err != nil {
-				fail(w, 503)
+				status.Unavailable(w)
 				return
 			}
 		}

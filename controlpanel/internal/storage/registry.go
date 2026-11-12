@@ -64,11 +64,14 @@ func Open(ctx context.Context, path string, cipher *vault.Vault, keyVersion int6
 			return nil, errors.New("unsafe registry file or sidecar")
 		}
 	}
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0600)
-	if err != nil {
-		return nil, err
-	}
-	if err = f.Close(); err != nil {
+	// Closing a separate descriptor for an existing DB can release SQLite's
+	// process-wide POSIX locks while another connection still owns the WAL.
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0600)
+	if err == nil {
+		if err = f.Close(); err != nil {
+			return nil, err
+		}
+	} else if !errors.Is(err, os.ErrExist) {
 		return nil, err
 	}
 	uri := url.URL{Scheme: "file", Path: filepath.ToSlash(path)}

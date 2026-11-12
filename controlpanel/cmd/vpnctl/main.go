@@ -16,6 +16,9 @@ import (
 )
 
 func execute(args []string, out, stderr io.Writer) int {
+	if len(args) >= 2 && args[0] == "migration" && args[1] == "execute" {
+		return executeMigration(args[2:], out, stderr)
+	}
 	if len(args) >= 1 && args[0] == "auth" {
 		return authCommand(args[1:], stderr)
 	}

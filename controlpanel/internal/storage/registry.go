@@ -102,7 +102,7 @@ func (r *Registry) migrate(ctx context.Context) error {
 	if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%'").Scan(&count); err != nil {
 		return err
 	}
-	scripts := []string{migrations.Registry, migrations.VaultIdentity}
+	scripts := []string{migrations.Registry, migrations.VaultIdentity, migrations.MigrationDocuments}
 	if count != 0 {
 		if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM schema_migrations").Scan(&count); err != nil {
 			return err

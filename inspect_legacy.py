@@ -2,9 +2,13 @@
 import argparse
 import hashlib
 import json
+import os
 import re
+import sqlite3
 import sys
+import uuid
 from collections import Counter
+from contextlib import closing
 from pathlib import Path
 
 from render import credentials
@@ -56,7 +60,7 @@ def unique_fields(pairs):
     return result
 
 
-def inspect_snapshot(directory):
+def inspect_inputs(directory):
     if not directory.is_dir() or directory.is_symlink():
         raise ValueError('Invalid snapshot directory')
     if any((directory / name).exists() or (directory / name).is_symlink()
@@ -109,20 +113,94 @@ def inspect_snapshot(directory):
                 'profile_binding_conflicts')
     result['review_required'] = (not result['manifest_matches'] or not result['master_in_both']
                                  or any(result[key] for key in findings))
-    return result
+    actions = []
+    if not result['review_required']:
+        for client in sorted(export['clients'], key=lambda row: row['username']):
+            login = client['username']
+            actions.append({'login': login, 'kind': 'service' if login == 'master_user' else 'regular',
+                            'protected': login == 'master_user',
+                            'legacy_accepted': not bool(re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,47}', login)),
+                            'action': 'stage_existing_credential'})
+    return result, actions
+
+
+def inspect_snapshot(directory):
+    return inspect_inputs(directory)[0]
+
+
+def record_snapshot(directory, registry, run_id):
+    if not registry.is_file() or registry.is_symlink() or registry.parent.is_symlink():
+        raise ValueError('Invalid registry')
+    if os.name == 'posix' and (registry.stat().st_mode | registry.parent.stat().st_mode) & 0o077:
+        raise ValueError('Expected private registry')
+    for suffix in ('-journal', '-wal', '-shm'):
+        sidecar = registry.with_name(registry.name + suffix)
+        if sidecar.is_symlink() or (sidecar.exists() and (not sidecar.is_file() or
+                (os.name == 'posix' and sidecar.stat().st_mode & 0o077))):
+            raise ValueError('Invalid registry sidecar')
+    uri = registry.resolve().as_uri() + '?mode=rw'
+    with closing(sqlite3.connect(uri, uri=True)) as db, db:
+        db.execute('PRAGMA foreign_keys=ON')
+        db.execute('BEGIN IMMEDIATE')
+        if db.execute('SELECT max(version) FROM schema_migrations').fetchone() != (3,):
+            raise ValueError('Unsupported registry schema')
+        report, actions = inspect_inputs(directory)
+        generation = report['snapshot_sha256']
+        source = json.dumps({'snapshot_sha256': generation}, sort_keys=True)
+        if run_id is None:
+            run_id = str(uuid.uuid4())
+            status = 'review_required' if report['review_required'] else 'clean'
+            db.execute("""INSERT INTO legacy_migration_runs(id,phase,source_hashes,started_at,status)
+                          VALUES(?,'inspect',?,CURRENT_TIMESTAMP,?)""", (run_id, source, status))
+            db.execute("INSERT INTO legacy_migration_documents VALUES(?,'inspection',?)",
+                       (run_id, json.dumps(report, sort_keys=True)))
+            return dict(report, run_id=run_id), int(report['review_required'])
+
+        row = db.execute('SELECT phase,source_hashes,status FROM legacy_migration_runs WHERE id=?',
+                         (run_id,)).fetchone()
+        if not row:
+            raise ValueError('Unknown run')
+        phase, original, status = row
+        if phase not in ('inspect', 'planned') or status == 'stale':
+            return {'run_id': run_id, 'status': status, 'phase': phase}, 1
+        if original != source:
+            db.execute("""UPDATE legacy_migration_runs SET phase='reconcile_required',status='stale'
+                          WHERE id=?""", (run_id,))
+            return {'run_id': run_id, 'status': 'stale'}, 1
+        if report['review_required'] or status == 'review_required':
+            return {'run_id': run_id, 'status': 'review_required'}, 1
+        if phase == 'planned':
+            body, = db.execute("SELECT body FROM legacy_migration_documents WHERE run_id=? AND kind='plan'",
+                               (run_id,)).fetchone()
+            return json.loads(body), 0
+        plan = {'run_id': run_id, 'snapshot_sha256': generation, 'phase': 'planned',
+                'users': actions, 'caddy_action': 'preserve', 'profile_action': 'preserve',
+                'rollback_before_cutover': 'discard_staging_keep_installer_writer'}
+        db.execute("INSERT INTO legacy_migration_documents VALUES(?,'plan',?)",
+                   (run_id, json.dumps(plan, sort_keys=True)))
+        db.execute("UPDATE legacy_migration_runs SET phase='planned',status='planned' WHERE id=?", (run_id,))
+        return plan, 0
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('snapshot', type=Path)
+    parser.add_argument('--registry', type=Path, help='Record inspection in an existing panel registry')
+    parser.add_argument('--plan', metavar='RUN_ID', help='Check snapshot and prepare or retrieve its plan')
     args = parser.parse_args()
+    if args.plan is not None and args.registry is None:
+        parser.error('--plan requires --registry')
     try:
-        report = inspect_snapshot(args.snapshot)
-    except (OSError, ValueError, KeyError, TypeError, AttributeError, RecursionError):
-        print('Invalid or incomplete legacy snapshot.', file=sys.stderr)
+        if args.registry is not None:
+            report, code = record_snapshot(args.snapshot, args.registry, args.plan)
+        else:
+            report = inspect_snapshot(args.snapshot)
+            code = int(report['review_required'])
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, RecursionError, sqlite3.Error):
+        print('Cannot inspect snapshot or access migration registry.', file=sys.stderr)
         return 2
     print(json.dumps(report, sort_keys=True))
-    return int(report['review_required'])
+    return code
 
 
 if __name__ == '__main__':

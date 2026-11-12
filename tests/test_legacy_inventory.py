@@ -2,16 +2,18 @@
 import hashlib
 import json
 import secrets
+import sqlite3
 import subprocess
 import sys
 import tempfile
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 INSTALLER = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(INSTALLER))
 from render import file
-from inspect_legacy import inspect, inspect_snapshot
+from inspect_legacy import inspect, inspect_snapshot, record_snapshot
 
 
 class MigrationFixtures(unittest.TestCase):
@@ -86,6 +88,63 @@ class MigrationFixtures(unittest.TestCase):
             (root / 'pending.json').unlink()
             (root / 'clients.json').write_text('{"clients":[],"clients":[]}', encoding='utf-8')
             self.assertEqual(run(2), '')
+
+    def test_registry_plan_replay_drift_and_review(self):
+        with tempfile.TemporaryDirectory() as work:
+            root = Path(work)
+            root.chmod(0o700)
+            snap = root / 'snapshot'
+            snap.mkdir()
+            registry = root / 'state.db'
+            sql = INSTALLER / 'controlpanel' / 'migrations'
+            db = sqlite3.connect(registry)
+            try:
+                registry.chmod(0o600)
+                for version, path in enumerate(sorted(sql.glob('*.sql')), 1):
+                    db.executescript(path.read_text(encoding='utf-8'))
+                    db.execute('INSERT INTO schema_migrations VALUES(?,?,CURRENT_TIMESTAMP)',
+                               (version, hashlib.sha256(path.read_bytes()).hexdigest()))
+                db.commit()
+                users = [dict(self.users[0]), dict(self.users[1], username='Legacy.Name')]
+                raw = ''.join('basic_auth ' + json.dumps(u['username']) + ' ' +
+                              json.dumps(u['password']) + '\n' for u in users).encode()
+                (snap / 'auth.caddy').write_bytes(raw)
+                def put(name, value):
+                    (snap / name).write_text(json.dumps(value), encoding='utf-8')
+                put('manifest.json', {'config': {'id': 'nh1', 'domain': 'vpn.invalid'},
+                    'files': {'/etc/empire-vpn/nh1/auth.caddy': hashlib.sha256(raw).hexdigest()}})
+                put('clients.json', dict(self.export, clients=users))
+                put('master_user.sfa.json', {'outbounds': [dict(type='naive', server='vpn.invalid', **users[0])]})
+
+                report, code = record_snapshot(snap, registry, None)
+                self.assertEqual(code, 0)
+                run = report['run_id']
+                with ThreadPoolExecutor(2) as pool:
+                    results = list(pool.map(lambda _: record_snapshot(snap, registry, run), range(2)))
+                self.assertEqual(results[0], results[1])
+                plan, code = results[0]
+                self.assertEqual(code, 0)
+                self.assertEqual([u['login'] for u in plan['users']], ['Legacy.Name', 'master_user'])
+                self.assertTrue(plan['users'][0]['legacy_accepted'])
+                self.assertTrue(plan['users'][1]['protected'])
+                self.assertEqual(plan['snapshot_sha256'], report['snapshot_sha256'])
+                docs = db.execute('SELECT kind,body FROM legacy_migration_documents WHERE run_id=?', (run,)).fetchall()
+                self.assertEqual(dict(docs).keys(), {'inspection', 'plan'})
+                for _, body in docs:
+                    for u in users:
+                        self.assertNotIn(u['password'], json.dumps(json.loads(body), ensure_ascii=False))
+                        self.assertNotIn(json.dumps(u['password'])[1:-1], body)
+                (snap / 'auth.caddy').write_bytes(raw + b'\n')
+                self.assertEqual(record_snapshot(snap, registry, run), ({'run_id': run, 'status': 'stale'}, 1))
+                review, code = record_snapshot(snap, registry, None)
+                self.assertEqual(code, 1)
+                self.assertEqual(record_snapshot(snap, registry, review['run_id'])[0]['status'], 'review_required')
+                (snap / 'auth.caddy').write_bytes(raw)
+                self.assertEqual(record_snapshot(snap, registry, run)[1], 1)
+                self.assertEqual(db.execute('SELECT count(*) FROM users').fetchone(), (0,))
+                self.assertEqual(db.execute("SELECT count(*) FROM legacy_migration_documents WHERE kind='plan'").fetchone(), (1,))
+            finally:
+                db.close()
 
 
 if __name__ == '__main__':

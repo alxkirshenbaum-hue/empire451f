@@ -8,3 +8,6 @@ var Registry string
 
 //go:embed 002_vault_identity.sql
 var VaultIdentity string
+
+//go:embed 003_migration_documents.sql
+var MigrationDocuments string

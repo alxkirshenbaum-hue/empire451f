@@ -25,6 +25,7 @@ type UserRepository interface {
 	GetUser(context.Context, string) (UserMetadata, error)
 	ListUsers(context.Context, int, int) ([]UserMetadata, error)
 	UpdateDisplayName(context.Context, string, int64, string) (UserMetadata, error)
+	UpdateEffectiveStateCAS(context.Context, string, int64, string) (UserMetadata, error)
 	QueueCreate(context.Context, string, string, CreateRequest) (Receipt, error)
 }
 
@@ -72,6 +73,50 @@ func (r *Registry) UpdateDisplayName(ctx context.Context, id string, expected in
 	if !validDisplayName(name) {
 		return zero, ErrInvalidMetadata
 	}
+	return r.updateUserCAS(ctx, id, expected, func(tx *sql.Tx, u UserMetadata) (UserMetadata, error) {
+		return scanUser(tx.QueryRowContext(ctx, "UPDATE users SET display_name=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now'),row_version=row_version+1 WHERE id=? AND row_version=? RETURNING "+userColumns, name, id, expected))
+	})
+}
+
+var ErrInvalidTransition = errors.New("invalid user status transition")
+
+func canChangeState(from, to string) bool {
+	if to == "reconcile_required" {
+		return from == "provisioning" || from == "active" || from == "disabled" || from == "deleting"
+	}
+	switch from {
+	case "provisioning":
+		return to == "active"
+	case "active":
+		return to == "disabled"
+	case "disabled":
+		return to == "active" || to == "deleting"
+	case "deleting":
+		return to == "deleted"
+	default:
+		return false
+	}
+}
+
+// UpdateEffectiveStateCAS records the worker's verified outcome. Recovery
+// from an uncertain outcome needs a separate reconciliation decision.
+func (r *Registry) UpdateEffectiveStateCAS(ctx context.Context, id string, expected int64, to string) (UserMetadata, error) {
+	return r.updateUserCAS(ctx, id, expected, func(tx *sql.Tx, u UserMetadata) (UserMetadata, error) {
+		if !canChangeState(u.Status, to) {
+			return UserMetadata{}, ErrInvalidTransition
+		}
+		return scanUser(tx.QueryRowContext(ctx, `UPDATE users SET status=?,row_version=row_version+1,
+ updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now'),
+ deleted_at=CASE WHEN ?='deleted' THEN strftime('%Y-%m-%dT%H:%M:%fZ','now') ELSE deleted_at END
+ WHERE id=? AND row_version=? RETURNING `+userColumns, to, to, id, expected))
+	})
+}
+
+func (r *Registry) updateUserCAS(ctx context.Context, id string, expected int64, update func(*sql.Tx, UserMetadata) (UserMetadata, error)) (UserMetadata, error) {
+	var zero UserMetadata
+	if expected < 1 {
+		return zero, ErrPreconditionRequired
+	}
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return zero, err
@@ -90,7 +135,7 @@ func (r *Registry) UpdateDisplayName(ctx context.Context, id string, expected in
 	if u.Version != expected {
 		return zero, ErrVersionConflict
 	}
-	u, err = scanUser(tx.QueryRowContext(ctx, "UPDATE users SET display_name=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now'),row_version=row_version+1 WHERE id=? AND row_version=? RETURNING "+userColumns, name, id, expected))
+	u, err = update(tx, u)
 	if err != nil {
 		return zero, err
 	}

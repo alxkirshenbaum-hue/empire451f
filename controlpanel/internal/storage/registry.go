@@ -272,11 +272,34 @@ func (r *Registry) stageCreate(ctx context.Context, tx *sql.Tx, actor, key strin
 	return result, err
 }
 
-// loadCredential is internal to the storage/worker path; no public API returns raw passwords.
-func (r *Registry) loadCredential(ctx context.Context, userID string) (vault.PlainSecret, error) {
+type SecretPurpose string
+
+const (
+	PrepareAuth   SecretPurpose = "prepare_auth"
+	RenderProfile SecretPurpose = "render_profile"
+	ReenableAuth  SecretPurpose = "reenable_auth"
+)
+
+var ErrSecretPurpose = errors.New("unsupported credential purpose")
+
+// OpenForPurpose is an internal worker contract. The caller clears the result.
+func (r *Registry) OpenForPurpose(ctx context.Context, userID string, purpose SecretPurpose) (vault.PlainSecret, error) {
+	var first, second string
+	switch purpose {
+	case PrepareAuth:
+		first, second = "provisioning", "active"
+	case RenderProfile:
+		first, second = "active", "active"
+	case ReenableAuth:
+		first, second = "disabled", "disabled"
+	default:
+		return nil, ErrSecretPurpose
+	}
 	var version, keyVersion uint64
 	var nonce, ciphertext []byte
-	err := r.db.QueryRowContext(ctx, "SELECT c.secret_version,c.key_version,c.nonce,c.ciphertext FROM user_current_credentials u JOIN credentials c ON c.id=u.credential_id AND c.user_id=u.user_id JOIN users a ON a.id=u.user_id WHERE u.user_id=? AND c.revoked_at IS NULL AND a.status IN ('provisioning','active')", userID).Scan(&version, &keyVersion, &nonce, &ciphertext)
+	err := r.db.QueryRowContext(ctx, `SELECT c.secret_version,c.key_version,c.nonce,c.ciphertext
+ FROM user_current_credentials u JOIN credentials c ON c.id=u.credential_id AND c.user_id=u.user_id
+ JOIN users a ON a.id=u.user_id WHERE u.user_id=? AND c.revoked_at IS NULL AND a.status IN (?,?)`, userID, first, second).Scan(&version, &keyVersion, &nonce, &ciphertext)
 	if err != nil {
 		return nil, err
 	}

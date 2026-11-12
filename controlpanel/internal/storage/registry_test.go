@@ -105,7 +105,7 @@ func TestPlaintextAbsentFromDatabaseAndLiveWAL(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	secret, err := r.loadCredential(ctx, rec.UserID)
+	secret, err := r.OpenForPurpose(ctx, rec.UserID, PrepareAuth)
 	if err != nil || len(secret) != 43 {
 		t.Fatal("failed to recover generated secret", err)
 	}
@@ -129,7 +129,7 @@ func TestPlaintextAbsentFromDatabaseAndLiveWAL(t *testing.T) {
 	if _, err = r.db.Exec("UPDATE users SET status='disabled' WHERE id=?", rec.UserID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = r.loadCredential(ctx, rec.UserID); !errors.Is(err, sql.ErrNoRows) {
+	if _, err = r.OpenForPurpose(ctx, rec.UserID, PrepareAuth); !errors.Is(err, sql.ErrNoRows) {
 		t.Fatal("disabled credential released")
 	}
 }
@@ -187,7 +187,7 @@ func TestCrashAndRetry(t *testing.T) {
 				t.Fatal("crash replay failed", err)
 			}
 			counts(t, r, 1)
-			if _, err = r.loadCredential(ctx, got.UserID); err != nil {
+			if _, err = r.OpenForPurpose(ctx, got.UserID, PrepareAuth); err != nil {
 				t.Fatal(err)
 			}
 		})
@@ -236,7 +236,7 @@ func TestUpgradePopulatedVersionOne(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	before, err := r.loadCredential(ctx, record.UserID)
+	before, err := r.OpenForPurpose(ctx, record.UserID, PrepareAuth)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -259,7 +259,7 @@ func TestUpgradePopulatedVersionOne(t *testing.T) {
 		t.Fatal("partial upgrade", err)
 	}
 	next := openTest(t, path)
-	after, err := next.loadCredential(ctx, record.UserID)
+	after, err := next.OpenForPurpose(ctx, record.UserID, PrepareAuth)
 	if err != nil || !bytes.Equal(before, after) {
 		t.Fatal("upgrade did not preserve credential", err)
 	}

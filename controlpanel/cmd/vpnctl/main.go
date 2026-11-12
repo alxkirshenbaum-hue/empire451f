@@ -16,6 +16,9 @@ import (
 )
 
 func execute(args []string, out, stderr io.Writer) int {
+	if len(args) >= 1 && args[0] == "auth" {
+		return authCommand(args[1:], stderr)
+	}
 	if len(args) < 3 || args[0] != "operation" || args[1] != "show" || !status.ValidID(args[2]) {
 		fmt.Fprintln(stderr, "Usage: vpnctl operation show ID [--json | --quiet]")
 		return 2
@@ -59,11 +62,8 @@ func execute(args []string, out, stderr io.Writer) int {
 		fmt.Fprintln(stderr, "Invalid session token")
 		return 3
 	}
-	transport := &http.Transport{DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-		return (&net.Dialer{}).DialContext(ctx, "unix", socket)
-	}}
-	defer transport.CloseIdleConnections()
-	client := http.Client{Transport: transport, Timeout: 8 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return errors.New("redirect refused") }}
+	client := localClient(socket)
+	defer client.CloseIdleConnections()
 	req, err := http.NewRequest("GET", "http://localhost/api/v1/operations/"+args[2], nil)
 	if err != nil {
 		return 9
@@ -109,3 +109,10 @@ func execute(args []string, out, stderr io.Writer) int {
 	return 0
 }
 func main() { os.Exit(execute(os.Args[1:], os.Stdout, os.Stderr)) }
+
+func localClient(socket string) *http.Client {
+	transport := &http.Transport{DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+		return (&net.Dialer{}).DialContext(ctx, "unix", socket)
+	}}
+	return &http.Client{Transport: transport, Timeout: 8 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return errors.New("redirect refused") }}
+}

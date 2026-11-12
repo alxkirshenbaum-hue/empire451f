@@ -82,7 +82,9 @@ func (r *Reader) Lookup(ctx context.Context, token, id string) (Operation, error
 	defer tx.Rollback()
 	var actor string
 	err = tx.QueryRowContext(ctx, `SELECT a.id FROM admin_sessions s JOIN admin_accounts a ON a.id=s.admin_id
- WHERE s.token_hash=? AND s.revoked_at IS NULL AND a.disabled=0 AND julianday(s.expires_at)>julianday('now')`, hex.EncodeToString(h[:])).Scan(&actor)
+ WHERE s.token_hash=? AND s.revoked_at IS NULL AND a.disabled=0
+ AND julianday(s.last_seen_at)>julianday('now','-30 minutes')
+ AND julianday(s.expires_at)>julianday('now')`, hex.EncodeToString(h[:])).Scan(&actor)
 	if errors.Is(err, sql.ErrNoRows) {
 		return op, ErrSession
 	}

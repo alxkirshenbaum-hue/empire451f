@@ -49,7 +49,7 @@ func TestStatusThroughPrivateAPI(t *testing.T) {
 	for _, admin := range []string{"owner", "other"} {
 		execSQL("INSERT INTO admin_accounts(id,username,password_hash,created_at) VALUES(?,?,?,?)", admin, admin, "hidden-test-hash", "now")
 		h := sha256.Sum256([]byte(admin + "-private-token"))
-		execSQL("INSERT INTO admin_sessions(id,admin_id,token_hash,expires_at) VALUES(?,?,?,?)", admin, admin, hex.EncodeToString(h[:]), "2099-01-01T00:00:00Z")
+		execSQL("INSERT INTO admin_sessions(id,admin_id,token_hash,expires_at,last_seen_at) VALUES(?,?,?,?,CURRENT_TIMESTAMP)", admin, admin, hex.EncodeToString(h[:]), "2099-01-01T00:00:00Z")
 	}
 	receipt, err := reg.QueueCreate(context.Background(), "owner", "a9b5c248-884a-40f0-823a-4dae9a541e3b", storage.CreateRequest{Login: "fixture", DisplayName: "fixture", TemplateRevisionID: "r", TargetClient: "sfa"})
 	if err != nil {

@@ -18,8 +18,9 @@ class DeliveryTests(unittest.TestCase):
         saved = {}
         with tempfile.TemporaryDirectory() as tmp, patch.object(controller,'names',return_value={'state':tmp}), patch.object(controller.remote,'readjson',side_effect=lambda path: saved.get(str(path))), patch.object(controller.remote,'atomic',side_effect=lambda path,data: saved.update({str(path):json.loads(data)})), contextlib.redirect_stdout(io.StringIO()) as transcript:
             original = users()
-            first = controller.clients(config(), original, True)
-            second = controller.clients(config(), original, True)
+            with patch.object(controller, 'installer_lock', contextlib.nullcontext):
+                first = controller.clients(config(), original, True)
+                second = controller.clients(config(), original, True)
             self.assertEqual(first, second)
             self.assertEqual(first['clients'][:-1], original['clients'])
             master = first['clients'][-1]

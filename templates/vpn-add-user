@@ -50,6 +50,8 @@ def issue(name):
         (STATE / saved['profile']).unlink(missing_ok=True)
         journal.unlink()
 
+    if 'panel_generation' in json.loads(manifest.read_bytes()):
+        raise SystemExit('VPN accounts are managed by the panel; legacy issue refused.')
     if journal.exists():
         print('Recovering the interrupted user update.')
         recover()

@@ -82,7 +82,7 @@ class ServerControllerTests(unittest.TestCase):
     def test_missing_saved_clients_cannot_rotate_passwords(self):
         def read(path):
             return {'installed': True} if str(path).endswith('manifest.json') else None
-        with patch.object(controller.remote, 'readjson', side_effect=read):
+        with patch.object(controller.remote, 'readjson', side_effect=read), patch.object(controller, 'installer_lock', contextlib.nullcontext):
             with self.assertRaisesRegex(controller.Invalid, 'import existing credentials'):
                 controller.clients(config(), None, create=True)
     def test_first_preview_has_no_saved_state_and_no_mutations(self):

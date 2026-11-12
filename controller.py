@@ -246,7 +246,29 @@ def configure(saved=None, nodes=None, imported=None):
             print('Enter a question ID to edit a server setting. SSH destinations, key and import path are selected on your computer.')
 
 
+@contextlib.contextmanager
+def installer_lock():
+    import fcntl
+    with open('/run/lock/empire-vpn.lock', 'a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        yield
+
+
+@contextlib.contextmanager
+def installer_account_writer(c):
+    with installer_lock():
+        remote.require_installer_writer(remote.readjson(Path(names(c)['state']) / 'manifest.json') or {})
+        yield
+
+
 def clients(c, imported, create=False):
+    if create:
+        with installer_account_writer(c):
+            return _clients(c, imported, True)
+    return _clients(c, imported, False)
+
+
+def _clients(c, imported, create):
     path = Path(names(c)['state']) / 'clients.json'
     old = remote.readjson(path)
     require(imported is not None or old is not None or not remote.readjson(Path(names(c)['state']) / 'manifest.json'),
@@ -563,7 +585,8 @@ def handoff_profile(c, users, session):
     user = next(u for u in users['clients'] if u['username'] == delivery.MASTER)
     content = delivery.profile(BUNDLE['templates/sfa-profile.json'], c, user['password'])
     path = Path(names(c)['state']) / 'master_user.sfa.json'
-    remote.atomic(path,json.dumps(content,indent=2))
+    with installer_account_writer(c):
+        remote.atomic(path,json.dumps(content,indent=2))
     local_copy = session_path(session).with_suffix('.profile.json')
     if local_copy.is_symlink():
         require(local_copy.resolve()==path,'Profile pointer conflict')

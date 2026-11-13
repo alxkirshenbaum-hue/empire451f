@@ -284,6 +284,14 @@ var ErrSecretPurpose = errors.New("unsupported credential purpose")
 
 // OpenForPurpose is an internal worker contract. The caller clears the result.
 func (r *Registry) OpenForPurpose(ctx context.Context, userID string, purpose SecretPurpose) (vault.PlainSecret, error) {
+	return r.openForPurpose(ctx, r.db, userID, purpose)
+}
+
+type rowQuerier interface {
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+}
+
+func (r *Registry) openForPurpose(ctx context.Context, db rowQuerier, userID string, purpose SecretPurpose) (vault.PlainSecret, error) {
 	var first, second string
 	switch purpose {
 	case PrepareAuth:
@@ -297,7 +305,7 @@ func (r *Registry) OpenForPurpose(ctx context.Context, userID string, purpose Se
 	}
 	var version, keyVersion uint64
 	var nonce, ciphertext []byte
-	err := r.db.QueryRowContext(ctx, `SELECT c.secret_version,c.key_version,c.nonce,c.ciphertext
+	err := db.QueryRowContext(ctx, `SELECT c.secret_version,c.key_version,c.nonce,c.ciphertext
  FROM user_current_credentials u JOIN credentials c ON c.id=u.credential_id AND c.user_id=u.user_id
  JOIN users a ON a.id=u.user_id WHERE u.user_id=? AND c.revoked_at IS NULL AND a.status IN (?,?)`, userID, first, second).Scan(&version, &keyVersion, &nonce, &ciphertext)
 	if err != nil {

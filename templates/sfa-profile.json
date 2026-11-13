@@ -72,6 +72,11 @@
         "action": "hijack-dns"
       },
       {
+        "domain": ["panel.home.arpa"],
+        "action": "route",
+        "outbound": "naive-out"
+      },
+      {
         "package_name": [
           "com.android.providers.downloads",
           "com.android.providers.downloads.ui"

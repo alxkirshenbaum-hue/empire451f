@@ -22,8 +22,6 @@ def profile(template, config, password):
     result = json.loads(template)
     outbound = next(o for o in result['outbounds'] if o['type'] == 'naive')
     outbound.update(server=config['domain'], username=MASTER, password=password)
-    # Reserve the private panel destination before Android's local/direct exceptions.
-    result['route']['rules'].insert(1, {'domain': ['panel.home.arpa'], 'action': 'route', 'outbound': 'naive-out'})
     return result
 
 

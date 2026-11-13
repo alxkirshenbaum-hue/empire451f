@@ -114,6 +114,8 @@ def probe(policy_path, login, password):
     if p.get('ca_file'): root_file(p['ca_file'])
     users = dict(auth_lines(root_file(p['auth_file']).read_bytes()))
     canary = p['canary_login']
+    if canary == login:
+        canary = next((name for name in users if name != login),None)
     require(canary != login and canary in users,'Independent control user required')
     website(p)
     for name,secret in ((canary,users[canary]),(login,password)):

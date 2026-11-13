@@ -11,7 +11,7 @@ import subprocess
 import tempfile
 import uuid
 
-from handoff_legacy import publish, require
+from handoff_legacy import publish, require, open_lock
 from inspect_legacy import registry_uri, unique_fields, auth_lines
 from render import credentials
 
@@ -25,7 +25,7 @@ def read(path):
     return path.read_bytes()
 
 
-def restore(root, registry, run, key, vpnctl, key_version=1, config_dir=None):
+def restore(root, registry, run, key, vpnctl, key_version=1, config_dir=None, lock_fd=None):
     import fcntl
     require(str(uuid.UUID(run)) == run and root.is_dir() and not root.is_symlink()
             and root.stat().st_mode & 0o077 == 0)
@@ -40,7 +40,7 @@ def restore(root, registry, run, key, vpnctl, key_version=1, config_dir=None):
     paths = {'auth.caddy':auth_path,'clients.json':root/'clients.json','manifest.json':root/'manifest.json'}
     ref = f'installation{ "" if working else "-copy"}:{identity.st_dev}:{identity.st_ino}'
     final_status = 'installer_returned' if working else 'copy_returned'
-    fd = os.open('/run/lock/empire-vpn.lock' if working else root/'empire-vpn.lock', os.O_NOFOLLOW | os.O_RDWR)
+    fd=open_lock(Path('/run/lock/empire-vpn.lock') if working else root/'empire-vpn.lock',lock_fd)
     with os.fdopen(fd, 'r+b') as lock, closing(sqlite3.connect(registry_uri(registry), uri=True)) as db:
         fcntl.flock(lock, fcntl.LOCK_EX)
         db.execute('PRAGMA synchronous=FULL')
@@ -140,6 +140,7 @@ def main():
     p.add_argument('--approved-plan',required=True)
     p.add_argument('--vault-key-file',type=Path,required=True)
     p.add_argument('--key-version',type=int,default=1)
+    p.add_argument('--lock-fd',type=int)
     p.add_argument('--vpnctl',type=Path,default=Path('/usr/local/bin/vpnctl'))
     args=p.parse_args()
     try:
@@ -148,7 +149,7 @@ def main():
         root=Path('/var/lib/empire-vpn')/args.installation if args.installation else args.installation_copy
         config=Path('/etc/empire-vpn')/args.installation if args.installation else None
         result=restore(root,args.staging_db,args.approved_plan,args.vault_key_file,
-                       args.vpnctl.resolve(),args.key_version,config)
+                       args.vpnctl.resolve(),args.key_version,config,args.lock_fd)
     except (OSError,ValueError,KeyError,TypeError,AttributeError,sqlite3.Error,subprocess.SubprocessError,ImportError):
         p.exit(1,'Return refused. Check the copy, registry and migration state.\n')
     print(json.dumps({'status':result,'run_id':args.approved_plan}))

@@ -18,19 +18,23 @@ def main():
     for name,target in (('bin','usr/bin'),('sbin','usr/sbin'),('lib','usr/lib'),('lib64','usr/lib64')):
         (root/name).symlink_to(target)
     (root/'.vpn-control-rehearsal').write_text('synthetic root, not a production cutover\n')
-    (root/'etc/passwd').write_text('root:x:0:0:root:/root:/bin/sh\nweb:x:65532:65532:web:/nonexistent:/bin/false\nrelay:x:65533:65533:relay:/nonexistent:/bin/false\ncaddy:x:65534:65534:caddy:/nonexistent:/bin/false\n')
-    (root/'etc/group').write_text('root:x:0:\nweb:x:65532:\nrelay:x:65533:\ncaddy:x:65534:\n')
+    (root/'etc/passwd').write_text('root:x:0:0:root:/root:/bin/sh\nevpn-panel:x:981:981:web:/nonexistent:/bin/false\nevpn:x:999:986:relay:/nonexistent:/bin/false\nevpn-caddy:x:982:982:caddy:/nonexistent:/bin/false\n')
+    (root/'etc/group').write_text('root:x:0:\nevpn-panel:x:981:\nevpn:x:986:\nevpn-caddy:x:982:\n')
     # Bind only a source subtree that does not contain RootDirectory itself.
     # A recursive read-only bind of its ancestor would also cover the test root.
     source=root.parent/'rehearsal-source'
     source.mkdir(mode=0o700,exist_ok=True)
     project=Path(__file__).resolve().parents[1]
-    for name in ('owned_auth.py','create_probe.py','inspect_legacy.py','handoff_legacy.py','return_legacy.py','render.py','verify.py'):
+    for name in ('owned_auth.py','create_probe.py','g3_snapshot.py','g3_restore_runtime.py','inspect_legacy.py','handoff_legacy.py','return_legacy.py','render.py','verify.py'):
         shutil.copy2(project/name,source/name)
     for name in ('templates','rehearsal-bin'):
         shutil.copytree(project/name,source/name,dirs_exist_ok=True)
     (source/'local/bin').mkdir(parents=True,exist_ok=True)
     shutil.copy2(project/'rehearsal-bin/vpnctl',source/'local/bin/vpnctl')
+    template=(project/'templates/vpn-add-user').read_text()
+    (source/'vpn-add-user.template').write_text(template)
+    (source/'local/bin/vpn-add-user').write_text(template.replace('@STATE@','/var/lib/empire-vpn/lab').replace('@BASE@','/etc/empire-vpn/lab').replace('@PREFIX@','evpn-lab'))
+    (source/'local/bin/vpn-add-user').chmod(0o755)
     (source/'pilot').mkdir(exist_ok=True)
     for name in ('recovery_probe.py','full_worker_rehearsal.py'):
         shutil.copy2(project/'pilot'/name,source/'pilot'/name)

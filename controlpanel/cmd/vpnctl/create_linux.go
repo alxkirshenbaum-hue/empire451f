@@ -14,7 +14,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"syscall"
 
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/status"
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/storage"
@@ -83,39 +82,18 @@ func withOwnedInstallation(state, config, lockPath, panel, run string, action fu
 // repair only a bound, inspected pending saga; normal callers cannot bypass drift.
 func withOwnedInstallationRecovery(state, config, lockPath, panel, run string, recovery func(context.Context, *storage.Registry) error, action func(context.Context, *storage.Registry) (storage.Receipt, error)) (storage.Receipt, error) {
 	var empty storage.Receipt
-	lock, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0600)
+	lock, err := installationLock(lockPath)
 	if err != nil {
 		return empty, err
 	}
 	defer lock.Close()
-	if err = syscall.Flock(int(lock.Fd()), syscall.LOCK_EX); err != nil {
-		return empty, err
-	}
 	for _, journal := range []string{"pending.json", "user-rollback.json", "return-intent.json"} {
 		if _, err = os.Lstat(filepath.Join(state, journal)); !errors.Is(err, os.ErrNotExist) {
 			return empty, storage.ErrLegacyConflict
 		}
 	}
-	db := filepath.Join(panel, "state.db")
-	if info, err := os.Lstat(db); err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
-		return empty, storage.ErrLegacyConflict
-	}
-	keyPath := filepath.Join(panel, "vault.key")
-	info, err := os.Lstat(keyPath)
-	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm()&0077 != 0 || info.Size() != 32 {
-		return empty, storage.ErrVaultKey
-	}
-	key, err := os.ReadFile(keyPath)
-	if err != nil {
-		return empty, err
-	}
-	cipher, err := vault.New(key)
-	clear(key)
-	if err != nil {
-		return empty, err
-	}
 	ctx := context.Background()
-	registry, err := storage.Open(ctx, db, cipher, 1)
+	registry, err := openExistingRegistry(ctx, filepath.Join(panel, "state.db"), filepath.Join(panel, "vault.key"), 1)
 	if err != nil {
 		return empty, err
 	}
@@ -162,6 +140,17 @@ func verifyOwnedFiles(state, config, run string) (int64, error) {
 	clear(content)
 	if hex.EncodeToString(sum[:]) != manifest.Hash {
 		return 0, storage.ErrLegacyDrift
+	}
+	for path, expected := range manifest.Files {
+		data, e := os.ReadFile(path)
+		if e != nil {
+			return 0, storage.ErrLegacyDrift
+		}
+		digest := sha256.Sum256(data)
+		clear(data)
+		if hex.EncodeToString(digest[:]) != expected {
+			return 0, storage.ErrLegacyDrift
+		}
 	}
 	return manifest.Generation, nil
 }

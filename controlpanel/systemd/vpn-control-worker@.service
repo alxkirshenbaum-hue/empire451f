@@ -7,6 +7,8 @@ Type=oneshot
 User=root
 UMask=0077
 EnvironmentFile=/etc/vpn-control/worker-%i.env
+Environment=XDG_DATA_HOME=/var/lib/empire-vpn-acme
+Environment=XDG_CONFIG_HOME=/var/lib/empire-vpn-acme
 ExecStart=/usr/local/bin/vpnctl worker once --installation %i --owner-run ${OWNER_RUN}
 TimeoutStartSec=180
 NoNewPrivileges=yes
@@ -17,7 +19,7 @@ PrivateDevices=yes
 ProtectKernelTunables=yes
 ProtectKernelModules=yes
 ProtectControlGroups=yes
-ReadWritePaths=/var/lib/vpn-control /var/lib/empire-vpn/%i /etc/empire-vpn/%i /run/lock/empire-vpn.lock /run/vpn-control
+ReadWritePaths=/var/lib/vpn-control /var/lib/empire-vpn-acme /var/lib/empire-vpn/%i /etc/empire-vpn/%i /run/lock/empire-vpn.lock /run/vpn-control
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
 LimitNOFILE=4096
 

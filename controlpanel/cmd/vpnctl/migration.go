@@ -15,6 +15,29 @@ import (
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/vault"
 )
 
+var errRegistryFile = errors.New("existing private registry required")
+
+func openExistingRegistry(ctx context.Context, db, keyPath string, version int64) (*storage.Registry, error) {
+	info, err := os.Lstat(db)
+	if err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
+		return nil, errRegistryFile
+	}
+	info, err = os.Lstat(keyPath)
+	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm()&0077 != 0 || info.Size() != 32 {
+		return nil, storage.ErrVaultKey
+	}
+	key, err := os.ReadFile(keyPath)
+	if err != nil {
+		return nil, storage.ErrVaultKey
+	}
+	defer clear(key)
+	cipher, err := vault.New(key)
+	if err != nil {
+		return nil, storage.ErrVaultKey
+	}
+	return storage.Open(ctx, db, cipher, version)
+}
+
 func executeMigration(action string, args []string, out, stderr io.Writer) int {
 	flags := flag.NewFlagSet("migration "+action, flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
@@ -45,26 +68,12 @@ func executeMigration(action string, args []string, out, stderr io.Writer) int {
 	if flags.Parse(args) != nil || flags.NArg() != 0 || !status.ValidID(*run) || *db == "" || directory == "" || *keyPath == "" || *version < 1 || (*quiet && *machine) {
 		return fail(2, "VALIDATION_ERROR", "Expected an approved plan UUID, staging DB, directory and key file")
 	}
-	info, err := os.Lstat(*db)
-	if err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
-		return fail(2, "VALIDATION_ERROR", "Existing staging registry required")
-	}
-	info, err = os.Lstat(*keyPath)
-	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm()&0077 != 0 || info.Size() != 32 {
-		return fail(5, "SECRET_UNAVAILABLE", "Private 32-byte vault key file required")
-	}
-	key, err := os.ReadFile(*keyPath)
-	if err != nil {
-		return fail(5, "SECRET_UNAVAILABLE", "Vault key unavailable")
-	}
-	cipher, err := vault.New(key)
-	clear(key)
-	if err != nil {
-		return fail(5, "SECRET_UNAVAILABLE", "Invalid vault key")
-	}
 	ctx := context.Background()
-	registry, err := storage.Open(ctx, *db, cipher, *version)
+	registry, err := openExistingRegistry(ctx, *db, *keyPath, *version)
 	if err != nil {
+		if errors.Is(err, errRegistryFile) {
+			return fail(2, "VALIDATION_ERROR", "Existing staging registry required")
+		}
 		if errors.Is(err, storage.ErrVaultKey) {
 			return fail(5, "SECRET_UNAVAILABLE", "Vault key verification failed")
 		}

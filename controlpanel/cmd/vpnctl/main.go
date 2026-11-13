@@ -16,6 +16,12 @@ import (
 )
 
 func execute(args []string, out, stderr io.Writer) int {
+	if len(args) >= 2 && args[0] == "registry" && args[1] == "init" {
+		return initializeRegistry(args[2:], out, stderr)
+	}
+	if len(args) >= 2 && args[0] == "migration" && args[1] == "cutover" {
+		return cutoverLocal(args[2:], out, stderr)
+	}
 	if len(args) >= 2 && args[0] == "worker" && args[1] == "once" {
 		return workerOnce(args[2:], out, stderr)
 	}

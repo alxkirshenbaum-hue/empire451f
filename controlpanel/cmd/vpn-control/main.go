@@ -11,6 +11,7 @@ import (
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/status"
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/storage"
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/vault"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -115,18 +116,27 @@ func main() {
 	db := flag.String("db", "/var/lib/vpn-control/state.db", "Existing panel registry")
 	socket := flag.String("socket", "/run/vpn-control/api.sock", "Local Unix socket")
 	owner := flag.String("bootstrap-owner", "", "Create first independent panel owner and exit")
+	stdinPassword := flag.Bool("owner-password-stdin", false, "Read bootstrap password from protected stdin")
 	domain := flag.String("profile-domain", "", "VPN endpoint domain for profile downloads")
 	key := flag.String("vault-key-file", "", "Private vault key file for profile downloads")
 	version := flag.Int64("key-version", 1, "Vault key version")
 	flag.Parse()
+	if *stdinPassword && *owner == "" {
+		fmt.Fprintln(os.Stderr, "Password input requires bootstrap-owner")
+		os.Exit(2)
+	}
 	if *owner != "" {
 		sessions, err := auth.Open(*db)
 		if err == nil {
 			defer sessions.Close()
 			var password []byte
-			password, err = exec.Command("systemd-ask-password", "New panel owner password:").Output()
+			if *stdinPassword {
+				password, err = io.ReadAll(io.LimitReader(os.Stdin, 1027))
+			} else {
+				password, err = exec.Command("systemd-ask-password", "New panel owner password:").Output()
+			}
 			if err == nil {
-				err = sessions.Bootstrap(context.Background(), *owner, strings.TrimSuffix(string(password), "\n"))
+				err = sessions.Bootstrap(context.Background(), *owner, strings.TrimSuffix(strings.TrimSuffix(string(password), "\n"), "\r"))
 				clear(password)
 			}
 		}

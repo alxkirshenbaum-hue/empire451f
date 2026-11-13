@@ -129,6 +129,10 @@ func same(a, b []byte) bool {
 	return bytes.Equal(x, y)
 }
 
+// ConfigEqual compares complete JSON configurations without dropping numbers
+// or unknown directives; reused for startup/cutover drift inspection.
+func ConfigEqual(a, b []byte) bool { return same(a, b) }
+
 // Prepare persists before/candidate before any live mutation. The directory
 // must already be private and on durable storage; it contains plaintext auth.
 func Prepare(ctx context.Context, rt Runtime, directory, operation string, generation int64, login, password string) (*Prepared, error) {

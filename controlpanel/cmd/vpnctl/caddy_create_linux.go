@@ -22,6 +22,7 @@ type createCaddyWorker struct {
 	state, config, lock, panel, run, helper string
 	runtime                                 caddy.Runtime
 	probe                                   func(context.Context, string, vault.PlainSecret) error
+	baseline                                func(context.Context) error
 }
 
 // Helper requests are root-owned deployment policy; secrets travel only on stdin.
@@ -46,7 +47,7 @@ func (w *createCaddyWorker) files(ctx context.Context, action string, receipt st
 }
 
 func (w *createCaddyWorker) directory(operation string) string {
-	return filepath.Join(w.panel, "operations", operation)
+	return filepath.Join(w.state, "panel-operations", operation)
 }
 
 func (w *createCaddyWorker) recover(ctx context.Context, reg *storage.Registry) (storage.Receipt, error) {
@@ -132,6 +133,11 @@ func (w *createCaddyWorker) once() (storage.Receipt, error) {
 			return err
 		},
 		func(ctx context.Context, reg *storage.Registry) (storage.Receipt, error) {
+			if w.baseline != nil {
+				if err := w.baseline(ctx); err != nil {
+					return storage.Receipt{}, err
+				}
+			}
 			if recovered.OperationID != "" {
 				return recovered, nil
 			}
@@ -145,11 +151,14 @@ func (w *createCaddyWorker) once() (storage.Receipt, error) {
 			if phase != "queued" {
 				return receipt, storage.ErrJournalConflict
 			}
+			if !status.ValidID(receipt.OperationID) || !status.ValidID(receipt.UserID) {
+				return receipt, caddy.ErrInput
+			}
 			generation, err := verifyOwnedFiles(w.state, w.config, w.run)
 			if err != nil {
 				return receipt, err
 			}
-			for _, dir := range []string{filepath.Join(w.panel, "operations"), w.directory(receipt.OperationID)} {
+			for _, dir := range []string{filepath.Join(w.state, "panel-operations"), w.directory(receipt.OperationID)} {
 				if err = os.Mkdir(dir, 0700); err != nil && !errors.Is(err, os.ErrExist) {
 					return receipt, err
 				}
@@ -191,7 +200,7 @@ func (w *createCaddyWorker) finish(ctx context.Context, receipt storage.Receipt,
 // only a known succeeded job; no recursive removal or configuration mutation.
 func (w *createCaddyWorker) cleanupCompleted(ctx context.Context, reg *storage.Registry) (storage.Receipt, error) {
 	var empty storage.Receipt
-	entries, err := os.ReadDir(filepath.Join(w.panel, "operations"))
+	entries, err := os.ReadDir(filepath.Join(w.state, "panel-operations"))
 	if errors.Is(err, os.ErrNotExist) {
 		return empty, nil
 	}

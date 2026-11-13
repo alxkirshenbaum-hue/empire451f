@@ -1,0 +1,29 @@
+[Unit]
+Description=Private VPN control owner API
+
+[Service]
+User=evpn-panel
+Group=evpn-panel
+UMask=0077
+EnvironmentFile=/etc/vpn-control/api.env
+RuntimeDirectory=vpn-control-api
+RuntimeDirectoryMode=0700
+ExecStart=/usr/local/bin/vpn-control --db /var/lib/vpn-control/state.db --socket /run/vpn-control-api/api.sock --profile-domain ${PROFILE_DOMAIN} --vault-key-file /var/lib/vpn-control/vault.key
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ReadWritePaths=/var/lib/vpn-control
+RestrictAddressFamilies=AF_UNIX
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target

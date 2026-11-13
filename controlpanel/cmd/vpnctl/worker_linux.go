@@ -103,6 +103,34 @@ func commandProbe(command []string) func(context.Context, string, vault.PlainSec
 	}
 }
 
+// Adapt the actual file with the same namespace/identity prefix as validation.
+// This detects live unmanaged drift before preparing any auth mutation.
+func caddyBaseline(ctx context.Context, policy workerPolicy, runtime caddy.Runtime, caddyfile string) error {
+	command := policy.Validate
+	n := len(command)
+	if n < 4 || command[n-3] != "validate" || command[n-2] != "--config" || command[n-1] != "-" {
+		return caddy.ErrInput
+	}
+	args := append(append([]string(nil), command[1:n-3]...), "adapt", "--config", caddyfile, "--adapter", "caddyfile")
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, command[0], args...)
+	expected, err := cmd.Output()
+	if err != nil {
+		return caddy.ErrRuntime
+	}
+	defer clear(expected)
+	actual, err := runtime.Read(ctx)
+	if err != nil {
+		return err
+	}
+	defer clear(actual)
+	if !caddy.ConfigEqual(actual, expected) {
+		return caddy.ErrDrift
+	}
+	return nil
+}
+
 func workerOnce(args []string, out, stderr io.Writer) int {
 	flags := flag.NewFlagSet("worker once", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
@@ -127,6 +155,9 @@ func workerOnce(args []string, out, stderr io.Writer) int {
 		return 5
 	}
 	w := createCaddyWorker{state: filepath.Join("/var/lib/empire-vpn", *installation), config: "/etc/empire-vpn", lock: "/run/lock/empire-vpn.lock", panel: "/var/lib/vpn-control", run: *run, helper: policy.Helper, runtime: runtime, probe: commandProbe(policy.Probe)}
+	w.baseline = func(ctx context.Context) error {
+		return caddyBaseline(ctx, policy, runtime, filepath.Join(w.config, *installation, "Caddyfile"))
+	}
 	receipt, err := w.once()
 	if err != nil {
 		fmt.Fprintln(stderr, "Worker stopped; inspect protected operation state before retrying")

@@ -324,7 +324,6 @@ module.main()
         require((state/'master_user.sfa.json').read_bytes()==old_profile,'original profile changed')
         mutations = os.environ.get('VPN_REHEARSAL_MUTATIONS') == '1'
         if mutations:
-            import uuid
             from create_probe import probe
             old_secret = outbound['password']
             for action in ('disable','disable','enable','rotate','delete'):

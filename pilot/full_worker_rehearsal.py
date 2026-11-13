@@ -168,9 +168,13 @@ def main():
         profile_client(stack,template,19082,base/'cert')
         from verify import connect
         try:
-            with connect(19082,'127.0.0.1',2019): pass
+            # SOCKS acknowledgement may precede the upstream connect failure.
+            # Check actual response data instead of treating ACK as admin access.
+            with connect(19082,'127.0.0.1',2019) as stream:
+                stream.sendall(b'GET /config/ HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n')
+                exposed=bool(stream.recv(128))
         except (OSError,RuntimeError): pass
-        else: raise RuntimeError('admin TCP endpoint exposed through proxy')
+        else: require(not exposed,'admin TCP endpoint exposed through proxy')
         with socket.create_connection(('127.0.0.1',18443),3) as raw:
             with ssl.create_default_context(cafile=str(base/'cert')).wrap_socket(raw,server_hostname='lab.example') as secured:
                 secured.sendall(b'GET /config/ HTTP/1.1\r\nHost: lab.example\r\nConnection: close\r\n\r\n')

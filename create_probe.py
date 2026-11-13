@@ -134,7 +134,7 @@ def main():
         require(len(sys.argv) == 3 and sys.argv[1] == '--policy','Expected probe policy')
         login,password = json.loads(sys.stdin.buffer.read(4097))
         probe(sys.argv[2],login,password)
-    except (OSError,ValueError,TypeError,KeyError,RuntimeError,subprocess.SubprocessError):
+    except (OSError,ValueError,TypeError,KeyError,RuntimeError,http.client.HTTPException,subprocess.SubprocessError):
         print('Fresh Naive/TLS/TCP/UoT/site probe failed.',file=sys.stderr)
         return 1
     print('{"verified":true}')

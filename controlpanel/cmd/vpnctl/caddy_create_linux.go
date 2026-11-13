@@ -23,6 +23,7 @@ type createCaddyWorker struct {
 	runtime                                 caddy.Runtime
 	probe                                   func(context.Context, string, vault.PlainSecret) error
 	baseline                                func(context.Context) error
+	mutationProbe                           func(context.Context, storage.AuthJob, vault.PlainSecret, vault.PlainSecret) error
 }
 
 // Helper requests are root-owned deployment policy; secrets travel only on stdin.
@@ -69,11 +70,18 @@ func (w *createCaddyWorker) recover(ctx context.Context, reg *storage.Registry) 
 	if json.Unmarshal(data, &intent) != nil || intent.Run != w.run || !status.ValidID(intent.Operation) || intent.Prepared != filepath.Join(w.directory(intent.Operation), "prepared.json") {
 		return empty, caddy.ErrInput
 	}
+	job, err := reg.OwnedAuthJob(ctx, w.run, intent.Operation)
+	if err != nil {
+		return empty, err
+	}
+	if job.Kind != "user.create" {
+		return w.recoverMutation(ctx, reg, job, intent.Generation)
+	}
 	receipt, login, phase, err := reg.OwnedCreateState(ctx, w.run, intent.Operation)
 	if err != nil {
 		return empty, err
 	}
-	next, nextPhase, err := reg.NextOwnedCreate(ctx, w.run)
+	next, nextPhase, err := reg.NextOwnedAuth(ctx, w.run)
 	if err != nil {
 		return empty, err
 	}
@@ -144,7 +152,7 @@ func (w *createCaddyWorker) once() (storage.Receipt, error) {
 			if cleaned, err := w.cleanupCompleted(ctx, reg); err != nil || cleaned.OperationID != "" {
 				return cleaned, err
 			}
-			receipt, phase, err := reg.NextOwnedCreate(ctx, w.run)
+			receipt, phase, err := reg.NextOwnedAuth(ctx, w.run)
 			if err != nil || phase == "" {
 				return receipt, err
 			}
@@ -153,6 +161,13 @@ func (w *createCaddyWorker) once() (storage.Receipt, error) {
 			}
 			if !status.ValidID(receipt.OperationID) || !status.ValidID(receipt.UserID) {
 				return receipt, caddy.ErrInput
+			}
+			job, err := reg.OwnedAuthJob(ctx, w.run, receipt.OperationID)
+			if err != nil {
+				return receipt, err
+			}
+			if job.Kind != "user.create" {
+				return receipt, w.applyMutation(ctx, reg, job)
 			}
 			generation, err := verifyOwnedFiles(w.state, w.config, w.run)
 			if err != nil {
@@ -211,7 +226,8 @@ func (w *createCaddyWorker) cleanupCompleted(ctx context.Context, reg *storage.R
 		if !entry.IsDir() || !status.ValidID(entry.Name()) {
 			return empty, caddy.ErrInput
 		}
-		receipt, _, phase, e := reg.OwnedCreateState(ctx, w.run, entry.Name())
+		job, e := reg.OwnedAuthJob(ctx, w.run, entry.Name())
+		receipt, phase := job.Receipt, job.Phase
 		if e != nil || phase != "succeeded" {
 			continue
 		}
@@ -251,4 +267,116 @@ func (w *createCaddyWorker) removePrepared(operation string) error {
 		return err
 	}
 	return errors.Join(parent.Sync(), parent.Close())
+}
+
+// mutationChange derives both sides from durable intent; retries never invent a
+// credential. Disabled -> deleted is an absence assertion.
+func mutationChange(j storage.AuthJob, login string, old, fresh vault.PlainSecret) caddy.AuthChange {
+	change := caddy.AuthChange{Login: login}
+	if j.BeforeStatus == "active" {
+		change.Previous = string(old)
+	}
+	if j.AfterStatus == "active" {
+		change.Password = string(fresh)
+	}
+	return change
+}
+
+func (w *createCaddyWorker) applyMutation(ctx context.Context, reg *storage.Registry, j storage.AuthJob) error {
+	if w.mutationProbe == nil {
+		return caddy.ErrInput
+	}
+	generation, err := verifyOwnedFiles(w.state, w.config, w.run)
+	if err != nil {
+		return err
+	}
+	if err = reg.Transition(ctx, j.OperationID, "queued", "running"); err != nil {
+		return err
+	}
+	for _, dir := range []string{filepath.Join(w.state, "panel-operations"), w.directory(j.OperationID)} {
+		if err = os.Mkdir(dir, 0700); err != nil && !errors.Is(err, os.ErrExist) {
+			return errors.Join(err, reg.Transition(ctx, j.OperationID, "running", "reconcile_required"))
+		}
+	}
+	err = reg.WithMutationSecrets(ctx, j, func(login string, old, fresh vault.PlainSecret) error {
+		change := mutationChange(j, login, old, fresh)
+		p, e := caddy.PrepareAuth(ctx, w.runtime, w.directory(j.OperationID), j.OperationID, generation, change)
+		if e != nil {
+			return e
+		}
+		defer p.Clear()
+		base := filepath.Join(w.config, filepath.Base(w.state))
+		if e = w.files(ctx, "prepare", j.Receipt, generation, map[string]any{"auth": filepath.Join(base, "auth.caddy"), "caddyfile": filepath.Join(base, "Caddyfile"), "prepared_dir": w.directory(j.OperationID), "login": login, "password": change.Password, "previous": change.Previous}); e != nil {
+			return e
+		}
+		if e = p.Apply(ctx, w.runtime, func(ctx context.Context) error { return w.mutationProbe(ctx, j, old, fresh) }); e != nil {
+			return e
+		}
+		return w.files(ctx, "publish_files", j.Receipt, generation, nil)
+	})
+	if err != nil {
+		return errors.Join(err, reg.Transition(ctx, j.OperationID, "running", "reconcile_required"))
+	}
+	if err = reg.Transition(ctx, j.OperationID, "running", "verifying"); err != nil {
+		return err
+	}
+	if err = reg.CompleteVerifiedMutation(ctx, w.run, j); err != nil {
+		return err
+	}
+	return w.finish(ctx, j.Receipt, generation)
+}
+
+func (w *createCaddyWorker) recoverMutation(ctx context.Context, reg *storage.Registry, j storage.AuthJob, generation int64) (storage.Receipt, error) {
+	fail := func(e error) (storage.Receipt, error) {
+		if j.Phase == "running" || j.Phase == "verifying" {
+			e = errors.Join(e, reg.Transition(ctx, j.OperationID, j.Phase, "reconcile_required"))
+		}
+		return j.Receipt, e
+	}
+	if w.mutationProbe == nil {
+		return fail(caddy.ErrInput)
+	}
+	next, phase, err := reg.NextOwnedAuth(ctx, w.run)
+	if err != nil {
+		return fail(err)
+	}
+	if j.Phase != "succeeded" && next != j.Receipt || j.Phase == "succeeded" && (phase == "running" || phase == "verifying") {
+		return fail(storage.ErrJournalConflict)
+	}
+	if err = w.files(ctx, "inspect", j.Receipt, generation, nil); err != nil {
+		return fail(err)
+	}
+	p, err := caddy.ReadPrepared(w.directory(j.OperationID), j.OperationID, generation)
+	if err != nil {
+		return fail(err)
+	}
+	defer p.Clear()
+	err = reg.WithMutationSecrets(ctx, j, func(login string, old, fresh vault.PlainSecret) error {
+		candidate, e := caddy.PatchAuth(p.Before, mutationChange(j, login, old, fresh))
+		if e != nil {
+			return e
+		}
+		defer clear(candidate)
+		if !caddy.ConfigEqual(candidate, p.Candidate) {
+			return caddy.ErrDrift
+		}
+		if e = p.Verify(ctx, w.runtime, func(ctx context.Context) error { return w.mutationProbe(ctx, j, old, fresh) }); e != nil {
+			return e
+		}
+		return w.files(ctx, "publish_files", j.Receipt, generation, nil)
+	})
+	if err != nil {
+		return fail(err)
+	}
+	if j.Phase != "succeeded" {
+		if j.Phase == "running" {
+			if err = reg.Transition(ctx, j.OperationID, "running", "verifying"); err != nil {
+				return j.Receipt, err
+			}
+		}
+		if err = reg.CompleteVerifiedMutation(ctx, w.run, j); err != nil {
+			return j.Receipt, err
+		}
+	}
+	return j.Receipt, w.finish(ctx, j.Receipt, generation)
 }

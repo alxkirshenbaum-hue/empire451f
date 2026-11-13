@@ -16,6 +16,12 @@ import (
 )
 
 func execute(args []string, out, stderr io.Writer) int {
+	if len(args) >= 2 && args[0] == "user" && (args[1] == "disable" || args[1] == "enable" || args[1] == "delete") {
+		return mutateLocalUser(args[1], args[2:], out, stderr)
+	}
+	if len(args) >= 2 && args[0] == "cred" && (args[1] == "rotate" || args[1] == "revoke") {
+		return mutateLocalUser(args[1], args[2:], out, stderr)
+	}
 	if len(args) >= 2 && args[0] == "registry" && args[1] == "init" {
 		return initializeRegistry(args[2:], out, stderr)
 	}

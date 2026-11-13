@@ -52,11 +52,15 @@ func canonical(raw []byte) ([]byte, error) {
 // PatchCreate requires exactly one forward_proxy handler and retains all
 // other JSON properties, including unknown future directives and number values.
 func PatchCreate(raw []byte, login, password string) ([]byte, error) {
+	if password == "" {
+		return nil, ErrInput
+	}
 	return PatchAuth(raw, AuthChange{Login: login, Password: password})
 }
 
 // AuthChange compares exact managed credentials. Empty Previous inserts;
-// empty Password removes; both populated replace. Domain admission owns
+// empty Password removes; both empty assert absence; both populated replace.
+// Domain admission owns
 // protection, status, versions and secret retention. No secret is generated here.
 type AuthChange struct {
 	Login, Previous, Password string
@@ -66,7 +70,7 @@ type AuthChange struct {
 // require the observed secret. Login comparison is case-sensitive.
 func PatchAuth(raw []byte, change AuthChange) ([]byte, error) {
 	login, password := change.Login, change.Password
-	if login == "" || strings.ContainsAny(login, ":\r\n") || (password == "" && change.Previous == "") || strings.Contains(password, "{$") {
+	if login == "" || strings.ContainsAny(login, ":\r\n") || strings.Contains(password, "{$") {
 		return nil, ErrInput
 	}
 	normal, err := canonical(raw)
@@ -139,6 +143,9 @@ func PatchAuth(raw []byte, change AuthChange) ([]byte, error) {
 		return nil, ErrDrift
 	}
 	if password == "" {
+		if change.Previous == "" {
+			return json.Marshal(value)
+		}
 		// An empty auth list could expose an unauthenticated proxy.
 		if len(credentials) == 1 {
 			return nil, ErrInput
@@ -179,6 +186,9 @@ func ConfigEqual(a, b []byte) bool { return same(a, b) }
 // Prepare persists before/candidate before any live mutation. The directory
 // must already be private and on durable storage; it contains plaintext auth.
 func Prepare(ctx context.Context, rt Runtime, directory, operation string, generation int64, login, password string) (*Prepared, error) {
+	if password == "" {
+		return nil, ErrInput
+	}
 	return PrepareAuth(ctx, rt, directory, operation, generation, AuthChange{Login: login, Password: password})
 }
 
@@ -268,8 +278,16 @@ func (p *Prepared) Apply(ctx context.Context, rt Runtime, verify func(context.Co
 	if !same(current, p.Before) {
 		return ErrDrift
 	}
+	if same(current, p.Candidate) {
+		return p.Verify(ctx, rt, verify)
+	}
 	if err = rt.Load(ctx, p.Candidate); err != nil {
-		return err
+		// Lost acknowledgement and timeout are the same uncertain outcome.
+		// Inspect exact live state and fresh auth before deciding to block.
+		if proof := p.Verify(ctx, rt, verify); proof != nil {
+			return errors.Join(err, proof)
+		}
+		return nil
 	}
 	return p.Verify(ctx, rt, verify)
 }

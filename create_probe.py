@@ -107,7 +107,7 @@ def datagram(p, port):
         raise ValueError('Unsupported UoT probe')
 
 
-def probe(policy_path, login, password):
+def probe(policy_path, login, password, previous="", active=True):
     p = json.loads(root_file(policy_path,True).read_bytes(),object_pairs_hook=unique_fields)
     credentials(dict(format='empire-vpn-clients',schema_version=1,clients=[dict(username=login,password=password)]))
     root_file(p['binary'])
@@ -118,13 +118,19 @@ def probe(policy_path, login, password):
         canary = next((name for name in users if name != login),None)
     require(canary != login and canary in users,'Independent control user required')
     website(p)
-    for name,secret in ((canary,users[canary]),(login,password)):
+    positive = [(canary,users[canary])] + ([(login,password)] if active else [])
+    for name,secret in positive:
         with client(p,name,secret) as port:
             tcp(p,port);datagram(p,port)
-    with client(p,login,secrets.token_hex(32)) as port:
-        try: tcp(p,port)
-        except (OSError,RuntimeError,subprocess.TimeoutExpired): pass
-        else: raise RuntimeError('Wrong password accepted')
+    denied = [secrets.token_hex(32)]
+    if not active: denied.append(password)
+    elif previous and previous != password: denied.append(previous)
+    for secret in denied:
+        for check in (tcp, datagram):
+            with client(p,login,secret) as port:
+                try: check(p,port)
+                except (OSError,RuntimeError,subprocess.TimeoutExpired): pass
+                else: raise RuntimeError('Revoked or invalid credential accepted')
     # A negative trial alone cannot distinguish rejection from an outage.
     with client(p,canary,users[canary]) as port:
         tcp(p,port);datagram(p,port)
@@ -134,8 +140,13 @@ def probe(policy_path, login, password):
 def main():
     try:
         require(len(sys.argv) == 3 and sys.argv[1] == '--policy','Expected probe policy')
-        login,password = json.loads(sys.stdin.buffer.read(4097))
-        probe(sys.argv[2],login,password)
+        request = json.loads(sys.stdin.buffer.read(8193))
+        if isinstance(request,list):
+            login,password = request
+            probe(sys.argv[2],login,password)
+        else:
+            require(set(request) == {'login','password','previous','active'} and type(request['active']) is bool,'Invalid auth probe')
+            probe(sys.argv[2],**request)
     except (OSError,ValueError,TypeError,KeyError,RuntimeError,http.client.HTTPException,subprocess.SubprocessError):
         print('Fresh Naive/TLS/TCP/UoT/site probe failed.',file=sys.stderr)
         return 1

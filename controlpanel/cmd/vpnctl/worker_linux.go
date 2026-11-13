@@ -18,6 +18,7 @@ import (
 
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/caddy"
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/status"
+	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/storage"
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/vault"
 )
 
@@ -155,6 +156,7 @@ func workerOnce(args []string, out, stderr io.Writer) int {
 		return 5
 	}
 	w := createCaddyWorker{state: filepath.Join("/var/lib/empire-vpn", *installation), config: "/etc/empire-vpn", lock: "/run/lock/empire-vpn.lock", panel: "/var/lib/vpn-control", run: *run, helper: policy.Helper, runtime: runtime, probe: commandProbe(policy.Probe)}
+	w.mutationProbe = commandMutationProbe(policy.Probe)
 	w.baseline = func(ctx context.Context) error {
 		return caddyBaseline(ctx, policy, runtime, filepath.Join(w.config, *installation, "Caddyfile"))
 	}
@@ -174,4 +176,26 @@ func workerOnce(args []string, out, stderr io.Writer) int {
 		return 9
 	}
 	return 0
+}
+
+func commandMutationProbe(command []string) func(context.Context, storage.AuthJob, vault.PlainSecret, vault.PlainSecret) error {
+	return func(ctx context.Context, j storage.AuthJob, old, fresh vault.PlainSecret) error {
+		password := fresh
+		if j.AfterStatus != "active" {
+			password = old
+		}
+		data, err := json.Marshal(map[string]any{"login": j.Login, "password": string(password), "previous": string(old), "active": j.AfterStatus == "active"})
+		if err != nil {
+			return caddy.ErrInput
+		}
+		defer clear(data)
+		ctx, cancel := context.WithTimeout(ctx, 180*time.Second)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, command[0], command[1:]...)
+		cmd.Stdin = bytes.NewReader(data)
+		if cmd.Run() != nil {
+			return errors.New("fresh operation-specific Naive and site verification failed")
+		}
+		return nil
+	}
 }

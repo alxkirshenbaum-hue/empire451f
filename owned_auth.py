@@ -71,7 +71,7 @@ def attributes(path):
     return {name:base64.b64encode(os.getxattr(path,name)).decode() for name in os.listxattr(path)}
 
 
-def prepare(state, auth, caddyfile, prepared_dir, operation, run, generation, login, password):
+def prepare(state, auth, caddyfile, prepared_dir, operation, run, generation, login, password, previous=""):
     state, auth, caddyfile, prepared_dir = map(location, (state, auth, caddyfile, prepared_dir))
     require(state.is_dir() and state.stat().st_mode & 0o077 == 0
             and prepared_dir.is_dir() and prepared_dir.stat().st_mode & 0o077 == 0)
@@ -87,27 +87,49 @@ def prepare(state, auth, caddyfile, prepared_dir, operation, run, generation, lo
     # Validate file baseline, rather than silently dropping installer directives.
     require(meta['files'].get(str(caddyfile)) == digest(read(caddyfile)))
     pairs = list(auth_lines(original_auth))
-    require(login not in {name for name, _ in pairs})
-    users = credentials(dict(format='empire-vpn-clients', schema_version=1,
-                             clients=[dict(username=n,password=p) for n,p in pairs]
-                             + [dict(username=login,password=password)]))['clients']
+    before_users = credentials(dict(format='empire-vpn-clients', schema_version=1,
+                                    clients=[dict(username=n,password=p) for n,p in pairs]))['clients']
+    active = dict(pairs)
+    require(login != 'master_user')
+    if previous:
+        require(active.get(login) == previous)
+    else:
+        require(login not in active)
+    changed = []
+    for name, secret in pairs:
+        if name == login:
+            if password: changed.append(dict(username=name,password=password))
+        else:
+            changed.append(dict(username=name,password=secret))
+    if not previous and password:
+        changed.append(dict(username=login,password=password))
+    users = credentials(dict(format='empire-vpn-clients',schema_version=1,clients=changed))['clients']
+    require(users)  # Never publish an empty auth list.
     prepared = decode(read(prepared_dir/'prepared.json', True))
     require(prepared['operation'] == operation and prepared['generation'] == generation
-            and auth_values(prepared['before']) == encoded_auth(users[:-1])
+            and auth_values(prepared['before']) == encoded_auth(before_users)
             and auth_values(prepared['candidate']) == encoded_auth(users))
-    # Ensure candidate changes exactly one managed field, even for a damaged journal.
     candidate = json.loads(json.dumps(prepared['candidate']))
     def restore_auth(value):
         if isinstance(value, dict):
             if value.get('handler') == 'forward_proxy':
-                value['auth_credentials'] = encoded_auth(users[:-1])
+                value['auth_credentials'] = encoded_auth(before_users)
             for child in value.values(): restore_auth(child)
         elif isinstance(value, list):
             for child in value: restore_auth(child)
     restore_auth(candidate)
     require(candidate == prepared['before'])
-    suffix = ('basic_auth '+json.dumps(login)+' '+json.dumps(password)+'\n').encode()
-    candidate_auth = original_auth + (b'\n' if original_auth and not original_auth.endswith(b'\n') else b'') + suffix
+    replacement = ('basic_auth '+json.dumps(login)+' '+json.dumps(password)+'\n').encode()
+    lines = []
+    for line in original_auth.splitlines(keepends=True):
+        parsed = list(auth_lines(line))
+        if parsed and parsed[0][0] == login:
+            if password: lines.append(replacement)
+        else:
+            lines.append(line)
+    candidate_auth = b''.join(lines)
+    if not previous and password:
+        candidate_auth += (b'\n' if candidate_auth and not candidate_auth.endswith(b'\n') else b'') + replacement
     meta['panel_generation'] = generation + 1
     meta['panel_auth_hash'] = digest(candidate_auth)
     candidate_manifest = json.dumps(meta, sort_keys=True).encode()
@@ -167,9 +189,17 @@ def finish(state, operation, run, generation, registry, rollback=False):
     state = location(state)
     intent = inspect(state,operation,run,generation)
     with closing(sqlite3.connect(registry_uri(location(registry)),uri=True)) as db:
-        row = db.execute("""SELECT o.status,u.status FROM operations o JOIN users u ON u.id=o.target_id
-            WHERE o.id=? AND o.kind='user.create' AND o.target_type='user'""",(operation,)).fetchone()
-        require(row == ('succeeded','active') if not rollback else row is not None and row[0] == 'rolled_back')
+        row = db.execute("""SELECT o.status,u.status,o.kind FROM operations o JOIN users u ON u.id=o.target_id
+            WHERE o.id=? AND o.target_type='user'""",(operation,)).fetchone()
+        require(row is not None)
+        expected = 'active'
+        if row[2] != 'user.create':
+            require(row[2] in ('user.disable','user.enable','user.delete','credential.rotate'))
+            mutation = db.execute("SELECT after_status FROM user_mutations WHERE operation_id=? AND owner_run=?",
+                                  (operation,run)).fetchone()
+            require(mutation is not None)
+            expected = mutation[0]
+        require(row[:2] == ('succeeded',expected) if not rollback else row[0] == 'rolled_back')
     require(all(read(Path(t['path'])) == base64.b64decode(t['before' if rollback else 'after'],validate=True)
                 for t in intent['targets']))
     (state/'panel-auth-pending.json').unlink()

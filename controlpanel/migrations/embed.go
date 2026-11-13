@@ -14,3 +14,6 @@ var MigrationDocuments string
 
 //go:embed 004_profile_issuance.sql
 var ProfileIssuance string
+
+//go:embed 005_user_mutations.sql
+var UserMutations string

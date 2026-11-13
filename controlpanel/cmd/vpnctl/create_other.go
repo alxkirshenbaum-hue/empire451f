@@ -26,3 +26,8 @@ func cutoverLocal(args []string, out, stderr io.Writer) int {
 	fmt.Fprintln(stderr, "Run migration cutover on the Linux entry")
 	return 2
 }
+
+func mutateLocalUser(action string, args []string, out, stderr io.Writer) int {
+	fmt.Fprintln(stderr, "Run user changes on the Linux entry")
+	return 2
+}

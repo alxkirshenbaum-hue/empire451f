@@ -99,3 +99,35 @@ func TestAuthChangeRejectsDriftAndAmbiguity(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+type lostAckRuntime struct{ memoryRuntime }
+
+func (r *lostAckRuntime) Load(ctx context.Context, b []byte) error {
+	if err := r.memoryRuntime.Load(ctx, b); err != nil {
+		return err
+	}
+	return errors.New("load acknowledgement lost")
+}
+func TestLostAcknowledgementUsesObservedProof(t *testing.T) {
+	ctx := context.Background()
+	rt := &lostAckRuntime{memoryRuntime{config: fixtureConfig()}}
+	dir := t.TempDir()
+	if err := os.Chmod(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	p, err := Prepare(ctx, rt, dir, "op", 1, "new", "secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer p.Clear()
+	calls := 0
+	if err = p.Apply(ctx, rt, func(context.Context) error { calls++; return nil }); err != nil {
+		t.Fatal(err)
+	}
+	if calls != 1 || rt.loads != 1 {
+		t.Fatal("uncertain response was not inspected")
+	}
+	if _, err = PatchCreate(fixtureConfig(), "new", ""); !errors.Is(err, ErrInput) {
+		t.Fatal("empty create password")
+	}
+}

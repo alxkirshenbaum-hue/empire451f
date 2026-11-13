@@ -101,7 +101,7 @@ func (r *Registry) renderSFA(ctx context.Context, tx *sql.Tx, userID, domain str
 	var max sql.NullString
 	err := tx.QueryRowContext(ctx, `SELECT u.login,v.body_json,v.sha256,v.min_version,v.max_version,p.id
  FROM users u JOIN user_profiles p ON p.user_id=u.id JOIN template_revisions v ON v.id=p.template_revision_id
- JOIN profile_templates t ON t.id=v.template_id WHERE u.id=? AND u.status='active'
+ JOIN profile_templates t ON t.id=v.template_id WHERE u.id=? AND u.status='active' AND NOT EXISTS (SELECT 1 FROM operations o WHERE o.target_type='user' AND o.target_id=u.id AND o.status IN ('reconcile_required','rollback_running','running','verifying'))
  AND p.target_client IN ('sfa','sfa-1.14.4') AND v.client_family='sfa' AND v.status='approved' AND t.enabled=1
  ORDER BY CASE p.target_client WHEN 'sfa-1.14.4' THEN 0 ELSE 1 END LIMIT 1`, userID).Scan(&login, &body, &digest, &min, &max, profileID)
 	if err != nil {

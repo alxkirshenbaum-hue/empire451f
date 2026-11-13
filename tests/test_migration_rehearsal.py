@@ -173,7 +173,7 @@ class MigrationRehearsal(unittest.TestCase):
         self.assertEqual(self.recv(stale),'waiting')
         panel[1].send('continue')
         self.finish(panel,'switched')
-        self.finish(stale,'VPN accounts are managed by the panel; legacy issue refused.')
+        self.finish(stale,'VPN accounts are managed by the panel; ownership is incomplete.')
         self.check_users(1)
 
     def test_concurrent_revoke_and_enable(self):

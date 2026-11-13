@@ -10,6 +10,7 @@ import re
 import secrets
 import subprocess
 import tempfile
+import uuid
 
 STATE = Path('@STATE@')
 AUTH = Path('@BASE@/auth.caddy')
@@ -50,8 +51,15 @@ def issue(name):
         (STATE / saved['profile']).unlink(missing_ok=True)
         journal.unlink()
 
-    if 'panel_generation' in json.loads(manifest.read_bytes()):
-        raise SystemExit('VPN accounts are managed by the panel; legacy issue refused.')
+    meta = json.loads(manifest.read_bytes())
+    if 'panel_generation' in meta:
+        try:
+            run = str(uuid.UUID(meta['panel_run_id']))
+        except (KeyError, ValueError, TypeError, AttributeError):
+            raise SystemExit('VPN accounts are managed by the panel; ownership is incomplete.')
+        if journal.exists():
+            raise SystemExit('Resolve the pending user transaction before issuing a profile.')
+        return run
     if journal.exists():
         print('Recovering the interrupted user update.')
         recover()
@@ -102,4 +110,11 @@ if __name__ == '__main__':
         raise SystemExit('Run as root on the entry.')
     with open('/run/lock/empire-vpn.lock', 'a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        issue(name)
+        panel_run = issue(name)
+    if panel_run is not None:
+        # The controller reacquires the installation lock and rechecks this run.
+        try:
+            os.execv('/usr/local/bin/vpnctl', ['vpnctl', 'user', 'create', '--installation',
+                     STATE.name, '--owner-run', panel_run, '--login', name])
+        except OSError:
+            raise SystemExit('Panel command unavailable; check the controller installation.')

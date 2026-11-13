@@ -16,6 +16,9 @@ import (
 )
 
 func execute(args []string, out, stderr io.Writer) int {
+	if len(args) >= 2 && args[0] == "user" && args[1] == "create" {
+		return createLocalUser(args[2:], out, stderr)
+	}
 	if len(args) >= 2 && args[0] == "migration" && args[1] == "execute" {
 		return executeMigration(args[2:], out, stderr)
 	}

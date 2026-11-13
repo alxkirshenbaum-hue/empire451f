@@ -1,0 +1,122 @@
+//go:build linux
+
+package main
+
+import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"flag"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"regexp"
+	"syscall"
+
+	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/status"
+	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/storage"
+	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/vault"
+)
+
+var installationID = regexp.MustCompile("^[a-z][a-z0-9]{2,9}$")
+
+func createLocalUser(args []string, out, stderr io.Writer) int {
+	flags := flag.NewFlagSet("user create", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	deployment := flags.String("installation", "", "Installer deployment")
+	run := flags.String("owner-run", "", "Expected writer migration")
+	login := flags.String("login", "", "Exact VPN login")
+	if flags.Parse(args) != nil || flags.NArg() != 0 || !installationID.MatchString(*deployment) || !status.ValidID(*run) {
+		fmt.Fprintln(stderr, "Invalid installation or owner run")
+		return 2
+	}
+	if os.Geteuid() != 0 {
+		fmt.Fprintln(stderr, "Run as root on the entry")
+		return 3
+	}
+	receipt, err := queueFromInstallation(filepath.Join("/var/lib/empire-vpn", *deployment), "/etc/empire-vpn", "/run/lock/empire-vpn.lock", "/var/lib/vpn-control", *run, *login)
+	if err != nil {
+		fmt.Fprintln(stderr, "Cannot queue user creation; check writer ownership, VPN state, login and approved SFA template")
+		return 4
+	}
+	fmt.Fprintf(out, "User creation operation: %s\n", receipt.OperationID)
+	return 0
+}
+
+func queueFromInstallation(state, config, lockPath, panel, run, login string) (storage.Receipt, error) {
+	var empty storage.Receipt
+	lock, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0600)
+	if err != nil {
+		return empty, err
+	}
+	defer lock.Close()
+	if err = syscall.Flock(int(lock.Fd()), syscall.LOCK_EX); err != nil {
+		return empty, err
+	}
+	for _, journal := range []string{"pending.json", "user-rollback.json"} {
+		if _, err = os.Lstat(filepath.Join(state, journal)); !errors.Is(err, os.ErrNotExist) {
+			return empty, storage.ErrLegacyConflict
+		}
+	}
+	data, err := os.ReadFile(filepath.Join(state, "manifest.json"))
+	if err != nil {
+		return empty, err
+	}
+	var manifest struct {
+		Generation int64             `json:"panel_generation"`
+		Run        string            `json:"panel_run_id"`
+		Hash       string            `json:"panel_auth_hash"`
+		Files      map[string]string `json:"files"`
+		Config     struct {
+			ID string `json:"id"`
+		} `json:"config"`
+	}
+	err = json.Unmarshal(data, &manifest)
+	auth := filepath.Join(config, filepath.Base(state), "auth.caddy")
+	_, legacy := manifest.Files[auth]
+	if err != nil || manifest.Files == nil || legacy || manifest.Config.ID != filepath.Base(state) || manifest.Generation < 1 || manifest.Run != run {
+		return empty, storage.ErrLegacyConflict
+	}
+	content, err := os.ReadFile(auth)
+	if err != nil {
+		return empty, err
+	}
+	sum := sha256.Sum256(content)
+	clear(content)
+	if hex.EncodeToString(sum[:]) != manifest.Hash {
+		return empty, storage.ErrLegacyDrift
+	}
+	db := filepath.Join(panel, "state.db")
+	if info, err := os.Lstat(db); err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
+		return empty, storage.ErrLegacyConflict
+	}
+	keyPath := filepath.Join(panel, "vault.key")
+	info, err := os.Lstat(keyPath)
+	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm()&0077 != 0 || info.Size() != 32 {
+		return empty, storage.ErrVaultKey
+	}
+	key, err := os.ReadFile(keyPath)
+	if err != nil {
+		return empty, err
+	}
+	cipher, err := vault.New(key)
+	clear(key)
+	if err != nil {
+		return empty, err
+	}
+	ctx := context.Background()
+	registry, err := storage.Open(ctx, db, cipher, 1)
+	if err != nil {
+		return empty, err
+	}
+	defer registry.Close()
+	// One SSH request per exact login and owner run. Tombstones reserve that name.
+	token := sha256.Sum256([]byte(run + "\x00ssh-create\x00" + login))
+	token[6] = token[6]&15 | 80
+	token[8] = token[8]&63 | 128
+	requestID := fmt.Sprintf("%x-%x-%x-%x-%x", token[:4], token[4:6], token[6:8], token[8:10], token[10:16])
+	return registry.QueueOwnedCreate(ctx, run, "local-ssh", requestID, login)
+}

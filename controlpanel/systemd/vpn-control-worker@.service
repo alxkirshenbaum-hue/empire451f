@@ -4,7 +4,9 @@ ConditionPathExists=/etc/vpn-control/worker-%i.json
 
 [Service]
 Type=oneshot
-User=root
+# Keep systemd's default root identity: explicit User=root on the target host
+# removes effective CAP_SETUID. Validators still switch to the dedicated UID
+# with an empty bounding set before invoking Caddy.
 UMask=0077
 EnvironmentFile=/etc/vpn-control/worker-%i.env
 Environment=XDG_DATA_HOME=/var/lib/empire-vpn-acme

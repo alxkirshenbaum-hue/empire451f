@@ -322,17 +322,50 @@ module.main()
         profile=json.loads(body)
         outbound=profile_client(stack,profile,19081,ca_file)
         require((state/'master_user.sfa.json').read_bytes()==old_profile,'original profile changed')
+        mutations = os.environ.get('VPN_REHEARSAL_MUTATIONS') == '1'
+        if mutations:
+            import uuid
+            from create_probe import probe
+            old_secret = outbound['password']
+            for action in ('disable','disable','enable','rotate','delete'):
+                with sqlite3.connect(db) as connection:
+                    version = connection.execute('SELECT row_version FROM users WHERE id=?',(user,)).fetchone()[0]
+                group = 'cred' if action == 'rotate' else 'user'
+                arguments = [cli,group,action,'--installation','lab','--owner-run',migration,
+                             '--user',user,'--expected-version',str(version),'--idempotency-key',str(uuid.uuid4()),
+                             '--reason','isolated W5 rehearsal']
+                if action == 'delete': arguments.append('--confirm-delete')
+                receipt = run(arguments).decode().strip().split()[-1]
+                require(json.loads(run(worker_args)) == dict(state='completed',operation_id=receipt),
+                        'mutation worker did not complete')
+                require(run(arguments).decode().strip().split()[-1] == receipt,'mutation replay changed operation')
+                require(json.loads(run(worker_args)) == dict(state='idle'),'mutation replay was not idle')
+                if action == 'rotate':
+                    status,headers,new_body=request(api_dir/'api.sock','GET',route,headers={'Cookie':cookie})
+                    require(status==200 and headers.get('Cache-Control')=='no-store','rotated profile unavailable')
+                    new_outbound = next(o for o in json.loads(new_body)['outbounds'] if o['type']=='naive')
+                    require(new_outbound['password'] != old_secret,'rotate retained old password')
+                    probe('/etc/vpn-control/probe-lab.json','New-User',new_outbound['password'],previous=old_secret)
+                    old_secret = new_outbound['password']
+                elif action == 'enable':
+                    probe('/etc/vpn-control/probe-lab.json','New-User',old_secret)
+                else:
+                    probe('/etc/vpn-control/probe-lab.json','New-User',old_secret,active=False)
+                    require(request(api_dir/'api.sock','GET',route,headers={'Cookie':cookie})[0]==404,
+                            'disabled/deleted profile disclosed')
+            print('full-worker: disable/no-op/enable/rotate/delete/replay/new-old-control TCP/UoT PASS')
         export=Path('/run/export');export.mkdir(mode=0o700)
         run([cli,'migration','reverse-export','--approved-plan',migration,'--staging-db',db,'--vault-key-file',key,'--output-dir',export])
         exported=json.loads((export/'clients.json').read_bytes())['clients']
-        require({u['username'] for u in exported}=={'master_user','Old-User','New-User'},'reverse export lost active users')
+        require({u['username'] for u in exported}==({'master_user','Old-User'} if mutations else {'master_user','Old-User','New-User'}),'reverse export lost active users')
         require(next(u['password'] for u in exported if u['username']=='master_user')==canary,'old password changed')
         with sqlite3.connect(db) as connection:
-            require(connection.execute('SELECT count(*) FROM profile_issuance').fetchone()[0]==1,'profile issuance not audited')
+            require(connection.execute('SELECT count(*) FROM profile_issuance').fetchone()[0]==(2 if mutations else 1),'profile issuance not audited')
         return_installer()
         from create_probe import probe
-        probe('/etc/vpn-control/probe-lab.json','New-User',outbound['password'])
-        require(attempt(19081),'downloaded profile lost access after return')
+        if mutations: probe('/etc/vpn-control/probe-lab.json','New-User',old_secret,active=False)
+        else: probe('/etc/vpn-control/probe-lab.json','New-User',outbound['password'])
+        if not mutations: require(attempt(19081),'downloaded profile lost access after return')
         require(attempt(19082),'original profile lost access after return')
         print('full-worker: MIG-05/'+cutover_failure+'/real paths/CLI/unprivileged validate/TLS/TCP/UoT/socket denial/owner download/installer return PASS')
 

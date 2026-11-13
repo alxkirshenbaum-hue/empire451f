@@ -7,7 +7,7 @@ import sys
 
 def main():
     root=Path(sys.argv[1])
-    if root.parent != Path('/run/vpn-w3-worker-tests') or not root.name.startswith('rehearsal-root-') or root.exists():
+    if root.parent != Path(__file__).resolve().parents[1] or not root.name.startswith('rehearsal-root-') or root.exists():
         raise RuntimeError('new dedicated rehearsal root required')
     # Inside chroot this is '/', which dedicated service UIDs must traverse.
     # The host parent remains private; secret subdirectories below use 0700.

@@ -19,6 +19,7 @@ import (
 )
 
 type createCaddyWorker struct {
+	checkpoint                              func(string)
 	state, config, lock, panel, run, helper string
 	runtime                                 caddy.Runtime
 	probe                                   func(context.Context, string, vault.PlainSecret) error
@@ -45,6 +46,12 @@ func (w *createCaddyWorker) files(ctx context.Context, action string, receipt st
 		return errors.New("protected auth file operation failed")
 	}
 	return nil
+}
+
+func (w *createCaddyWorker) point(name string) {
+	if w.checkpoint != nil {
+		w.checkpoint(name)
+	}
 }
 
 func (w *createCaddyWorker) directory(operation string) string {
@@ -141,6 +148,7 @@ func (w *createCaddyWorker) once() (storage.Receipt, error) {
 			return err
 		},
 		func(ctx context.Context, reg *storage.Registry) (storage.Receipt, error) {
+			w.point("after_global_lock")
 			if w.baseline != nil {
 				if err := w.baseline(ctx); err != nil {
 					return storage.Receipt{}, err
@@ -157,7 +165,9 @@ func (w *createCaddyWorker) once() (storage.Receipt, error) {
 				return receipt, err
 			}
 			if phase != "queued" {
-				return receipt, storage.ErrJournalConflict
+				err = reg.Transition(ctx, receipt.OperationID, phase, "reconcile_required")
+				w.point("after_reconcile_required")
+				return receipt, errors.Join(storage.ErrJournalConflict, err)
 			}
 			if !status.ValidID(receipt.OperationID) || !status.ValidID(receipt.UserID) {
 				return receipt, caddy.ErrInput
@@ -173,6 +183,7 @@ func (w *createCaddyWorker) once() (storage.Receipt, error) {
 			if err != nil {
 				return receipt, err
 			}
+			w.point("after_observed_preflight")
 			for _, dir := range []string{filepath.Join(w.state, "panel-operations"), w.directory(receipt.OperationID)} {
 				if err = os.Mkdir(dir, 0700); err != nil && !errors.Is(err, os.ErrExist) {
 					return receipt, err
@@ -183,7 +194,8 @@ func (w *createCaddyWorker) once() (storage.Receipt, error) {
 				}
 			}
 			err = reg.ApplyCreate(ctx, receipt, func(ctx context.Context, login string, secret vault.PlainSecret) error {
-				p, e := caddy.Prepare(ctx, w.runtime, w.directory(receipt.OperationID), receipt.OperationID, generation, login, string(secret))
+				w.point("after_running_commit")
+				p, e := caddy.PrepareAuthObserved(ctx, w.runtime, w.directory(receipt.OperationID), receipt.OperationID, generation, caddy.AuthChange{Login: login, Password: string(secret)}, w.point)
 				if e != nil {
 					return e
 				}
@@ -192,14 +204,17 @@ func (w *createCaddyWorker) once() (storage.Receipt, error) {
 				if e = w.files(ctx, "prepare", receipt, generation, map[string]any{"auth": filepath.Join(base, "auth.caddy"), "caddyfile": filepath.Join(base, "Caddyfile"), "prepared_dir": w.directory(receipt.OperationID), "login": login, "password": string(secret)}); e != nil {
 					return e
 				}
-				if e = p.Apply(ctx, w.runtime, func(ctx context.Context) error { return w.probe(ctx, login, secret) }); e != nil {
+				w.point("after_prepared_fsync")
+				if e = p.ApplyObserved(ctx, w.runtime, func(ctx context.Context) error { return w.probe(ctx, login, secret) }, w.point); e != nil {
 					return e
 				}
 				return w.files(ctx, "publish_files", receipt, generation, nil)
 			})
 			if err != nil {
+				w.point("after_reconcile_required")
 				return receipt, err
 			}
+			w.point("after_verified_db_commit")
 			return receipt, w.finish(ctx, receipt, generation)
 		})
 }
@@ -208,7 +223,11 @@ func (w *createCaddyWorker) finish(ctx context.Context, receipt storage.Receipt,
 	if err := w.files(ctx, "finish", receipt, generation, map[string]any{"registry": filepath.Join(w.panel, "state.db")}); err != nil {
 		return err
 	}
-	return w.removePrepared(receipt.OperationID)
+	if err := w.removePrepared(receipt.OperationID); err != nil {
+		return err
+	}
+	w.point("after_staging_cleanup")
+	return nil
 }
 
 // A crash after helper.finish may leave only the private Caddy snapshot. Clean
@@ -290,17 +309,21 @@ func (w *createCaddyWorker) applyMutation(ctx context.Context, reg *storage.Regi
 	if err != nil {
 		return err
 	}
+	w.point("after_observed_preflight")
 	if err = reg.Transition(ctx, j.OperationID, "queued", "running"); err != nil {
 		return err
 	}
+	w.point("after_running_commit")
 	for _, dir := range []string{filepath.Join(w.state, "panel-operations"), w.directory(j.OperationID)} {
 		if err = os.Mkdir(dir, 0700); err != nil && !errors.Is(err, os.ErrExist) {
-			return errors.Join(err, reg.Transition(ctx, j.OperationID, "running", "reconcile_required"))
+			result := errors.Join(err, reg.Transition(ctx, j.OperationID, "running", "reconcile_required"))
+			w.point("after_reconcile_required")
+			return result
 		}
 	}
 	err = reg.WithMutationSecrets(ctx, j, func(login string, old, fresh vault.PlainSecret) error {
 		change := mutationChange(j, login, old, fresh)
-		p, e := caddy.PrepareAuth(ctx, w.runtime, w.directory(j.OperationID), j.OperationID, generation, change)
+		p, e := caddy.PrepareAuthObserved(ctx, w.runtime, w.directory(j.OperationID), j.OperationID, generation, change, w.point)
 		if e != nil {
 			return e
 		}
@@ -309,13 +332,16 @@ func (w *createCaddyWorker) applyMutation(ctx context.Context, reg *storage.Regi
 		if e = w.files(ctx, "prepare", j.Receipt, generation, map[string]any{"auth": filepath.Join(base, "auth.caddy"), "caddyfile": filepath.Join(base, "Caddyfile"), "prepared_dir": w.directory(j.OperationID), "login": login, "password": change.Password, "previous": change.Previous}); e != nil {
 			return e
 		}
-		if e = p.Apply(ctx, w.runtime, func(ctx context.Context) error { return w.mutationProbe(ctx, j, old, fresh) }); e != nil {
+		w.point("after_prepared_fsync")
+		if e = p.ApplyObserved(ctx, w.runtime, func(ctx context.Context) error { return w.mutationProbe(ctx, j, old, fresh) }, w.point); e != nil {
 			return e
 		}
 		return w.files(ctx, "publish_files", j.Receipt, generation, nil)
 	})
 	if err != nil {
-		return errors.Join(err, reg.Transition(ctx, j.OperationID, "running", "reconcile_required"))
+		result := errors.Join(err, reg.Transition(ctx, j.OperationID, "running", "reconcile_required"))
+		w.point("after_reconcile_required")
+		return result
 	}
 	if err = reg.Transition(ctx, j.OperationID, "running", "verifying"); err != nil {
 		return err
@@ -323,6 +349,7 @@ func (w *createCaddyWorker) applyMutation(ctx context.Context, reg *storage.Regi
 	if err = reg.CompleteVerifiedMutation(ctx, w.run, j); err != nil {
 		return err
 	}
+	w.point("after_verified_db_commit")
 	return w.finish(ctx, j.Receipt, generation)
 }
 

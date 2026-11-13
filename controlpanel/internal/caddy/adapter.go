@@ -195,6 +195,16 @@ func Prepare(ctx context.Context, rt Runtime, directory, operation string, gener
 // PrepareAuth reuses the same durable snapshot, validate/apply/verify/recovery
 // protocol. The caller supplies operation-specific fresh connection probes.
 func PrepareAuth(ctx context.Context, rt Runtime, directory, operation string, generation int64, change AuthChange) (*Prepared, error) {
+	return PrepareAuthObserved(ctx, rt, directory, operation, generation, change, nil)
+}
+
+// PrepareAuthObserved exposes crash boundaries to the isolated harness.
+func PrepareAuthObserved(ctx context.Context, rt Runtime, directory, operation string, generation int64, change AuthChange, observe func(string)) (*Prepared, error) {
+	point := func(name string) {
+		if observe != nil {
+			observe(name)
+		}
+	}
 	info, err := os.Lstat(directory)
 	if err != nil || !info.IsDir() || info.Mode().Perm()&0077 != 0 || operation == "" || generation < 1 {
 		return nil, ErrInput
@@ -204,14 +214,18 @@ func PrepareAuth(ctx context.Context, rt Runtime, directory, operation string, g
 		return nil, err
 	}
 	defer clear(before)
+	point("after_snapshot")
+	point("after_desired_stage")
 	candidate, err := PatchAuth(before, change)
 	if err != nil {
 		return nil, err
 	}
 	defer clear(candidate)
+	point("after_candidate_render")
 	if err = rt.Validate(ctx, candidate); err != nil {
 		return nil, err
 	}
+	point("after_validate")
 	p := &Prepared{operation, generation, append([]byte(nil), before...), append([]byte(nil), candidate...)}
 	data, err := json.Marshal(p)
 	if err != nil {
@@ -267,6 +281,15 @@ func ReadPrepared(directory, operation string, generation int64) (*Prepared, err
 // Apply never retries a load after an uncertain response. Recovery inspects
 // exact candidate state before probing; rollback is separately gated.
 func (p *Prepared) Apply(ctx context.Context, rt Runtime, verify func(context.Context) error) error {
+	return p.ApplyObserved(ctx, rt, verify, nil)
+}
+
+func (p *Prepared) ApplyObserved(ctx context.Context, rt Runtime, verify func(context.Context) error, observe func(string)) error {
+	point := func(name string) {
+		if observe != nil {
+			observe(name)
+		}
+	}
 	if verify == nil {
 		return ErrInput
 	}
@@ -279,17 +302,29 @@ func (p *Prepared) Apply(ctx context.Context, rt Runtime, verify func(context.Co
 		return ErrDrift
 	}
 	if same(current, p.Candidate) {
-		return p.Verify(ctx, rt, verify)
+		point("after_apply")
+		if err = p.Verify(ctx, rt, verify); err != nil {
+			return err
+		}
+		point("after_fresh_verify")
+		return nil
 	}
 	if err = rt.Load(ctx, p.Candidate); err != nil {
+		point("after_apply")
 		// Lost acknowledgement and timeout are the same uncertain outcome.
 		// Inspect exact live state and fresh auth before deciding to block.
 		if proof := p.Verify(ctx, rt, verify); proof != nil {
 			return errors.Join(err, proof)
 		}
+		point("after_fresh_verify")
 		return nil
 	}
-	return p.Verify(ctx, rt, verify)
+	point("after_apply")
+	if err = p.Verify(ctx, rt, verify); err != nil {
+		return err
+	}
+	point("after_fresh_verify")
+	return nil
 }
 
 func (p *Prepared) Verify(ctx context.Context, rt Runtime, verify func(context.Context) error) error {

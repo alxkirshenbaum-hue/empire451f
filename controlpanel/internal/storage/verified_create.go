@@ -8,6 +8,22 @@ import (
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/vault"
 )
 
+// OwnedCreateState reads a journal-bound job, including completed work whose
+// file journal still needs cleanup after a lost commit acknowledgement.
+func (r *Registry) OwnedCreateState(ctx context.Context, run, operation string) (Receipt, string, string, error) {
+	var receipt Receipt
+	var login, phase, state string
+	if err := requireVerifiedCutover(ctx, r.db, run); err != nil {
+		return receipt, login, phase, err
+	}
+	err := r.db.QueryRowContext(ctx, `SELECT o.id,u.id,u.login,o.status,u.status FROM operations o JOIN users u ON u.id=o.target_id
+ WHERE o.id=? AND o.kind='user.create' AND o.target_type='user' AND u.protected=0`, operation).Scan(&receipt.OperationID, &receipt.UserID, &login, &phase, &state)
+	if err == nil && !((phase == "running" || phase == "verifying") && state == "provisioning" || phase == "succeeded" && state == "active") {
+		err = ErrJournalConflict
+	}
+	return receipt, login, phase, err
+}
+
 // RecoverCreate is verify-only: it never reapplies Caddy or generates a secret.
 // The caller holds the installation lock and checks owner, generation and the
 // durable candidate against the observed configuration before calling this.
@@ -56,6 +72,13 @@ func (r *Registry) NextOwnedCreate(ctx context.Context, run string) (Receipt, st
 		return receipt, phase, err
 	}
 	if blocked != 0 {
+		return receipt, phase, ErrJournalConflict
+	}
+	var interrupted int
+	if err := r.db.QueryRowContext(ctx, "SELECT count(*) FROM operations WHERE status IN ('running','verifying')").Scan(&interrupted); err != nil {
+		return receipt, phase, err
+	}
+	if interrupted > 1 {
 		return receipt, phase, ErrJournalConflict
 	}
 	err := r.db.QueryRowContext(ctx, `SELECT id,target_id,status FROM operations WHERE kind='user.create' AND target_type='user'

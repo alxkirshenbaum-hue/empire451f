@@ -76,6 +76,12 @@ func runNextCreate(state, config, lockPath, panel, run string, apply, verify fun
 }
 
 func withOwnedInstallation(state, config, lockPath, panel, run string, action func(context.Context, *storage.Registry) (storage.Receipt, error)) (storage.Receipt, error) {
+	return withOwnedInstallationRecovery(state, config, lockPath, panel, run, nil, action)
+}
+
+// Recovery runs under the same lock before the ordinary file check. It may
+// repair only a bound, inspected pending saga; normal callers cannot bypass drift.
+func withOwnedInstallationRecovery(state, config, lockPath, panel, run string, recovery func(context.Context, *storage.Registry) error, action func(context.Context, *storage.Registry) (storage.Receipt, error)) (storage.Receipt, error) {
 	var empty storage.Receipt
 	lock, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
@@ -85,38 +91,10 @@ func withOwnedInstallation(state, config, lockPath, panel, run string, action fu
 	if err = syscall.Flock(int(lock.Fd()), syscall.LOCK_EX); err != nil {
 		return empty, err
 	}
-	for _, journal := range []string{"pending.json", "user-rollback.json", "panel-auth-pending.json"} {
+	for _, journal := range []string{"pending.json", "user-rollback.json", "return-intent.json"} {
 		if _, err = os.Lstat(filepath.Join(state, journal)); !errors.Is(err, os.ErrNotExist) {
 			return empty, storage.ErrLegacyConflict
 		}
-	}
-	data, err := os.ReadFile(filepath.Join(state, "manifest.json"))
-	if err != nil {
-		return empty, err
-	}
-	var manifest struct {
-		Generation int64             `json:"panel_generation"`
-		Run        string            `json:"panel_run_id"`
-		Hash       string            `json:"panel_auth_hash"`
-		Files      map[string]string `json:"files"`
-		Config     struct {
-			ID string `json:"id"`
-		} `json:"config"`
-	}
-	err = json.Unmarshal(data, &manifest)
-	auth := filepath.Join(config, filepath.Base(state), "auth.caddy")
-	_, legacy := manifest.Files[auth]
-	if err != nil || manifest.Files == nil || legacy || manifest.Config.ID != filepath.Base(state) || manifest.Generation < 1 || manifest.Run != run {
-		return empty, storage.ErrLegacyConflict
-	}
-	content, err := os.ReadFile(auth)
-	if err != nil {
-		return empty, err
-	}
-	sum := sha256.Sum256(content)
-	clear(content)
-	if hex.EncodeToString(sum[:]) != manifest.Hash {
-		return empty, storage.ErrLegacyDrift
 	}
 	db := filepath.Join(panel, "state.db")
 	if info, err := os.Lstat(db); err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
@@ -142,5 +120,48 @@ func withOwnedInstallation(state, config, lockPath, panel, run string, action fu
 		return empty, err
 	}
 	defer registry.Close()
+	if _, err = os.Lstat(filepath.Join(state, "panel-auth-pending.json")); !errors.Is(err, os.ErrNotExist) {
+		if err != nil || recovery == nil {
+			return empty, storage.ErrLegacyConflict
+		}
+		if err = recovery(ctx, registry); err != nil {
+			return empty, err
+		}
+	}
+	if _, err = verifyOwnedFiles(state, config, run); err != nil {
+		return empty, err
+	}
 	return action(ctx, registry)
+}
+
+func verifyOwnedFiles(state, config, run string) (int64, error) {
+	data, err := os.ReadFile(filepath.Join(state, "manifest.json"))
+	if err != nil {
+		return 0, err
+	}
+	var manifest struct {
+		Generation int64             `json:"panel_generation"`
+		Run        string            `json:"panel_run_id"`
+		Hash       string            `json:"panel_auth_hash"`
+		Files      map[string]string `json:"files"`
+		Config     struct {
+			ID string `json:"id"`
+		} `json:"config"`
+	}
+	err = json.Unmarshal(data, &manifest)
+	auth := filepath.Join(config, filepath.Base(state), "auth.caddy")
+	_, legacy := manifest.Files[auth]
+	if err != nil || manifest.Files == nil || legacy || manifest.Config.ID != filepath.Base(state) || manifest.Generation < 1 || manifest.Run != run {
+		return 0, storage.ErrLegacyConflict
+	}
+	content, err := os.ReadFile(auth)
+	if err != nil {
+		return 0, err
+	}
+	sum := sha256.Sum256(content)
+	clear(content)
+	if hex.EncodeToString(sum[:]) != manifest.Hash {
+		return 0, storage.ErrLegacyDrift
+	}
+	return manifest.Generation, nil
 }

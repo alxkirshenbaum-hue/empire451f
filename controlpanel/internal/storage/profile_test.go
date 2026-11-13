@@ -25,6 +25,9 @@ func TestRenderBoundSFA(t *testing.T) {
 		}
 	}
 	dbExec("UPDATE template_revisions SET body_json=?,sha256=?", string(template), fmt.Sprintf("%x", sha256.Sum256(template)))
+	if _, err = r.InstallRoutingVariants(ctx, request.TemplateRevisionID, fmt.Sprintf("%x", sha256.Sum256(template))); err != nil {
+		t.Fatal(err)
+	}
 	op, err := r.QueueCreate(ctx, "owner", replayKey, request)
 	if err != nil {
 		t.Fatal(err)
@@ -52,7 +55,11 @@ func TestRenderBoundSFA(t *testing.T) {
 	}
 	defer clear(password)
 	var want, got map[string]any
-	if json.Unmarshal(template, &want) != nil || json.Unmarshal(blob, &got) != nil {
+	base, e := DeriveBaseRouting(template)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if json.Unmarshal(base, &want) != nil || json.Unmarshal(blob, &got) != nil {
 		t.Fatal("invalid JSON")
 	}
 	proxy := want["outbounds"].([]any)[0].(map[string]any)

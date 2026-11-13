@@ -55,6 +55,9 @@ func TestOwnerDownloadsActiveProfile(t *testing.T) {
 	}
 	execSQL("INSERT INTO profile_templates VALUES('t','sfa','SFA','naive_https',1)")
 	execSQL("INSERT INTO template_revisions(id,template_id,semver,client_family,min_version,body_json,sha256,status,created_at) VALUES('r','t','1','sfa','1.14.4',?,?,'approved',CURRENT_TIMESTAMP)", string(tpl), fmt.Sprintf("%x", sha256.Sum256(tpl)))
+	if _, err = reg.InstallRoutingVariants(ctx, "r", fmt.Sprintf("%x", sha256.Sum256(tpl))); err != nil {
+		t.Fatal(err)
+	}
 	sessions, err := auth.Open(path)
 	if err != nil {
 		t.Fatal(err)
@@ -189,10 +192,45 @@ func TestOwnerDownloadsActiveProfile(t *testing.T) {
 	if proxy.Username != "Test-User" || proxy.Password != string(secret) || proxy.Server != "entry.example" {
 		t.Fatal("incorrect connection details")
 	}
+	for _, tc := range []struct {
+		query  string
+		status int
+	}{
+		{"client=sfa-1.14.4&ru_dm=1&ack=1", 422},
+		{"client=sfa-1.15-alpha13&ru_dm=1", 422},
+		{"client=sfa-1.15-alpha3", 422},
+		{"client=sfa-1.14.4&client=sfa-1.15-alpha13", 400},
+		{"client=sfa-1.14.4&password=forbidden", 400},
+		{"client=sfa-1.15-alpha13", 200},
+		{"client=sfa-1.15-alpha13&ru_dm=1&ack=1", 200},
+	} {
+		req := httptest.NewRequest("GET", "/api/v1/users/"+receipt.UserID+"/profiles/download?"+tc.query, nil)
+		req.AddCookie(cookie)
+		resp := httptest.NewRecorder()
+		handler.ServeHTTP(resp, req)
+		if resp.Code != tc.status || resp.Header().Get("Cache-Control") != "no-store" {
+			t.Fatal("option boundary", tc.query, resp.Code)
+		}
+		if tc.status != 200 && strings.Contains(resp.Body.String(), string(secret)) {
+			t.Fatal("error disclosed credential")
+		}
+		if tc.status == 200 {
+			var target, variant, hash string
+			if err = db.QueryRow("SELECT target_client,routing_variant,profile_sha256 FROM profile_issuance ORDER BY id DESC LIMIT 1").Scan(&target, &variant, &hash); err != nil {
+				t.Fatal(err)
+			}
+			if target != storage.ClientAlpha13 || hash != fmt.Sprintf("%x", sha256.Sum256(resp.Body.Bytes())) {
+				t.Fatal("issuance metadata mismatch")
+			}
+			if strings.Contains(tc.query, "ru_dm=1") && variant != "ru_download_manager" || !strings.Contains(tc.query, "ru_dm=1") && variant != "base" {
+				t.Fatal("wrong audited variant")
+			}
+		}
+	}
 	execSQL("UPDATE admin_sessions SET revoked_at=CURRENT_TIMESTAMP")
 	fetch("GET", cookie, 401)
 	var count int
-	if err = db.QueryRow(`SELECT count(*) FROM profile_issuance e JOIN admin_accounts a ON a.id=e.admin_id JOIN user_profiles p ON p.id=e.profile_id WHERE e.event='PROFILE_ISSUED' AND a.username='owner' AND e.issued_at=p.last_issued_at`).Scan(&count); err != nil || count != 1 {
+	if err = db.QueryRow(`SELECT count(*) FROM profile_issuance e JOIN admin_accounts a ON a.id=e.admin_id JOIN user_profiles p ON p.id=e.profile_id WHERE e.event='PROFILE_ISSUED' AND a.username='owner'`).Scan(&count); err != nil || count != 3 {
 		t.Fatal("wrong issuance record", err)
 	}
 }

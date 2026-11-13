@@ -14,6 +14,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -33,15 +34,39 @@ func download(registry *storage.Registry, domain string) http.HandlerFunc {
 			http.Error(w, "Unauthorized", 401)
 			return
 		}
-		if r.URL.RawQuery != "client=sfa-1.14.4" {
-			http.Error(w, "Unsupported client", 400)
+		query, parseErr := url.ParseQuery(r.URL.RawQuery)
+		if parseErr != nil {
+			http.Error(w, "Invalid profile options", 400)
 			return
 		}
-		blob, err := registry.IssueSFA1144(r.Context(), session.Value, r.PathValue("id"), domain)
+		for name, values := range query {
+			if (name != "client" && name != "ru_dm" && name != "ack") || len(values) != 1 {
+				http.Error(w, "Unsupported profile option", 400)
+				return
+			}
+		}
+		options := storage.ProfileOptions{Client: query.Get("client")}
+		if query.Has("ru_dm") {
+			if query.Get("ru_dm") != "1" {
+				http.Error(w, "Unsupported profile option", 400)
+				return
+			}
+			options.RUDM = true
+		}
+		if query.Has("ack") {
+			if query.Get("ack") != "1" {
+				http.Error(w, "Unsupported profile option", 400)
+				return
+			}
+			options.Acknowledge = true
+		}
+		blob, err := registry.IssueProfile(r.Context(), session.Value, r.PathValue("id"), domain, options)
 		if err != nil {
 			switch {
 			case errors.Is(err, status.ErrSession):
 				http.Error(w, "Unauthorized", 401)
+			case errors.Is(err, storage.ErrTemplateIncompatible):
+				http.Error(w, "TEMPLATE_INCOMPATIBLE", 422)
 			case errors.Is(err, sql.ErrNoRows):
 				http.NotFound(w, r)
 			default:

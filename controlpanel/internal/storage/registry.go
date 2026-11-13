@@ -105,7 +105,7 @@ func (r *Registry) migrate(ctx context.Context) error {
 	if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%'").Scan(&count); err != nil {
 		return err
 	}
-	scripts := []string{migrations.Registry, migrations.VaultIdentity, migrations.MigrationDocuments, migrations.ProfileIssuance, migrations.UserMutations}
+	scripts := []string{migrations.Registry, migrations.VaultIdentity, migrations.MigrationDocuments, migrations.ProfileIssuance, migrations.UserMutations, migrations.ProfileRouting}
 	if count != 0 {
 		if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM schema_migrations").Scan(&count); err != nil {
 			return err
@@ -238,7 +238,7 @@ func (r *Registry) stageCreate(ctx context.Context, tx *sql.Tx, actor, key strin
 		return Receipt{}, err
 	}
 	var approved int
-	if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM template_revisions v JOIN profile_templates t ON t.id=v.template_id WHERE v.id=? AND v.status='approved' AND t.enabled=1", req.TemplateRevisionID).Scan(&approved); err != nil {
+	if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM template_revisions v JOIN profile_templates t ON t.id=v.template_id WHERE v.id=? AND v.status='approved' AND t.enabled=1 AND NOT EXISTS (SELECT 1 FROM profile_routing_variants m WHERE m.revision_id=v.id AND m.variant='ru_download_manager')", req.TemplateRevisionID).Scan(&approved); err != nil {
 		return Receipt{}, err
 	}
 	if approved != 1 {

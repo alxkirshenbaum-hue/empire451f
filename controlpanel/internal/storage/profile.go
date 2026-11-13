@@ -50,6 +50,12 @@ func ValidEndpoint(domain string) bool {
 // RenderSFA1144 renders the bound, approved revision in one database snapshot.
 // The caller owns the returned profile bytes and must clear them after delivery.
 func (r *Registry) RenderSFA1144(ctx context.Context, userID, domain string) ([]byte, error) {
+	return r.RenderProfile(ctx, userID, domain, ProfileOptions{Client: Client1144})
+}
+func (r *Registry) RenderProfile(ctx context.Context, userID, domain string, options ProfileOptions) ([]byte, error) {
+	if _, err := options.variant(); err != nil {
+		return nil, err
+	}
 	if !ValidEndpoint(domain) {
 		return nil, errors.New("invalid endpoint domain")
 	}
@@ -59,11 +65,19 @@ func (r *Registry) RenderSFA1144(ctx context.Context, userID, domain string) ([]
 	}
 	defer tx.Rollback()
 	var profileID string
-	return r.renderSFA(ctx, tx, userID, domain, &profileID)
+	var revision string
+	return r.renderSFA(ctx, tx, userID, domain, &profileID, options, &revision)
 }
 
 // IssueSFA1144 commits the disclosure record before releasing any profile bytes.
 func (r *Registry) IssueSFA1144(ctx context.Context, token, userID, domain string) ([]byte, error) {
+	return r.IssueProfile(ctx, token, userID, domain, ProfileOptions{Client: Client1144})
+}
+func (r *Registry) IssueProfile(ctx context.Context, token, userID, domain string, options ProfileOptions) ([]byte, error) {
+	variant, err := options.variant()
+	if err != nil {
+		return nil, err
+	}
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -77,14 +91,15 @@ func (r *Registry) IssueSFA1144(ctx context.Context, token, userID, domain strin
 		return nil, sql.ErrNoRows
 	}
 	var profileID string
-	blob, err := r.renderSFA(ctx, tx, userID, domain, &profileID)
+	var revision string
+	blob, err := r.renderSFA(ctx, tx, userID, domain, &profileID, options, &revision)
 	if err != nil {
 		return nil, err
 	}
 	var issued string
 	err = tx.QueryRowContext(ctx, `UPDATE user_profiles SET last_issued_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? RETURNING last_issued_at`, profileID).Scan(&issued)
 	if err == nil {
-		_, err = tx.ExecContext(ctx, "INSERT INTO profile_issuance(event,admin_id,profile_id,issued_at) VALUES('PROFILE_ISSUED',?,?,?)", actor, profileID, issued)
+		_, err = tx.ExecContext(ctx, "INSERT INTO profile_issuance(event,admin_id,profile_id,issued_at,target_client,routing_variant,revision_id,profile_sha256) VALUES('PROFILE_ISSUED',?,?,?,?,?,?,?)", actor, profileID, issued, options.Client, variant, revision, digest(blob))
 	}
 	if err == nil {
 		err = tx.Commit()
@@ -96,22 +111,45 @@ func (r *Registry) IssueSFA1144(ctx context.Context, token, userID, domain strin
 	return blob, nil
 }
 
-func (r *Registry) renderSFA(ctx context.Context, tx *sql.Tx, userID, domain string, profileID *string) ([]byte, error) {
-	var login, body, digest, min string
+func (r *Registry) renderSFA(ctx context.Context, tx *sql.Tx, userID, domain string, profileID *string, options ProfileOptions, selected *string) ([]byte, error) {
+	var login, body, checksum, min, source string
 	var max sql.NullString
-	err := tx.QueryRowContext(ctx, `SELECT u.login,v.body_json,v.sha256,v.min_version,v.max_version,p.id
+	err := tx.QueryRowContext(ctx, `SELECT u.login,v.body_json,v.sha256,v.min_version,v.max_version,p.id,v.id
  FROM users u JOIN user_profiles p ON p.user_id=u.id JOIN template_revisions v ON v.id=p.template_revision_id
  JOIN profile_templates t ON t.id=v.template_id WHERE u.id=? AND u.status='active' AND NOT EXISTS (SELECT 1 FROM operations o WHERE o.target_type='user' AND o.target_id=u.id AND o.status IN ('reconcile_required','rollback_running','running','verifying'))
  AND p.target_client IN ('sfa','sfa-1.14.4') AND v.client_family='sfa' AND v.status='approved' AND t.enabled=1
- ORDER BY CASE p.target_client WHEN 'sfa-1.14.4' THEN 0 ELSE 1 END LIMIT 1`, userID).Scan(&login, &body, &digest, &min, &max, profileID)
+ ORDER BY CASE p.target_client WHEN 'sfa-1.14.4' THEN 0 ELSE 1 END LIMIT 1`, userID).Scan(&login, &body, &checksum, &min, &max, profileID, &source)
 	if err != nil {
 		return nil, err
 	}
-	if !supports1144(min, true) || max.Valid && !supports1144(max.String, false) {
-		return nil, errors.New("unsupported SFA version")
+	if digest([]byte(body)) != checksum {
+		return nil, errors.New("template digest mismatch")
+	}
+	variant, err := options.variant()
+	if err != nil {
+		return nil, err
+	}
+	// An existing base binding resolves to the same approved source family.
+	var root string
+	if err = tx.QueryRowContext(ctx, "SELECT COALESCE((SELECT source_revision_id FROM profile_routing_variants WHERE revision_id=?),?)", source, source).Scan(&root); err != nil {
+		return nil, err
+	}
+	err = tx.QueryRowContext(ctx, "SELECT v.id,v.body_json,v.sha256,v.min_version,v.max_version FROM profile_routing_variants m JOIN template_revisions v ON v.id=m.revision_id JOIN template_revisions s ON s.id=m.source_revision_id WHERE m.source_revision_id=? AND m.variant=? AND v.status='approved' AND s.status='approved'", root, variant).Scan(selected, &body, &checksum, &min, &max)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrTemplateIncompatible
+	}
+	if err != nil {
+		return nil, err
+	}
+	if variant == "base" {
+		if !supports1144(min, true) || max.Valid && !supports1144(max.String, false) {
+			return nil, ErrTemplateIncompatible
+		}
+	} else if min != "1.15.0-alpha.13" || !max.Valid || max.String != "1.15.0-alpha.13" {
+		return nil, ErrTemplateIncompatible
 	}
 	sum := sha256.Sum256([]byte(body))
-	if digest != hex.EncodeToString(sum[:]) {
+	if checksum != hex.EncodeToString(sum[:]) {
 		return nil, errors.New("template digest mismatch")
 	}
 	var profile map[string]json.RawMessage

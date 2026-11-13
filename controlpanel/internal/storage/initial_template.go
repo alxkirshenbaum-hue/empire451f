@@ -9,6 +9,16 @@ import (
 
 // InstallInitialSFA preserves an immutable explicitly reviewed revision on retry.
 func (r *Registry) InstallInitialSFA(ctx context.Context, body []byte, approved string) (string, error) {
+	source, err := r.installInitialSFA(ctx, body, approved)
+	if err != nil {
+		return "", err
+	}
+	if _, err = r.InstallRoutingVariants(ctx, source, approved); err != nil {
+		return "", err
+	}
+	return source, nil
+}
+func (r *Registry) installInitialSFA(ctx context.Context, body []byte, approved string) (string, error) {
 	if digest(body) != approved {
 		return "", ErrLegacyDrift
 	}

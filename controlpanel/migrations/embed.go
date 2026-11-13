@@ -17,3 +17,6 @@ var ProfileIssuance string
 
 //go:embed 005_user_mutations.sql
 var UserMutations string
+
+//go:embed 006_profile_routing.sql
+var ProfileRouting string

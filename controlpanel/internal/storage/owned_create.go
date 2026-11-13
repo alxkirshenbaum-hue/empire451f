@@ -35,7 +35,7 @@ func (r *Registry) QueueOwnedCreate(ctx context.Context, run, actor, key, login 
 	}
 	var revision string
 	err = tx.QueryRowContext(ctx, `SELECT v.id FROM template_revisions v JOIN profile_templates t ON t.id=v.template_id
- WHERE t.enabled=1 AND v.status='approved' AND v.client_family='sfa'
+ WHERE t.enabled=1 AND v.status='approved' AND v.client_family='sfa' AND NOT EXISTS (SELECT 1 FROM profile_routing_variants m WHERE m.revision_id=v.id AND m.variant='ru_download_manager')
  ORDER BY julianday(COALESCE(v.approved_at,v.created_at)) DESC,v.id DESC LIMIT 1`).Scan(&revision)
 	if err != nil {
 		return Receipt{}, err

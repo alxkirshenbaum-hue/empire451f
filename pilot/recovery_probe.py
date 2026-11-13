@@ -51,7 +51,7 @@ def start(stack,args,port):
             raise RuntimeError('isolated process exited')
         try:
             socket.create_connection(('127.0.0.1',port),timeout=.2).close()
-            return
+            return child
         except OSError:time.sleep(.05)
     raise TimeoutError('listener missing')
 

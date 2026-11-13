@@ -4,6 +4,7 @@ from contextlib import closing
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import sqlite3
 import subprocess
@@ -11,7 +12,7 @@ import tempfile
 import uuid
 
 from handoff_legacy import publish, require
-from inspect_legacy import registry_uri, unique_fields
+from inspect_legacy import registry_uri, unique_fields, auth_lines
 from render import credentials
 
 
@@ -24,13 +25,22 @@ def read(path):
     return path.read_bytes()
 
 
-def restore(root, registry, run, key, vpnctl, key_version=1):
+def restore(root, registry, run, key, vpnctl, key_version=1, config_dir=None):
     import fcntl
     require(str(uuid.UUID(run)) == run and root.is_dir() and not root.is_symlink()
             and root.stat().st_mode & 0o077 == 0)
     identity = root.stat()
-    ref = f'installation-copy:{identity.st_dev}:{identity.st_ino}'
-    fd = os.open(root/'empire-vpn.lock', os.O_NOFOLLOW | os.O_RDWR)
+    working = config_dir is not None
+    if working:
+        require(root == Path('/var/lib/empire-vpn')/root.name
+                and config_dir == Path('/etc/empire-vpn')/root.name
+                and root.resolve() == root and config_dir.resolve() == config_dir
+                and config_dir.is_dir())
+    auth_path = config_dir/'auth.caddy' if working else root/'auth.caddy'
+    paths = {'auth.caddy':auth_path,'clients.json':root/'clients.json','manifest.json':root/'manifest.json'}
+    ref = f'installation{ "" if working else "-copy"}:{identity.st_dev}:{identity.st_ino}'
+    final_status = 'installer_returned' if working else 'copy_returned'
+    fd = os.open('/run/lock/empire-vpn.lock' if working else root/'empire-vpn.lock', os.O_NOFOLLOW | os.O_RDWR)
     with os.fdopen(fd, 'r+b') as lock, closing(sqlite3.connect(registry_uri(registry), uri=True)) as db:
         fcntl.flock(lock, fcntl.LOCK_EX)
         db.execute('PRAGMA synchronous=FULL')
@@ -40,17 +50,17 @@ def restore(root, registry, run, key, vpnctl, key_version=1):
         manifest = root/'manifest.json'
         before = read(manifest)
         meta = json.loads(before, object_pairs_hook=unique_fields)
-        if row[:2] == ('rolled_back','copy_returned'):
+        if row[:2] == ('rolled_back',final_status):
             require(meta.get('returned_run_id') == run and 'panel_generation' not in meta)
             intent_path = root/'return-intent.json'
             if os.path.lexists(intent_path):
                 intent = json.loads(read(intent_path))
-                require(intent['run']==run and all(checksum(read(root/n))==intent['after'][n]
+                require(intent['run']==run and all(checksum(read(paths[n]))==intent['after'][n]
                         for n in ('clients.json','auth.caddy','manifest.json')))
                 intent_path.unlink()
                 sync_directory(root)
-            return 'copy_returned'
-        require(row[:2] == ('importing','copy_handed_off'))
+            return final_status
+        require(row[:2] == (('verified_cutover','verified_cutover') if working else ('importing','copy_handed_off')))
         version = db.execute('PRAGMA data_version').fetchone()
         with tempfile.TemporaryDirectory(dir=registry.parent) as tmp:
             subprocess.run([str(vpnctl),'migration','reverse-export','--approved-plan',run,
@@ -62,13 +72,17 @@ def restore(root, registry, run, key, vpnctl, key_version=1):
         auth = ''.join('basic_auth '+json.dumps(u['username'])+' '+json.dumps(u['password'])+'\n'
                        for u in users).encode()
         active = {u['username']:u['password'] for u in users}
+        if working:
+            require(meta['config']['id']==root.name and dict(auth_lines(read(auth_path)))==active)
+            require(str(config_dir/'Caddyfile') in meta['files'])
+            require(all(checksum(read(Path(path)))==digest for path,digest in meta['files'].items()))
         master = json.loads(read(root/'master_user.sfa.json'))
         outbound, = [o for o in master['outbounds'] if o['type']=='naive']
         require(outbound['username']=='master_user' and outbound['password']==active['master_user']
                 and outbound['server']==meta['config']['domain'])
         auth_ref = '/etc/empire-vpn/'+meta['config']['id']+'/auth.caddy'
         intent_path = root/'return-intent.json'
-        current = {'auth.caddy':checksum(read(root/'auth.caddy')),
+        current = {'auth.caddy':checksum(read(auth_path)),
                    'clients.json':checksum(read(root/'clients.json')), 'manifest.json':checksum(before)}
         # The manifest is published last. Do not restore the obsolete installer
         # transaction pointer: its old rollback journal could revive revoked access.
@@ -100,13 +114,13 @@ def restore(root, registry, run, key, vpnctl, key_version=1):
                 sync_directory(root)
             for name,data in target.items():
                 if current[name]!=after[name]:
-                    publish(root/name,data)
-                    sync_directory(root)
-            db.execute("""UPDATE legacy_migration_runs SET phase='rolled_back',status='copy_returned',
-                          finished_at=CURRENT_TIMESTAMP WHERE id=?""",(run,))
+                    publish(paths[name],data,preserve=True) if working else publish(paths[name],data)
+                    sync_directory(paths[name].parent)
+            db.execute("""UPDATE legacy_migration_runs SET phase='rolled_back',status=?,
+                          finished_at=CURRENT_TIMESTAMP WHERE id=?""",(final_status,run))
         intent_path.unlink()
         sync_directory(root)
-        return 'copy_returned'
+        return final_status
 
 
 def sync_directory(root):
@@ -119,7 +133,9 @@ def sync_directory(root):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--installation-copy',type=Path,required=True)
+    source=p.add_mutually_exclusive_group(required=True)
+    source.add_argument('--installation-copy',type=Path)
+    source.add_argument('--installation',help='Working installation ID; requires approved maintenance window')
     p.add_argument('--staging-db',type=Path,required=True)
     p.add_argument('--approved-plan',required=True)
     p.add_argument('--vault-key-file',type=Path,required=True)
@@ -127,8 +143,12 @@ def main():
     p.add_argument('--vpnctl',type=Path,default=Path('/usr/local/bin/vpnctl'))
     args=p.parse_args()
     try:
-        result=restore(args.installation_copy,args.staging_db,args.approved_plan,args.vault_key_file,
-                       args.vpnctl.resolve(),args.key_version)
+        if args.installation:
+            require(re.fullmatch('[a-z][a-z0-9]{2,9}',args.installation) is not None and os.geteuid()==0)
+        root=Path('/var/lib/empire-vpn')/args.installation if args.installation else args.installation_copy
+        config=Path('/etc/empire-vpn')/args.installation if args.installation else None
+        result=restore(root,args.staging_db,args.approved_plan,args.vault_key_file,
+                       args.vpnctl.resolve(),args.key_version,config)
     except (OSError,ValueError,KeyError,TypeError,AttributeError,sqlite3.Error,subprocess.SubprocessError,ImportError):
         p.exit(1,'Return refused. Check the copy, registry and migration state.\n')
     print(json.dumps({'status':result,'run_id':args.approved_plan}))

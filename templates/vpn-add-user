@@ -40,6 +40,8 @@ def issue(name):
     manifest = STATE / 'manifest.json'
     export = STATE / 'clients.json'
     journal = STATE / 'user-rollback.json'
+    if os.path.lexists(STATE / 'return-intent.json'):
+        raise SystemExit('Finish returning writer ownership first.')
     if (STATE / 'pending.json').exists():
         raise SystemExit('Finish the installer transaction first.')
 

@@ -65,7 +65,8 @@ def readjson(path, default=None):
     return json.loads(Path(path).read_text()) if Path(path).exists() else default
 
 
-def require_installer_writer(manifest):
+def require_installer_writer(manifest, state):
+    require(not os.path.lexists(Path(state) / 'return-intent.json'), 'Finish returning writer ownership first')
     require('panel_generation' not in manifest, 'VPN accounts are managed by the panel; installer write refused')
 
 
@@ -204,7 +205,7 @@ def download(url, sha, destination):
 
 def prepare(c, role, versions):
     if role == 'entry':
-        require_installer_writer(readjson(Path(names(c)['state']) / 'manifest.json', {}))
+        require_installer_writer(readjson(Path(names(c)['state']) / 'manifest.json', {}), names(c)['state'])
     f = probe(c, role)
     require(not f['pending'], 'Pending transaction: recover/rollback before prepare')
     n = names(c)
@@ -342,7 +343,7 @@ def desired(c, role, f, keys, clients, templates):
 
 def plan(c, role, f, keys, clients, templates, security_only=False):
     if role == 'entry':
-        require_installer_writer(readjson(Path(names(c)['state']) / 'manifest.json', {}))
+        require_installer_writer(readjson(Path(names(c)['state']) / 'manifest.json', {}), names(c)['state'])
     out = desired(c, role, f, keys, clients, templates)
     if security_only and '/usr/local/bin/vpn-add-user' not in f['owned']:
         out.pop('/usr/local/bin/vpn-add-user', None)
@@ -545,7 +546,7 @@ def rollback_local(txdir):
     manifest = readjson(n['state'] + '/manifest.json', {})
     require((pending and pending['dir'] == str(txdir)) or manifest.get('transaction') == txdir.name, 'Rollback is not the latest transaction')
     if role == 'entry':
-        require_installer_writer(manifest)
+        require_installer_writer(manifest, n['state'])
     for p, saved in j['files'].items():
         if j.get('security_paths') is not None and p not in j['security_paths']:
             continue
@@ -620,7 +621,7 @@ def commit(c, expected=None):
     txdir = Path(pending['dir'])
     j = readjson(txdir / 'journal.json')
     if j['role'] == 'entry':
-        require_installer_writer(readjson(Path(n['state']) / 'manifest.json', {}))
+        require_installer_writer(readjson(Path(n['state']) / 'manifest.json', {}), n['state'])
     require(j['phase'] == 'applied', 'Transaction did not finish applying')
     require(all(digest(p) == h for p, h in j['new_hashes'].items()), 'Files changed since apply')
     atomic(n['state'] + '/manifest.json', json.dumps({'schema_version': 1, 'files': j['new_hashes'], 'transaction': txdir.name, 'config': c, 'role': j['role']}))

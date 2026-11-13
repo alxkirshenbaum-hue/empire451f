@@ -257,7 +257,8 @@ def installer_lock():
 @contextlib.contextmanager
 def installer_account_writer(c):
     with installer_lock():
-        remote.require_installer_writer(remote.readjson(Path(names(c)['state']) / 'manifest.json') or {})
+        state = Path(names(c)['state'])
+        remote.require_installer_writer(remote.readjson(state / 'manifest.json') or {}, state)
         yield
 
 

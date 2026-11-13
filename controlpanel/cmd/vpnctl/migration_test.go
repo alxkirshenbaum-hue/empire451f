@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/storage"
@@ -281,5 +282,15 @@ func TestStagePythonPlan(t *testing.T) {
 		if e := exec.Command("python3", "-B", "../../../pilot/reverse_probe.py", install, path).Run(); e != nil {
 			t.Fatal("isolated Naive replay", e)
 		}
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	binary := filepath.Join(dir, "vpnctl")
+	if output, err := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), "build", "-o", binary, ".").CombinedOutput(); err != nil {
+		t.Fatalf("build CLI: %v %s", err, output)
+	}
+	if output, err := exec.Command("python3", "-B", "../../../tests/return_crash_check.py", install, dbPath, run, keyFile, binary).CombinedOutput(); err != nil {
+		t.Fatalf("return rehearsal: %v %s", err, output)
 	}
 }

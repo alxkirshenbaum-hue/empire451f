@@ -52,7 +52,21 @@ func canonical(raw []byte) ([]byte, error) {
 // PatchCreate requires exactly one forward_proxy handler and retains all
 // other JSON properties, including unknown future directives and number values.
 func PatchCreate(raw []byte, login, password string) ([]byte, error) {
-	if login == "" || strings.ContainsAny(login, ":\r\n") || password == "" || strings.Contains(password, "{$") {
+	return PatchAuth(raw, AuthChange{Login: login, Password: password})
+}
+
+// AuthChange compares exact managed credentials. Empty Previous inserts;
+// empty Password removes; both populated replace. Domain admission owns
+// protection, status, versions and secret retention. No secret is generated here.
+type AuthChange struct {
+	Login, Previous, Password string
+}
+
+// PatchAuth preserves unrelated directives and credentials. Removal/replacement
+// require the observed secret. Login comparison is case-sensitive.
+func PatchAuth(raw []byte, change AuthChange) ([]byte, error) {
+	login, password := change.Login, change.Password
+	if login == "" || strings.ContainsAny(login, ":\r\n") || (password == "" && change.Previous == "") || strings.Contains(password, "{$") {
 		return nil, ErrInput
 	}
 	normal, err := canonical(raw)
@@ -89,7 +103,9 @@ func PatchCreate(raw []byte, login, password string) ([]byte, error) {
 	if !ok || len(credentials) == 0 {
 		return nil, ErrInput
 	}
-	for _, c := range credentials {
+	index := -1
+	seen := make(map[string]bool)
+	for i, c := range credentials {
 		encoded, ok := c.(string)
 		if !ok {
 			return nil, ErrInput
@@ -102,16 +118,43 @@ func PatchCreate(raw []byte, login, password string) ([]byte, error) {
 		if err != nil {
 			return nil, ErrInput
 		}
-		name, _, ok := strings.Cut(string(raw), ":")
+		name, old, ok := strings.Cut(string(raw), ":")
 		clear(raw)
 		clear(first)
-		if !ok || name == login {
+		if !ok || name == "" || seen[name] {
 			return nil, ErrInput
 		}
+		seen[name] = true
+		if name == login {
+			if change.Previous == "" {
+				return nil, ErrInput
+			}
+			if old != change.Previous {
+				return nil, ErrDrift
+			}
+			index = i
+		}
+	}
+	if change.Previous != "" && index < 0 {
+		return nil, ErrDrift
+	}
+	if password == "" {
+		// An empty auth list could expose an unauthenticated proxy.
+		if len(credentials) == 1 {
+			return nil, ErrInput
+		}
+		h["auth_credentials"] = append(credentials[:index], credentials[index+1:]...)
+		return json.Marshal(value)
 	}
 	// forwardproxy stores base64 credentials as []byte, itself base64 in JSON.
 	encoded := base64.StdEncoding.EncodeToString([]byte(login + ":" + password))
-	h["auth_credentials"] = append(credentials, base64.StdEncoding.EncodeToString([]byte(encoded)))
+	replacement := base64.StdEncoding.EncodeToString([]byte(encoded))
+	if index >= 0 {
+		credentials[index] = replacement
+		h["auth_credentials"] = credentials
+	} else {
+		h["auth_credentials"] = append(credentials, replacement)
+	}
 	return json.Marshal(value)
 }
 
@@ -136,6 +179,12 @@ func ConfigEqual(a, b []byte) bool { return same(a, b) }
 // Prepare persists before/candidate before any live mutation. The directory
 // must already be private and on durable storage; it contains plaintext auth.
 func Prepare(ctx context.Context, rt Runtime, directory, operation string, generation int64, login, password string) (*Prepared, error) {
+	return PrepareAuth(ctx, rt, directory, operation, generation, AuthChange{Login: login, Password: password})
+}
+
+// PrepareAuth reuses the same durable snapshot, validate/apply/verify/recovery
+// protocol. The caller supplies operation-specific fresh connection probes.
+func PrepareAuth(ctx context.Context, rt Runtime, directory, operation string, generation int64, change AuthChange) (*Prepared, error) {
 	info, err := os.Lstat(directory)
 	if err != nil || !info.IsDir() || info.Mode().Perm()&0077 != 0 || operation == "" || generation < 1 {
 		return nil, ErrInput
@@ -145,7 +194,7 @@ func Prepare(ctx context.Context, rt Runtime, directory, operation string, gener
 		return nil, err
 	}
 	defer clear(before)
-	candidate, err := PatchCreate(before, login, password)
+	candidate, err := PatchAuth(before, change)
 	if err != nil {
 		return nil, err
 	}

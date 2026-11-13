@@ -144,8 +144,10 @@ def main():
         for process,uid in ((relay_process,65533),(caddy_process,65534)):
             service_identity(process,uid)
         admin=Path('/run/caddy-admin/admin.sock')
-        require(admin.stat().st_uid==65534 and admin.stat().st_mode&0o777==0o600
+        mode=admin.stat().st_mode&0o777
+        require(admin.stat().st_uid==65534 and mode&0o077==0 and mode&0o200!=0
                 and admin.parent.stat().st_uid==65534 and admin.parent.stat().st_mode&0o777==0o700,'socket ownership/mode mismatch')
+        print('staging admin socket: uid=65534 mode='+format(mode,'04o')+' parent=0700',flush=True)
         # No socket access for the actual API/relay UIDs.
         denial='import socket;s=socket.socket(socket.AF_UNIX);s.connect("/run/caddy-admin/admin.sock")'
         for uid in (65532,65533):

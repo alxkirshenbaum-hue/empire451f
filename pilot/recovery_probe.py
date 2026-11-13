@@ -98,7 +98,7 @@ def perform(req):
             o.update(server='127.0.0.1',server_port=18443)
             o.pop('domain_resolver',None)
             o['tls'].update(server_name='lab.example',certificate_path=str(Path('cert').resolve()))
-            if revoked:o.update(username='revoked',password=req['revoked'])
+            if revoked:o.update(username=req.get('revoked_login','revoked'),password=req['revoked'])
             cfg=dict(log=dict(disabled=True),inbounds=[dict(type='socks',listen='127.0.0.1',listen_port=port)],outbounds=[o])
             path=Path(f'client-{port}.json')
             path.write_text(json.dumps(cfg))

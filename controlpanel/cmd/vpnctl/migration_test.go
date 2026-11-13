@@ -63,7 +63,29 @@ func TestStagePythonPlan(t *testing.T) {
 		clients = append(clients, map[string]string{"username": name, "password": password})
 	}
 	put("clients.json", map[string]any{"format": "empire-vpn-clients", "schema_version": 1, "clients": clients})
-	put("master_user.sfa.json", map[string]any{"outbounds": []map[string]string{{"type": "naive", "server": "test.invalid", "username": "master_user", "password": password}}})
+	template, err := os.ReadFile("../../../templates/sfa-profile.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range names {
+		var profile map[string]any
+		if err = json.Unmarshal(template, &profile); err != nil {
+			t.Fatal(err)
+		}
+		for _, entry := range profile["outbounds"].([]any) {
+			o := entry.(map[string]any)
+			if o["type"] == "naive" {
+				o["server"] = "test.invalid"
+				o["username"] = name
+				o["password"] = password
+			}
+		}
+		file := "vpn-" + name + ".json"
+		if name == "master_user" {
+			file = "master_user.sfa.json"
+		}
+		put(file, profile)
+	}
 	inspect := func(args ...string) map[string]any {
 		t.Helper()
 		base := []string{"-B", "../../../inspect_legacy.py", snap, "--registry", dbPath}
@@ -167,5 +189,97 @@ func TestStagePythonPlan(t *testing.T) {
 	}
 	if output, err := exec.Command("python3", "-B", "../../../tests/handoff_crash_check.py", snap, dbPath, run).CombinedOutput(); err != nil {
 		t.Fatalf("handoff recovery check: %v: %s", err, output)
+	}
+	// Repeat the handoff on an independent staged copy, then model the verified
+	// activation and revoke one account through the registry's CAS operation.
+	copyDB := filepath.Join(dir, "reverse.db")
+	reg, err = storage.Open(context.Background(), copyDB, cipher, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reg.Close()
+	dbPath = copyDB
+	run = inspect()["run_id"].(string)
+	inspect("--plan", run)
+	stage(run, 0)
+	install := filepath.Join(dir, "reverse-copy")
+	if err = os.Mkdir(install, 0700); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := os.ReadDir(snap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range entries {
+		data, e := os.ReadFile(filepath.Join(snap, p.Name()))
+		if e != nil {
+			t.Fatal(e)
+		}
+		if e = os.WriteFile(filepath.Join(install, p.Name()), data, 0600); e != nil {
+			t.Fatal(e)
+		}
+	}
+	if out, e := exec.Command("python3", "-B", "../../../handoff_legacy.py", "--snapshot", snap, "--installation-copy", install, "--staging-db", dbPath, "--approved-plan", run).CombinedOutput(); e != nil {
+		t.Fatalf("handoff: %v %s", e, out)
+	}
+	db, err = sql.Open("sqlite3", dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if _, err = db.Exec("UPDATE users SET status='active',row_version=row_version+1"); err != nil {
+		t.Fatal(err)
+	}
+	var uid string
+	if err = db.QueryRow("SELECT id FROM users WHERE login=?", names[0]).Scan(&uid); err != nil {
+		t.Fatal(err)
+	}
+	reg, err = storage.Open(context.Background(), dbPath, cipher, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = reg.UpdateEffectiveStateCAS(context.Background(), uid, 2, "disabled"); err != nil {
+		t.Fatal(err)
+	}
+	reg.Close()
+	stage(run, 4)
+	fresh := inspect()["run_id"].(string)
+	inspect("--plan", fresh)
+	stage(fresh, 4)
+	dest := filepath.Join(dir, "export")
+	if err = os.Mkdir(dest, 0700); err != nil {
+		t.Fatal(err)
+	}
+	args := []string{"migration", "reverse-export", "--approved-plan", run, "--staging-db", dbPath, "--vault-key-file", keyFile, "--output-dir", dest}
+	export := func(want int) {
+		t.Helper()
+		var out, stderr bytes.Buffer
+		if got := execute(args, &out, &stderr); got != want || bytes.Contains(out.Bytes(), []byte(password)) || bytes.Contains(stderr.Bytes(), []byte(password)) {
+			t.Fatalf("reverse export exit %d, expected %d", got, want)
+		}
+	}
+	export(0)
+	export(4)
+	path := filepath.Join(dest, "clients.json")
+	info, err := os.Stat(path)
+	if err != nil || info.Mode().Perm() != 0600 {
+		t.Fatal("private export permissions")
+	}
+	var exp struct{ Clients []map[string]string }
+	data, err := os.ReadFile(path)
+	if err != nil || json.Unmarshal(data, &exp) != nil || len(exp.Clients) != 1 || exp.Clients[0]["username"] != "master_user" || exp.Clients[0]["password"] != password {
+		t.Fatal("wrong reverse export")
+	}
+	for _, profile := range []string{"master_user.sfa.json", "vpn-Legacy.Name.json"} {
+		a, e := os.ReadFile(filepath.Join(snap, profile))
+		b, f := os.ReadFile(filepath.Join(install, profile))
+		if e != nil || f != nil || !bytes.Equal(a, b) {
+			t.Fatal("profile was modified")
+		}
+	}
+	if os.Getenv("VPN_TEST_NAIVE_PROBE") == "1" {
+		if e := exec.Command("python3", "-B", "../../../pilot/reverse_probe.py", install, path).Run(); e != nil {
+			t.Fatal("isolated Naive replay", e)
+		}
 	}
 }

@@ -1,5 +1,7 @@
 # Verified create worker
 
+User changes use the verified Unix reload strategy; the runtime has no automatic service-restart fallback. The shared English `caddy.ApplyNotice` is emitted to stderr before CLI queue submission and must also be used by W5 mutation commands and W7 previews. It warns that uninterrupted service is not guaranteed, revocation affects new connections while existing tunnels may remain open, and a service restart interrupts VPN traffic and needs separate approval. The G4 notice code is tested on a copy; the current nh1 deployment remains the accepted G3 revision.
+
 `vpnctl worker once --installation nh1 --owner-run APPROVED_RUN_UUID` processes one operation or its recovery. It reports only an operation ID and `completed`/`idle`. It does not perform migration cutover or enable a Caddy socket. The nh1 worker/API were installed and enabled in the approved [G3 window](G3_ACCEPTANCE_2026-11-13.md); this is not an instruction to rerun that window.
 
 The root-owned, mode 0600 policy is `/etc/vpn-control/worker-nh1.json`. It contains `installation`, `owner_run`, `socket`, `helper`, `validate_command`, and `probe_command`. Commands are argument arrays with absolute canonical executable paths; absolute file arguments and the helper must be root-owned and not group/world writable. Symlink policy/executable paths and unknown policy fields are rejected. Requests cannot supply policy paths or commands.

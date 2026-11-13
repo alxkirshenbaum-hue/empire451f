@@ -34,6 +34,12 @@ def main():
     (source/'pilot').mkdir(exist_ok=True)
     for name in ('recovery_probe.py','full_worker_rehearsal.py'):
         shutil.copy2(project/'pilot'/name,source/'pilot'/name)
+    # git archive may carry group-write bits. Reproduce secure installation
+    # modes explicitly; the worker correctly refuses writable helper scripts.
+    source.chmod(0o755)
+    for path in source.rglob('*'):
+        if path.is_dir():path.chmod(0o755)
+        elif path.is_file():path.chmod(0o644 | (path.stat().st_mode & 0o111))
 
 
 if __name__=='__main__':main()

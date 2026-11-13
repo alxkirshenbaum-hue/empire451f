@@ -60,7 +60,7 @@ def unique_fields(pairs):
     return result
 
 
-def inspect_inputs(directory):
+def inspect_sources(directory):
     if not directory.is_dir() or directory.is_symlink():
         raise ValueError('Invalid snapshot directory')
     if any((directory / name).exists() or (directory / name).is_symlink()
@@ -83,7 +83,8 @@ def inspect_inputs(directory):
             raise ValueError('Invalid snapshot document')
         return value
 
-    meta = document('manifest.json')
+    manifest = read('manifest.json')
+    meta = json.loads(manifest, object_pairs_hook=unique_fields)
     ident = meta['config']['id']
     if not re.fullmatch(r'[a-z][a-z0-9]{2,9}', ident):
         raise ValueError('Invalid installation ID')
@@ -121,14 +122,19 @@ def inspect_inputs(directory):
                             'protected': login == 'master_user',
                             'legacy_accepted': not bool(re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,47}', login)),
                             'action': 'stage_existing_credential'})
-    return result, actions
+    return result, actions, hashes, manifest
+
+
+def inspect_inputs(directory):
+    report, actions, _, _ = inspect_sources(directory)
+    return report, actions
 
 
 def inspect_snapshot(directory):
     return inspect_inputs(directory)[0]
 
 
-def record_snapshot(directory, registry, run_id):
+def registry_uri(registry):
     if not registry.is_file() or registry.is_symlink() or registry.parent.is_symlink():
         raise ValueError('Invalid registry')
     if os.name == 'posix' and (registry.stat().st_mode | registry.parent.stat().st_mode) & 0o077:
@@ -138,8 +144,11 @@ def record_snapshot(directory, registry, run_id):
         if sidecar.is_symlink() or (sidecar.exists() and (not sidecar.is_file() or
                 (os.name == 'posix' and sidecar.stat().st_mode & 0o077))):
             raise ValueError('Invalid registry sidecar')
-    uri = registry.resolve().as_uri() + '?mode=rw'
-    with closing(sqlite3.connect(uri, uri=True)) as db, db:
+    return registry.resolve().as_uri() + '?mode=rw'
+
+
+def record_snapshot(directory, registry, run_id):
+    with closing(sqlite3.connect(registry_uri(registry), uri=True)) as db, db:
         db.execute('PRAGMA foreign_keys=ON')
         db.execute('BEGIN IMMEDIATE')
         if db.execute('SELECT max(version) FROM schema_migrations').fetchone() != (3,):

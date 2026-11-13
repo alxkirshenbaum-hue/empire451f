@@ -57,7 +57,7 @@ func TestStagePythonPlan(t *testing.T) {
 		}
 	}
 	hash := sha256.Sum256(raw)
-	put("manifest.json", map[string]any{"config": map[string]string{"id": "nh1", "domain": "test.invalid"}, "files": map[string]string{"/etc/empire-vpn/nh1/auth.caddy": fmt.Sprintf("%x", hash)}})
+	put("manifest.json", map[string]any{"transaction": "previous", "config": map[string]string{"id": "nh1", "domain": "test.invalid"}, "files": map[string]string{"/etc/empire-vpn/nh1/auth.caddy": fmt.Sprintf("%x", hash)}})
 	clients := []map[string]string{}
 	for _, name := range names {
 		clients = append(clients, map[string]string{"username": name, "password": password})
@@ -161,5 +161,11 @@ func TestStagePythonPlan(t *testing.T) {
 			t.Fatal("credential roundtrip failed")
 		}
 		clear(plain)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if output, err := exec.Command("python3", "-B", "../../../tests/handoff_crash_check.py", snap, dbPath, run).CombinedOutput(); err != nil {
+		t.Fatalf("handoff recovery check: %v: %s", err, output)
 	}
 }

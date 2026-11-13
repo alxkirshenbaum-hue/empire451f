@@ -23,6 +23,10 @@ class Echo(socketserver.BaseRequestHandler):
             self.request.sendall(data)
 
 
+class EchoServer(socketserver.ThreadingTCPServer):
+    allow_reuse_address = True
+
+
 def start(stack,args,port):
     child=subprocess.Popen(args,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     def close():
@@ -67,7 +71,7 @@ def attempt(port):
         return readn(sock,len(nonce))==nonce
 
 
-def perform(req):
+def perform(req, issue=None):
     if set(os.listdir('/sys/class/net'))!={'lo'}:
         raise RuntimeError('requires isolated loopback')
     os.umask(0o077)
@@ -76,13 +80,12 @@ def perform(req):
         os.environ['HOME']=tmp
         def run(args):
             subprocess.run(args,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,check=True,timeout=20)
-        Path('restored.json').write_text(json.dumps(req['profile']))
-        run([BIN/'sing-box','check','-c','restored.json'])
         run(['openssl','req','-new','-x509','-nodes','-newkey','rsa:2048','-days','1','-subj',
              '/CN=lab.example','-addext','subjectAltName=DNS:lab.example','-keyout','key','-out','cert'])
         Path('auth.caddy').write_text(req['auth'])
-        Path('Caddyfile').write_text('{\n admin off\n persist_config off\n auto_https off\n order forward_proxy before file_server\n}\nhttps://:18443 {\n bind 127.0.0.1\n tls cert key\n route {\n forward_proxy {\n import auth.caddy\n hide_ip\n hide_via\n probe_resistance\n upstream http://127.0.0.1:1081\n }\n respond "site" 200\n }\n}\n')
-        echo=socketserver.ThreadingTCPServer(('127.0.0.1',19876),Echo)
+        admin = 'unix/' + str(Path('admin.sock').resolve()) if issue else 'off'
+        Path('Caddyfile').write_text('{\n admin '+admin+'\n persist_config off\n auto_https off\n order forward_proxy before file_server\n}\nhttps://:18443 {\n bind 127.0.0.1\n tls cert key\n route {\n forward_proxy {\n import auth.caddy\n hide_ip\n hide_via\n probe_resistance\n upstream http://127.0.0.1:1081\n }\n respond "site" 200\n }\n}\n')
+        echo=EchoServer(('127.0.0.1',19876),Echo)
         echo.daemon_threads=True
         threading.Thread(target=echo.serve_forever,daemon=True).start()
         stack.callback(echo.server_close)
@@ -92,17 +95,24 @@ def perform(req):
         Path('relay.json').write_text(json.dumps(relay))
         start(stack,[BIN/'sing-box','run','-c','relay.json'],1081)
         start(stack,[BIN/'caddy','run','--config','Caddyfile','--adapter','caddyfile'],18443)
-        outbound,=[o for o in req['profile']['outbounds'] if o['type']=='naive']
-        for port,revoked in [(19081,False),(19082,True)]:
+        def client(port, outbound):
             o=copy.deepcopy(outbound)
             o.update(server='127.0.0.1',server_port=18443)
             o.pop('domain_resolver',None)
             o['tls'].update(server_name='lab.example',certificate_path=str(Path('cert').resolve()))
-            if revoked:o.update(username=req.get('revoked_login','revoked'),password=req['revoked'])
             cfg=dict(log=dict(disabled=True),inbounds=[dict(type='socks',listen='127.0.0.1',listen_port=port)],outbounds=[o])
             path=Path(f'client-{port}.json')
             path.write_text(json.dumps(cfg))
             start(stack,[BIN/'sing-box','run','-c',path],port)
+        if issue:
+            profile = issue(client, run, admin)
+        else:
+            profile = req['profile']
+        Path('restored.json').write_text(json.dumps(profile))
+        run([BIN/'sing-box','check','-c','restored.json'])
+        outbound,=[o for o in profile['outbounds'] if o['type']=='naive']
+        client(19081,outbound)
+        client(19082,dict(outbound,username=req.get('revoked_login','revoked'),password=req['revoked']))
         assert attempt(19081)
         try:revoked=attempt(19082)
         except (EOFError,OSError):revoked=False

@@ -85,7 +85,7 @@ func withOwnedInstallation(state, config, lockPath, panel, run string, action fu
 	if err = syscall.Flock(int(lock.Fd()), syscall.LOCK_EX); err != nil {
 		return empty, err
 	}
-	for _, journal := range []string{"pending.json", "user-rollback.json"} {
+	for _, journal := range []string{"pending.json", "user-rollback.json", "panel-auth-pending.json"} {
 		if _, err = os.Lstat(filepath.Join(state, journal)); !errors.Is(err, os.ErrNotExist) {
 			return empty, storage.ErrLegacyConflict
 		}

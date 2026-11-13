@@ -34,7 +34,7 @@ def restore(root, registry, run, key, vpnctl, key_version=1):
     with os.fdopen(fd, 'r+b') as lock, closing(sqlite3.connect(registry_uri(registry), uri=True)) as db:
         fcntl.flock(lock, fcntl.LOCK_EX)
         db.execute('PRAGMA synchronous=FULL')
-        require(not any(os.path.lexists(root/n) for n in ('pending.json','user-rollback.json')))
+        require(not any(os.path.lexists(root/n) for n in ('pending.json','user-rollback.json','panel-auth-pending.json')))
         row = db.execute('SELECT phase,status,report_ref FROM legacy_migration_runs WHERE id=?',(run,)).fetchone()
         require(row and row[2] == ref)
         manifest = root/'manifest.json'

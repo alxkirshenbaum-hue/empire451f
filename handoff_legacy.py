@@ -18,10 +18,19 @@ def require(condition):
         raise ValueError('Handoff precondition failed')
 
 
-def publish(path, data):
+def publish(path, data, preserve=False):
+    # Runtime auth is group-readable by Caddy; migration copies remain 0600.
+    metadata = path.lstat() if preserve else None
+    if metadata is not None:
+        require(not path.is_symlink() and path.is_file())
     fd, name = tempfile.mkstemp(dir=path.parent)
     try:
         with os.fdopen(fd, 'wb') as stream:
+            if metadata is not None:
+                os.fchown(stream.fileno(), metadata.st_uid, metadata.st_gid)
+                os.fchmod(stream.fileno(), metadata.st_mode & 0o777)
+                for attribute in os.listxattr(path):
+                    os.setxattr(stream.fileno(), attribute, os.getxattr(path, attribute))
             stream.write(data)
             stream.flush()
             os.fsync(stream.fileno())

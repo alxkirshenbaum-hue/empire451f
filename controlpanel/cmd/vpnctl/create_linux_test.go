@@ -153,6 +153,16 @@ with patch('os.geteuid',return_value=0), patch('builtins.input',return_value='Ca
 		t.Fatal("ignored drift")
 	}
 	write(auth, baseline)
+	write(filepath.Join(state, "panel-auth-pending.json"), []byte("{}"))
+	if _, err := queue("blocked"); err == nil {
+		t.Fatal("queued during unfinished file publication")
+	}
+	if _, err := runNextCreate(state, cfg, lock, panel, run, probe, nil); err == nil {
+		t.Fatal("ignored unfinished file publication")
+	}
+	if err := os.Remove(filepath.Join(state, "panel-auth-pending.json")); err != nil {
+		t.Fatal(err)
+	}
 	write(filepath.Join(state, "pending.json"), []byte("{}"))
 	if _, err := queue("blocked"); err == nil {
 		t.Fatal("ignored pending transaction")

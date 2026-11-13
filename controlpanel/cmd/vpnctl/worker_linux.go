@@ -133,12 +133,24 @@ func caddyBaseline(ctx context.Context, policy workerPolicy, runtime caddy.Runti
 }
 
 func workerOnce(args []string, out, stderr io.Writer) int {
+	return workerCommand(args, out, stderr, false)
+}
+func workerReconcile(args []string, out, stderr io.Writer) int {
+	return workerCommand(args, out, stderr, true)
+}
+func workerCommand(args []string, out, stderr io.Writer, reconcile bool) int {
 	flags := flag.NewFlagSet("worker once", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	installation := flags.String("installation", "", "Installation ID")
 	run := flags.String("owner-run", "", "Approved writer run")
+	operation := flags.String("operation", "", "Exact interrupted operation UUID")
+	decision := flags.String("decision", "", "Explicit complete or rollback")
 	if flags.Parse(args) != nil || flags.NArg() != 0 || !installationID.MatchString(*installation) || !status.ValidID(*run) {
 		fmt.Fprintln(stderr, "Invalid installation or owner run")
+		return 2
+	}
+	if reconcile && (!status.ValidID(*operation) || (*decision != "complete" && *decision != "rollback")) || !reconcile && (*operation != "" || *decision != "") {
+		fmt.Fprintln(stderr, "Expected explicit interrupted operation and complete or rollback decision")
 		return 2
 	}
 	if os.Geteuid() != 0 {
@@ -160,7 +172,34 @@ func workerOnce(args []string, out, stderr io.Writer) int {
 	w.baseline = func(ctx context.Context) error {
 		return caddyBaseline(ctx, policy, runtime, filepath.Join(w.config, *installation, "Caddyfile"))
 	}
-	receipt, err := w.once()
+	var receipt storage.Receipt
+	if reconcile {
+		fmt.Fprintln(stderr, caddy.ApplyNotice)
+		receipt, err = withOwnedInstallationRecovery(w.state, w.config, w.lock, w.panel, w.run, func(ctx context.Context, r *storage.Registry) error {
+			var e error
+			receipt, e = w.reconcile(ctx, r, *operation, *decision)
+			return e
+		}, func(ctx context.Context, r *storage.Registry) (storage.Receipt, error) {
+			if receipt.OperationID == "" {
+				job, e := r.OwnedAuthJob(ctx, w.run, *operation)
+				if e != nil {
+					return receipt, e
+				}
+				if !(*decision == "complete" && job.Phase == "succeeded" || *decision == "rollback" && job.Phase == "rolled_back") {
+					return receipt, storage.ErrJournalConflict
+				}
+				if w.baseline != nil {
+					if e = w.baseline(ctx); e != nil {
+						return receipt, e
+					}
+				}
+				receipt = job.Receipt
+			}
+			return receipt, nil
+		})
+	} else {
+		receipt, err = w.once()
+	}
 	if err != nil {
 		fmt.Fprintln(stderr, "Worker stopped; inspect protected operation state before retrying")
 		return 5

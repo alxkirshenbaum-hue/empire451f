@@ -81,6 +81,9 @@ func (w *createCaddyWorker) recover(ctx context.Context, reg *storage.Registry) 
 	if err != nil {
 		return empty, err
 	}
+	if job.Phase == "rollback_running" {
+		return empty, errors.Join(storage.ErrJournalConflict, reg.Transition(ctx, job.OperationID, "rollback_running", "reconcile_required"))
+	}
 	if job.Kind != "user.create" {
 		return w.recoverMutation(ctx, reg, job, intent.Generation)
 	}
@@ -406,4 +409,120 @@ func (w *createCaddyWorker) recoverMutation(ctx context.Context, reg *storage.Re
 		}
 	}
 	return j.Receipt, w.finish(ctx, j.Receipt, generation)
+}
+
+// Reconciliation is an explicit root SSH workflow, never automatic fallback.
+func (w *createCaddyWorker) reconcile(ctx context.Context, r *storage.Registry, operation, decision string) (storage.Receipt, error) {
+	var empty storage.Receipt
+	data, err := os.ReadFile(filepath.Join(w.state, "panel-auth-pending.json"))
+	if err != nil {
+		return empty, err
+	}
+	defer clear(data)
+	var intent struct {
+		Operation, Run, Prepared string
+		Generation               int64
+	}
+	if json.Unmarshal(data, &intent) != nil || intent.Operation != operation || intent.Run != w.run || intent.Prepared != filepath.Join(w.directory(operation), "prepared.json") {
+		return empty, caddy.ErrInput
+	}
+	job, err := r.OwnedAuthJob(ctx, w.run, operation)
+	if err != nil {
+		return empty, err
+	}
+	if job.Phase == "succeeded" || job.Phase == "queued" {
+		return empty, storage.ErrJournalConflict
+	}
+	if err = w.files(ctx, "inspect", job.Receipt, intent.Generation, nil); err != nil {
+		return empty, err
+	}
+	p, err := caddy.ReadPrepared(w.directory(operation), operation, intent.Generation)
+	if err != nil {
+		return empty, err
+	}
+	defer p.Clear()
+	prove := func(login string, old, fresh vault.PlainSecret) error {
+		change := mutationChange(job, login, old, fresh)
+		if job.Kind == "user.create" {
+			change = caddy.AuthChange{Login: login, Password: string(fresh)}
+		}
+		candidate, e := caddy.PatchAuth(p.Before, change)
+		if e != nil {
+			return e
+		}
+		defer clear(candidate)
+		if !caddy.ConfigEqual(candidate, p.Candidate) {
+			return caddy.ErrDrift
+		}
+		if decision == "complete" {
+			if job.Phase == "rolled_back" {
+				return storage.ErrJournalConflict
+			}
+			if e = p.Verify(ctx, w.runtime, func(ctx context.Context) error {
+				if job.Kind == "user.create" {
+					return w.probe(ctx, login, fresh)
+				}
+				return w.mutationProbe(ctx, job, old, fresh)
+			}); e != nil {
+				return e
+			}
+			if e = w.files(ctx, "publish_files", job.Receipt, p.Generation, nil); e != nil {
+				return e
+			}
+			if e = r.ResolveAuthPhase(ctx, w.run, operation, "verifying"); e != nil {
+				return e
+			}
+			if job.Kind == "user.create" {
+				return r.CompleteVerifiedCreate(ctx, job.Receipt, job.Version)
+			}
+			return r.CompleteVerifiedMutation(ctx, w.run, job)
+		}
+		if decision != "rollback" || w.mutationProbe == nil {
+			return caddy.ErrInput
+		}
+		if job.Phase != "rolled_back" {
+			if e = r.ResolveAuthPhase(ctx, w.run, operation, "rollback_running"); e != nil {
+				return e
+			}
+		}
+		previous := job
+		previous.AfterStatus = job.BeforeStatus
+		if job.Kind == "user.create" {
+			previous.AfterStatus = "disabled"
+		}
+		if e = p.Rollback(ctx, w.runtime, func(ctx context.Context) error {
+			if job.Kind == "user.create" {
+				return w.mutationProbe(ctx, previous, fresh, fresh)
+			}
+			// For rotation prove the old secret works and staged v+1 is denied.
+			return w.mutationProbe(ctx, previous, fresh, old)
+		}); e != nil {
+			return e
+		}
+		if e = w.files(ctx, "publish_files", job.Receipt, p.Generation, map[string]any{"rollback": true}); e != nil {
+			return e
+		}
+		w.point("after_rollback_verify")
+		return r.CompleteAuthRollback(ctx, w.run, operation)
+	}
+	if job.Kind == "user.create" {
+		secret, e := r.OpenForPurpose(ctx, job.UserID, storage.PrepareAuth)
+		if e != nil {
+			return empty, e
+		}
+		defer clear(secret)
+		err = prove(job.Login, secret, secret)
+	} else {
+		err = r.WithMutationSecrets(ctx, job, prove)
+	}
+	if err != nil {
+		return job.Receipt, err
+	}
+	if decision == "rollback" {
+		if err = w.files(ctx, "finish", job.Receipt, p.Generation, map[string]any{"registry": filepath.Join(w.panel, "state.db"), "rollback": true}); err != nil {
+			return job.Receipt, err
+		}
+		return job.Receipt, w.removePrepared(operation)
+	}
+	return job.Receipt, w.finish(ctx, job.Receipt, p.Generation)
 }

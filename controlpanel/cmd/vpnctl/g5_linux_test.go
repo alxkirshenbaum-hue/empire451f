@@ -146,29 +146,20 @@ func TestG5CrashChild(t *testing.T) {
 	}
 	w.checkpoint = func(point string) {
 		if target == "after_rollback_verify" && point == "after_apply" {
-			// Explicit SSH recovery branch on the same Prepared and file journal.
-			// Preserve the old DB state; a crash here must block a blind reapply.
+			registry, e := openExistingRegistry(ctx, filepath.Join(w.panel, "state.db"), filepath.Join(w.panel, "vault.key"), 1)
+			if e != nil {
+				t.Fatal(e)
+			}
+			defer registry.Close()
 			data, e := os.ReadFile(filepath.Join(w.state, "panel-auth-pending.json"))
 			if e != nil {
 				t.Fatal(e)
 			}
-			var intent struct {
-				Operation  string
-				Generation int64
-			}
+			var intent struct{ Operation string }
 			if json.Unmarshal(data, &intent) != nil {
 				t.Fatal("intent")
 			}
-			p, e := caddy.ReadPrepared(w.directory(intent.Operation), intent.Operation, intent.Generation)
-			if e != nil {
-				t.Fatal(e)
-			}
-			defer p.Clear()
-			if e = p.Rollback(ctx, rt, func(context.Context) error { return nil }); e != nil {
-				t.Fatal(e)
-			}
-			rec := storage.Receipt{OperationID: intent.Operation}
-			if e = w.files(ctx, "publish_files", rec, intent.Generation, map[string]any{"rollback": true}); e != nil {
+			if _, e = w.reconcile(ctx, registry, intent.Operation, "rollback"); e != nil {
 				t.Fatal(e)
 			}
 			point = "after_rollback_verify"
@@ -265,6 +256,24 @@ func TestG5NamedCrashMatrix(t *testing.T) {
 					}
 					if point == "after_rollback_verify" && !caddy.ConfigEqual(before, live) {
 						t.Fatal("rollback lost old live state")
+					}
+					if point == "after_rollback_verify" || point == "after_reconcile_required" {
+						r, err := openExistingRegistry(context.Background(), filepath.Join(w.panel, "state.db"), filepath.Join(w.panel, "vault.key"), 1)
+						if err != nil {
+							t.Fatal(err)
+						}
+						decision := "complete"
+						if point == "after_rollback_verify" {
+							decision = "rollback"
+						}
+						_, err = w.reconcile(context.Background(), r, rec.OperationID, decision)
+						r.Close()
+						if err != nil {
+							t.Fatal("explicit SSH recovery", err)
+						}
+						if _, err = w.once(); err != nil {
+							t.Fatal("queue still blocked after explicit recovery", err)
+						}
 					}
 				} else {
 					t.Fatal("unresolved unblocked status", phase)

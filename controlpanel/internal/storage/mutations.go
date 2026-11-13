@@ -164,7 +164,7 @@ func (r *Registry) OwnedAuthJob(ctx context.Context, run, operation string) (Aut
 	}
 	if j.Kind == "user.create" {
 		_, _, _, err = r.OwnedCreateState(ctx, run, operation)
-		if j.Phase == "queued" {
+		if j.Phase == "queued" || j.Phase == "reconcile_required" || j.Phase == "rollback_running" || j.Phase == "rolled_back" {
 			err = nil
 		} // ApplyCreate still verifies provisioning.
 		j.AfterStatus = "active"
@@ -187,7 +187,7 @@ func (r *Registry) OwnedAuthJob(ctx context.Context, run, operation string) (Aut
 		if actual != j.AfterStatus || current != j.NewCredential || j.Version != expected+delta {
 			return j, ErrJournalConflict
 		}
-	} else if j.Phase == "queued" || j.Phase == "running" || j.Phase == "verifying" {
+	} else if j.Phase == "queued" || j.Phase == "running" || j.Phase == "verifying" || j.Phase == "reconcile_required" || j.Phase == "rollback_running" || j.Phase == "rolled_back" {
 		if actual != j.BeforeStatus || current != j.OldCredential || j.Version != expected {
 			return j, ErrJournalConflict
 		}
@@ -331,4 +331,57 @@ func (r *Registry) NextOwnedAuth(ctx context.Context, run string) (Receipt, stri
 		return rec, "", nil
 	}
 	return rec, phase, err
+}
+
+// ResolveAuthPhase is used only by the explicit root SSH reconciliation command,
+// after exact Prepared/file/live/fresh-connection proof under the global lock.
+func (r *Registry) ResolveAuthPhase(ctx context.Context, run, operation, to string) error {
+	if to != "verifying" && to != "rollback_running" {
+		return ErrJournalConflict
+	}
+	job, err := r.OwnedAuthJob(ctx, run, operation)
+	if err != nil {
+		return err
+	}
+	if job.Phase != "reconcile_required" && job.Phase != "running" && job.Phase != "verifying" && job.Phase != "rollback_running" {
+		return ErrJournalConflict
+	}
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	var others int
+	if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM operations WHERE id!=? AND status IN ('running','verifying','rollback_running','reconcile_required')", operation).Scan(&others); err != nil {
+		return err
+	}
+	if others != 0 {
+		return ErrJournalConflict
+	}
+	result, err := tx.ExecContext(ctx, "UPDATE operations SET status=? WHERE id=? AND status=?", to, operation, job.Phase)
+	if err != nil {
+		return err
+	}
+	n, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n != 1 {
+		return ErrJournalConflict
+	}
+	return tx.Commit()
+}
+
+func (r *Registry) CompleteAuthRollback(ctx context.Context, run, operation string) error {
+	j, err := r.OwnedAuthJob(ctx, run, operation)
+	if err != nil {
+		return err
+	}
+	if j.Phase == "rolled_back" {
+		return nil
+	}
+	if j.Phase != "rollback_running" {
+		return ErrJournalConflict
+	}
+	return r.Transition(ctx, operation, "rollback_running", "rolled_back")
 }

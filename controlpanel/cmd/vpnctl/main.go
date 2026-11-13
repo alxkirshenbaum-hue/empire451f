@@ -16,6 +16,9 @@ import (
 )
 
 func execute(args []string, out, stderr io.Writer) int {
+	if len(args) >= 2 && args[0] == "worker" && args[1] == "reconcile" {
+		return workerReconcile(args[2:], out, stderr)
+	}
 	if len(args) >= 2 && args[0] == "user" && (args[1] == "disable" || args[1] == "enable" || args[1] == "delete") {
 		return mutateLocalUser(args[1], args[2:], out, stderr)
 	}

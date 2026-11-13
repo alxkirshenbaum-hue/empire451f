@@ -28,3 +28,20 @@ Install the scripts together in a root-owned directory: `owned_auth.py`, `create
 `systemd/vpn-control-worker@.service` and `.timer` are deployment templates. The timer polls every two seconds. The environment file supplies only `OWNER_RUN`; it is root-owned mode 0600. The service uses systemd's default root identity: the observed target systemd drops effective CAP_SETUID with explicit User=root, preventing validator setpriv. The child validator still drops to the dedicated Caddy UID with an empty bounding set. The service needs the protected files and scratch paths declared by `ReadWritePaths`. Installation/enabling, account/ACL changes and the initial Caddy restart were performed in G3. No auto-restart/redeployment is performed by the CLI.
 
 Isolated probe regression: `python3 -B pilot/worker_probe_check.py` under `systemd-run` with `PrivateNetwork=yes`; it refuses any interface other than loopback. It reuses `pilot/recovery_probe.py` and installed Caddy/sing-box. This checks the shipped probe through stdin, TLS/site, new/control TCP/UoT, wrong-password rejection, changed-site rejection and a synthetic profile in the shared harness. It does not replace the full queue/download/return-to-installer rehearsal or phone acceptance.
+
+## Explicit SSH reconciliation (W5 development copy)
+
+Use the same fixed policy, installation lock, Prepared and file journal:
+vpnctl worker reconcile --installation ID --owner-run RUN --operation OP --decision complete
+vpnctl worker reconcile --installation ID --owner-run RUN --operation OP --decision rollback
+
+These root-only commands are explicit recovery decisions, never scheduled by the
+timer or callable via the HTTP client. Complete requires the exact candidate plus
+fresh operation-specific probes before CAS completion; it does not repeat load.
+Rollback refuses third-party live drift, restores only the bound preimage,
+checks previous credentials/control/TLS/site and restores both files before
+recording rolled_back. Staged ciphertext is retained; no fresh password is
+generated. Failed proof leaves the queue blocked. Missing/damaged snapshots
+require manual SSH inspection rather than guessed reconstruction.
+A repeated completed decision checks registry/files and the full live baseline.
+Production still runs the G3 revision; these commands are not deployed there.

@@ -31,3 +31,8 @@ func mutateLocalUser(action string, args []string, out, stderr io.Writer) int {
 	fmt.Fprintln(stderr, "Run user changes on the Linux entry")
 	return 2
 }
+
+func workerReconcile(args []string, out, stderr io.Writer) int {
+	fmt.Fprintln(stderr, "Run worker reconciliation on the Linux entry")
+	return 2
+}

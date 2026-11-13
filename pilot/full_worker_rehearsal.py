@@ -335,8 +335,29 @@ module.main()
                              '--reason','isolated W5 rehearsal']
                 if action == 'delete': arguments.append('--confirm-delete')
                 receipt = run(arguments).decode().strip().split()[-1]
-                require(json.loads(run(worker_args)) == dict(state='completed',operation_id=receipt),
-                        'mutation worker did not complete')
+                # Force an interrupted commit after real candidate authentication.
+                def fail_commit():
+                    with sqlite3.connect(db) as connection:
+                        connection.execute("CREATE TRIGGER reject_mutation_finish BEFORE UPDATE OF status ON operations WHEN NEW.status='succeeded' BEGIN SELECT RAISE(ABORT,'fixture'); END")
+                    failed = subprocess.run([str(a) for a in worker_args],capture_output=True,timeout=120)
+                    require(failed.returncode!=0,'mutation commit fault not reached')
+                    with sqlite3.connect(db) as connection:
+                        connection.execute('DROP TRIGGER reject_mutation_finish')
+                fail_commit()
+                reconcile_args=[cli,'worker','reconcile','--installation','lab','--owner-run',migration,'--operation',receipt]
+                require(json.loads(run(reconcile_args+['--decision','rollback']))==dict(state='completed',operation_id=receipt),
+                        'explicit rollback did not complete')
+                # Same request remains the same rolled-back result.
+                require(run(arguments).decode().strip().split()[-1]==receipt,'rolled-back replay changed identity')
+                require(json.loads(run(worker_args))==dict(state='idle'),'rolled-back operation reapplied')
+                arguments[arguments.index('--idempotency-key')+1]=str(uuid.uuid4())
+                receipt = run(arguments).decode().strip().split()[-1]
+                fail_commit()
+                reconcile_args=[cli,'worker','reconcile','--installation','lab','--owner-run',migration,'--operation',receipt]
+                require(json.loads(run(reconcile_args+['--decision','complete']))==dict(state='completed',operation_id=receipt),
+                        'explicit candidate reconciliation did not complete')
+                require(json.loads(run(reconcile_args+['--decision','complete']))==dict(state='completed',operation_id=receipt),
+                        'reconciliation response replay failed')
                 require(run(arguments).decode().strip().split()[-1] == receipt,'mutation replay changed operation')
                 require(json.loads(run(worker_args)) == dict(state='idle'),'mutation replay was not idle')
                 if action == 'rotate':

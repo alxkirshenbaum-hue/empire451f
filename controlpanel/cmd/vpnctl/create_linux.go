@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"regexp"
 
+	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/caddy"
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/status"
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/storage"
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/vault"
@@ -36,6 +37,7 @@ func createLocalUser(args []string, out, stderr io.Writer) int {
 		fmt.Fprintln(stderr, "Run as root on the entry")
 		return 3
 	}
+	fmt.Fprintln(stderr, caddy.ApplyNotice)
 	receipt, err := queueFromInstallation(filepath.Join("/var/lib/empire-vpn", *deployment), "/etc/empire-vpn", "/run/lock/empire-vpn.lock", "/var/lib/vpn-control", *run, *login)
 	if err != nil {
 		fmt.Fprintln(stderr, "Cannot queue user creation; check writer ownership, VPN state, login and approved SFA template")

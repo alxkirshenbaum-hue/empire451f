@@ -27,6 +27,16 @@ class EchoServer(socketserver.ThreadingTCPServer):
     allow_reuse_address = True
 
 
+class EchoDatagram(socketserver.BaseRequestHandler):
+    def handle(self):
+        data, sock = self.request
+        sock.sendto(data, self.client_address)
+
+
+class EchoDatagramServer(socketserver.ThreadingUDPServer):
+    allow_reuse_address = True
+
+
 def start(stack,args,port):
     child=subprocess.Popen(args,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     def close():
@@ -92,6 +102,13 @@ def perform(req, issue=None):
         relay=dict(log=dict(disabled=True),inbounds=[dict(type='http',listen='127.0.0.1',listen_port=1081)],
                    outbounds=[dict(type='direct',tag='echo')],route=dict(rules=[dict(ip_cidr=['192.0.2.119/32'],
                        port=19876,action='route',outbound='echo',override_address='127.0.0.1')]))
+        if req.get('udp_echo'):
+            datagram = EchoDatagramServer(('127.0.0.1',19877),EchoDatagram)
+            datagram.daemon_threads = True
+            threading.Thread(target=datagram.serve_forever,daemon=True).start()
+            stack.callback(datagram.server_close)
+            relay['route']['rules'].append(dict(ip_cidr=['192.0.2.119/32'],port=19877,
+                action='route',outbound='echo',override_address='127.0.0.1'))
         Path('relay.json').write_text(json.dumps(relay))
         start(stack,[BIN/'sing-box','run','-c','relay.json'],1081)
         start(stack,[BIN/'caddy','run','--config','Caddyfile','--adapter','caddyfile'],18443)

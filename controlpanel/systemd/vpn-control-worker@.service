@@ -1,0 +1,23 @@
+[Unit]
+Description=VPN control verified user queue (%i)
+ConditionPathExists=/etc/vpn-control/worker-%i.json
+
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+EnvironmentFile=/etc/vpn-control/worker-%i.env
+ExecStart=/usr/local/bin/vpnctl worker once --installation %i --owner-run ${OWNER_RUN}
+TimeoutStartSec=180
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ReadWritePaths=/var/lib/vpn-control /var/lib/empire-vpn/%i /etc/empire-vpn/%i /run/lock/empire-vpn.lock /run/vpn-control
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+LimitNOFILE=4096
+

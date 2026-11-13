@@ -32,10 +32,11 @@ const prefix = "$argon2id$v=19$m=32768,t=2,p=1$"
 var encoding = base64.RawStdEncoding
 
 type Service struct {
-	db   *sql.DB
-	gate chan struct{}
-	next [256]time.Time // Fixed-size buckets keep throttling memory bounded.
-	seed maphash.Seed
+	profileDownloads bool
+	db               *sql.DB
+	gate             chan struct{}
+	next             [256]time.Time // Fixed-size buckets keep throttling memory bounded.
+	seed             maphash.Seed
 }
 
 func Open(path string) (*Service, error) {
@@ -64,7 +65,10 @@ func Open(path string) (*Service, error) {
 	return &Service{db: db, gate: make(chan struct{}, 1), seed: maphash.MakeSeed()}, nil
 }
 func (s *Service) Close() error { return s.db.Close() }
-func randomBytes(n int) []byte  { b := make([]byte, n); rand.Read(b); return b }
+
+// EnableProfileDownloads enables the signed-in home links before serving requests.
+func (s *Service) EnableProfileDownloads() { s.profileDownloads = true }
+func randomBytes(n int) []byte             { b := make([]byte, n); rand.Read(b); return b }
 func derive(password string, salt []byte) []byte {
 	return argon2.IDKey([]byte(password), salt, 2, 32768, 1, 32)
 }

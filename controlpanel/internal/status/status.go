@@ -69,25 +69,30 @@ func Open(path string) (*Reader, error) {
 }
 func (r *Reader) Close() error { return r.db.Close() }
 
-func (r *Reader) Lookup(ctx context.Context, token, id string) (Operation, error) {
-	var op Operation
+func SessionOwner(ctx context.Context, tx *sql.Tx, token string) (string, error) {
 	if token == "" || len(token) > 512 {
-		return op, ErrSession
+		return "", ErrSession
 	}
 	h := sha256.Sum256([]byte(token))
+	var actor string
+	err := tx.QueryRowContext(ctx, `SELECT a.id FROM admin_sessions s JOIN admin_accounts a ON a.id=s.admin_id
+ WHERE s.token_hash=? AND s.revoked_at IS NULL AND a.disabled=0
+ AND julianday(s.last_seen_at)>julianday('now','-30 minutes')
+ AND julianday(s.expires_at)>julianday('now')`, hex.EncodeToString(h[:])).Scan(&actor)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", ErrSession
+	}
+	return actor, err
+}
+
+func (r *Reader) Lookup(ctx context.Context, token, id string) (Operation, error) {
+	var op Operation
 	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return op, err
 	}
 	defer tx.Rollback()
-	var actor string
-	err = tx.QueryRowContext(ctx, `SELECT a.id FROM admin_sessions s JOIN admin_accounts a ON a.id=s.admin_id
- WHERE s.token_hash=? AND s.revoked_at IS NULL AND a.disabled=0
- AND julianday(s.last_seen_at)>julianday('now','-30 minutes')
- AND julianday(s.expires_at)>julianday('now')`, hex.EncodeToString(h[:])).Scan(&actor)
-	if errors.Is(err, sql.ErrNoRows) {
-		return op, ErrSession
-	}
+	actor, err := SessionOwner(ctx, tx, token)
 	if err != nil {
 		return op, err
 	}

@@ -22,7 +22,10 @@ button {margin-top:1.5rem;background:#23583f;color:white;border:0;font-weight:65
 <header>VPN Control</header>
 {{if .CSRF}}
 <h1>Owner session</h1>
-<p>You are signed in.</p>
+{{with .Profiles}}
+<h2>SFA profiles</h2>
+<ul>{{range .}}<li><a href="/api/v1/users/{{.ID}}/profiles/download?client=sfa-1.14.4">Download profile for {{.Login}}</a></li>{{end}}</ul>
+{{end}}
 <form action="/logout" method="post">
 <input type="hidden" name="csrf" value="{{.CSRF}}">
 <button type="submit">Sign out</button>

@@ -151,7 +151,7 @@ def record_snapshot(directory, registry, run_id):
     with closing(sqlite3.connect(registry_uri(registry), uri=True)) as db, db:
         db.execute('PRAGMA foreign_keys=ON')
         db.execute('BEGIN IMMEDIATE')
-        if db.execute('SELECT max(version) FROM schema_migrations').fetchone() != (3,):
+        if db.execute('SELECT max(version) FROM schema_migrations').fetchone() not in ((3,), (4,)):
             raise ValueError('Unsupported registry schema')
         report, actions = inspect_inputs(directory)
         generation = report['snapshot_sha256']

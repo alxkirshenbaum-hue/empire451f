@@ -13,9 +13,12 @@ var pageSource string
 var pageTemplate = template.Must(template.New("home").Parse(pageSource))
 
 type page struct {
-	CSRF  string
-	Error string
+	Profiles []profileLink
+	CSRF     string
+	Error    string
 }
+
+type profileLink struct{ ID, Login string }
 
 func render(w http.ResponseWriter, code int, data page) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -47,6 +50,30 @@ func (s *Service) home(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case err == nil:
 			data.CSRF = CSRF(c.Value)
+			if s.profileDownloads {
+				rows, err := s.db.QueryContext(r.Context(), `SELECT DISTINCT u.id,u.login FROM users u
+ JOIN user_profiles p ON p.user_id=u.id JOIN template_revisions v ON v.id=p.template_revision_id
+ JOIN profile_templates t ON t.id=v.template_id WHERE u.status='active' AND t.enabled=1
+ AND v.status='approved' AND v.client_family='sfa' AND p.target_client IN ('sfa','sfa-1.14.4')
+ ORDER BY u.login COLLATE BINARY`)
+				if err != nil {
+					fail(w, 503)
+					return
+				}
+				defer rows.Close()
+				for rows.Next() {
+					var link profileLink
+					if err := rows.Scan(&link.ID, &link.Login); err != nil {
+						fail(w, 503)
+						return
+					}
+					data.Profiles = append(data.Profiles, link)
+				}
+				if rows.Err() != nil {
+					fail(w, 503)
+					return
+				}
+			}
 		case errors.Is(err, sql.ErrNoRows):
 			http.SetCookie(w, cookie("", -1))
 		default:

@@ -11,3 +11,6 @@ var VaultIdentity string
 
 //go:embed 003_migration_documents.sql
 var MigrationDocuments string
+
+//go:embed 004_profile_issuance.sql
+var ProfileIssuance string

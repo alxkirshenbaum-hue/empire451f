@@ -242,7 +242,7 @@ func TestUpgradePopulatedVersionOne(t *testing.T) {
 	}
 	defer clear(before)
 	// Reproduce the exact prior schema and migration history, retaining the rows.
-	_, err = r.db.Exec("BEGIN IMMEDIATE; DROP TABLE legacy_migration_documents; DROP TABLE vault_identity; DELETE FROM schema_migrations WHERE version>=2; COMMIT;")
+	_, err = r.db.Exec("BEGIN IMMEDIATE; DROP TABLE profile_issuance; DROP TABLE legacy_migration_documents; DROP TABLE vault_identity; DELETE FROM schema_migrations WHERE version>=2; COMMIT;")
 	if err != nil {
 		t.Fatal(err)
 	}

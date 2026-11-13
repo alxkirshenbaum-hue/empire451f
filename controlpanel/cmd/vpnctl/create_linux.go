@@ -47,6 +47,35 @@ func createLocalUser(args []string, out, stderr io.Writer) int {
 }
 
 func queueFromInstallation(state, config, lockPath, panel, run, login string) (storage.Receipt, error) {
+	return withOwnedInstallation(state, config, lockPath, panel, run, func(ctx context.Context, registry *storage.Registry) (storage.Receipt, error) {
+		// One SSH request per exact login and owner run. Tombstones reserve that name.
+		token := sha256.Sum256([]byte(run + "\x00ssh-create\x00" + login))
+		token[6] = token[6]&15 | 80
+		token[8] = token[8]&63 | 128
+		requestID := fmt.Sprintf("%x-%x-%x-%x-%x", token[:4], token[4:6], token[6:8], token[8:10], token[10:16])
+		return registry.QueueOwnedCreate(ctx, run, "local-ssh", requestID, login)
+	})
+}
+
+// runNextCreate keeps the same installation lock and preconditions as the SSH
+// queue entry point for the entire apply/verify/commit cycle. The adapter must
+// check its durable candidate and live Caddy state before recovering a job.
+func runNextCreate(state, config, lockPath, panel, run string, apply, verify func(context.Context, string, vault.PlainSecret) error) (storage.Receipt, error) {
+	return withOwnedInstallation(state, config, lockPath, panel, run, func(ctx context.Context, registry *storage.Registry) (storage.Receipt, error) {
+		receipt, phase, err := registry.NextOwnedCreate(ctx, run)
+		if err != nil || phase == "" {
+			return receipt, err
+		}
+		if phase == "queued" {
+			err = registry.ApplyCreate(ctx, receipt, apply)
+		} else {
+			err = registry.RecoverCreate(ctx, receipt, verify)
+		}
+		return receipt, err
+	})
+}
+
+func withOwnedInstallation(state, config, lockPath, panel, run string, action func(context.Context, *storage.Registry) (storage.Receipt, error)) (storage.Receipt, error) {
 	var empty storage.Receipt
 	lock, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
@@ -113,10 +142,5 @@ func queueFromInstallation(state, config, lockPath, panel, run, login string) (s
 		return empty, err
 	}
 	defer registry.Close()
-	// One SSH request per exact login and owner run. Tombstones reserve that name.
-	token := sha256.Sum256([]byte(run + "\x00ssh-create\x00" + login))
-	token[6] = token[6]&15 | 80
-	token[8] = token[8]&63 | 128
-	requestID := fmt.Sprintf("%x-%x-%x-%x-%x", token[:4], token[4:6], token[6:8], token[8:10], token[10:16])
-	return registry.QueueOwnedCreate(ctx, run, "local-ssh", requestID, login)
+	return action(ctx, registry)
 }

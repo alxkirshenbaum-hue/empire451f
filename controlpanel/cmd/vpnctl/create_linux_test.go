@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 	"testing"
 
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/storage"
@@ -105,7 +106,49 @@ with patch('os.geteuid',return_value=0), patch('builtins.input',return_value='Ca
 			t.Fatal("wrong revision", err)
 		}
 	}
+	// The queue executor reuses the SSH lock and credentials even when SQLite
+	// rejects completion after the adapter has already applied the candidate.
+	var applied []byte
+	defer func() { clear(applied) }()
+	var appliedLogin string
+	probe := func(_ context.Context, login string, secret vault.PlainSecret) error {
+		guard, err := os.OpenFile(lock, os.O_RDWR, 0600)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer guard.Close()
+		if err = syscall.Flock(int(guard.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err == nil {
+			syscall.Flock(int(guard.Fd()), syscall.LOCK_UN)
+			t.Fatal("executor released installation lock")
+		}
+		appliedLogin = login
+		applied = append(applied, secret...)
+		return nil
+	}
+	sqlExec("CREATE TRIGGER reject_finish BEFORE UPDATE OF status ON operations WHEN NEW.status='succeeded' BEGIN SELECT RAISE(ABORT,'fixture'); END")
+	first, err := runNextCreate(state, cfg, lock, panel, run, probe, nil)
+	if err == nil {
+		t.Fatal("expected completion failure")
+	}
+	sqlExec("DROP TRIGGER reject_finish")
+	recovered, err := runNextCreate(state, cfg, lock, panel, run,
+		func(context.Context, string, vault.PlainSecret) error {
+			t.Fatal("reapplied interrupted operation")
+			return nil
+		},
+		func(_ context.Context, login string, secret vault.PlainSecret) error {
+			if login != appliedLogin || !bytes.Equal(applied, secret) {
+				t.Fatal("changed recovery credentials")
+			}
+			return nil
+		})
+	if err != nil || first != recovered {
+		t.Fatal("failed recovery", err)
+	}
 	write(auth, []byte("changed"))
+	if _, err := runNextCreate(state, cfg, lock, panel, run, probe, nil); err == nil {
+		t.Fatal("executor ignored drift")
+	}
 	if _, err := queue("blocked"); err == nil {
 		t.Fatal("ignored drift")
 	}

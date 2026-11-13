@@ -2,10 +2,69 @@ package storage
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/vault"
 )
+
+// RecoverCreate is verify-only: it never reapplies Caddy or generates a secret.
+// The caller holds the installation lock and checks owner, generation and the
+// durable candidate against the observed configuration before calling this.
+// An ambiguous result stays blocked for an explicit recovery decision.
+func (r *Registry) RecoverCreate(ctx context.Context, receipt Receipt, verify func(context.Context, string, vault.PlainSecret) error) error {
+	if verify == nil {
+		return ErrInvalidMetadata
+	}
+	var login, phase string
+	var version int64
+	err := r.db.QueryRowContext(ctx, `SELECT u.login,u.row_version,o.status FROM operations o JOIN users u ON o.target_id=u.id
+ WHERE o.id=? AND u.id=? AND o.kind='user.create' AND o.target_type='user'
+ AND o.status IN ('running','verifying') AND u.status='provisioning' AND u.protected=0`, receipt.OperationID, receipt.UserID).Scan(&login, &version, &phase)
+	if err != nil {
+		return err
+	}
+	secret, err := r.OpenForPurpose(ctx, receipt.UserID, PrepareAuth)
+	if err != nil {
+		return err
+	}
+	defer clear(secret)
+	if err = verify(ctx, login, secret); err != nil {
+		return errors.Join(err, r.Transition(ctx, receipt.OperationID, phase, "reconcile_required"))
+	}
+	if phase == "running" {
+		if err = r.Transition(ctx, receipt.OperationID, phase, "verifying"); err != nil {
+			return err
+		}
+	}
+	return r.CompleteVerifiedCreate(ctx, receipt, version)
+}
+
+// NextOwnedCreate is called under the installation lock after filesystem drift
+// checks. Never skip unresolved work to start another configuration mutation.
+func (r *Registry) NextOwnedCreate(ctx context.Context, run string) (Receipt, string, error) {
+	var receipt Receipt
+	var phase string
+	if err := requireVerifiedCutover(ctx, r.db, run); err != nil {
+		return receipt, phase, err
+	}
+	// The registry is scoped to one installation. Any uncertain operation blocks
+	// the queue, including operations of a kind this worker cannot recover.
+	var blocked int
+	if err := r.db.QueryRowContext(ctx, `SELECT count(*) FROM operations WHERE status IN ('reconcile_required','rollback_running')
+ OR (status IN ('running','verifying') AND kind!='user.create')`).Scan(&blocked); err != nil {
+		return receipt, phase, err
+	}
+	if blocked != 0 {
+		return receipt, phase, ErrJournalConflict
+	}
+	err := r.db.QueryRowContext(ctx, `SELECT id,target_id,status FROM operations WHERE kind='user.create' AND target_type='user'
+ AND status IN ('queued','running','verifying') ORDER BY CASE WHEN status='queued' THEN 1 ELSE 0 END,created_at,id LIMIT 1`).Scan(&receipt.OperationID, &receipt.UserID, &phase)
+	if errors.Is(err, sql.ErrNoRows) {
+		return receipt, "", nil
+	}
+	return receipt, phase, err
+}
 
 // ApplyCreate runs under the writer's installation lock. The adapter returns
 // success only after applying the candidate and checking fresh connections.

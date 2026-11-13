@@ -17,12 +17,8 @@ func (r *Registry) QueueOwnedCreate(ctx context.Context, run, actor, key, login 
 		return Receipt{}, err
 	}
 	defer tx.Rollback()
-	var ready int
-	if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM legacy_migration_runs WHERE id=? AND phase='verified_cutover' AND status='verified_cutover'", run).Scan(&ready); err != nil {
+	if err = requireVerifiedCutover(ctx, tx, run); err != nil {
 		return Receipt{}, err
-	}
-	if ready != 1 {
-		return Receipt{}, ErrLegacyConflict
 	}
 	var receipt Receipt
 	var previous string
@@ -52,4 +48,16 @@ func (r *Registry) QueueOwnedCreate(ctx context.Context, run, actor, key, login 
 		return Receipt{}, err
 	}
 	return receipt, nil
+}
+
+// One gate shared by queue admission and execution; never advances migration.
+func requireVerifiedCutover(ctx context.Context, db rowQuerier, run string) error {
+	var ready int
+	if err := db.QueryRowContext(ctx, "SELECT count(*) FROM legacy_migration_runs WHERE id=? AND phase='verified_cutover' AND status='verified_cutover'", run).Scan(&ready); err != nil {
+		return err
+	}
+	if ready != 1 {
+		return ErrLegacyConflict
+	}
+	return nil
 }

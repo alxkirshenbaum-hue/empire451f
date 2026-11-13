@@ -33,6 +33,10 @@ var _ UserRepository = (*Registry)(nil)
 
 const userColumns = "id,login,display_name,kind,status,protected,row_version"
 
+// Keep durable pre-state for recovery, but never present uncertain effective
+// authentication as active/disabled to an owner.
+const effectiveUserColumns = "id,login,display_name,kind,CASE WHEN status IN ('active','disabled') AND EXISTS (SELECT 1 FROM operations o WHERE o.target_type='user' AND o.target_id=users.id AND o.status IN ('running','verifying','reconcile_required','rollback_running')) THEN 'reconcile_required' ELSE status END,protected,row_version"
+
 type userRow interface{ Scan(...any) error }
 
 func scanUser(row userRow) (UserMetadata, error) {
@@ -41,13 +45,13 @@ func scanUser(row userRow) (UserMetadata, error) {
 	return u, err
 }
 func (r *Registry) GetUser(ctx context.Context, id string) (UserMetadata, error) {
-	return scanUser(r.db.QueryRowContext(ctx, "SELECT "+userColumns+" FROM users WHERE id=?", id))
+	return scanUser(r.db.QueryRowContext(ctx, "SELECT "+effectiveUserColumns+" FROM users WHERE id=?", id))
 }
 func (r *Registry) ListUsers(ctx context.Context, limit, offset int) ([]UserMetadata, error) {
 	if limit < 1 || limit > 100 || offset < 0 {
 		return nil, ErrInvalidMetadata
 	}
-	rows, err := r.db.QueryContext(ctx, "SELECT "+userColumns+" FROM users WHERE status<>'deleted' ORDER BY login COLLATE BINARY LIMIT ? OFFSET ?", limit, offset)
+	rows, err := r.db.QueryContext(ctx, "SELECT "+effectiveUserColumns+" FROM users WHERE status<>'deleted' ORDER BY login COLLATE BINARY LIMIT ? OFFSET ?", limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +126,7 @@ func (r *Registry) updateUserCAS(ctx context.Context, id string, expected int64,
 		return zero, err
 	}
 	defer tx.Rollback()
-	u, err := scanUser(tx.QueryRowContext(ctx, "SELECT "+userColumns+" FROM users WHERE id=?", id))
+	u, err := scanUser(tx.QueryRowContext(ctx, "SELECT "+effectiveUserColumns+" FROM users WHERE id=?", id))
 	if err != nil {
 		return zero, err
 	}
@@ -131,6 +135,13 @@ func (r *Registry) updateUserCAS(ctx context.Context, id string, expected int64,
 	}
 	if u.Protected {
 		return zero, ErrProtectedAccount
+	}
+	var busy int
+	if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM operations WHERE target_type='user' AND target_id=? AND (status IN ('running','verifying','reconcile_required','rollback_running') OR (status='queued' AND kind!='user.create'))", id).Scan(&busy); err != nil {
+		return zero, err
+	}
+	if busy > 0 {
+		return zero, ErrOperationInProgress
 	}
 	if u.Version != expected {
 		return zero, ErrVersionConflict

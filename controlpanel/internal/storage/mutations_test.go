@@ -164,3 +164,33 @@ func TestMutationLifecycleAndProtection(t *testing.T) {
 		t.Fatal("reused tombstoned login")
 	}
 }
+
+func TestMutationDoesNotAdvertiseUncertainEffectiveState(t *testing.T) {
+	_, r, created := mutationFixture(t)
+	rec, err := r.QueueOwnedMutation(ctx, "mutation-run", "owner", id(), MutationRequest{UserID: created.UserID, Action: "disable", ExpectedVersion: 2, Reason: "test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = r.Transition(ctx, rec.OperationID, "queued", "running"); err != nil {
+		t.Fatal(err)
+	}
+	for _, phase := range []string{"running", "reconcile_required"} {
+		if phase == "reconcile_required" {
+			if err = r.Transition(ctx, rec.OperationID, "running", phase); err != nil {
+				t.Fatal(err)
+			}
+		}
+		u, err := r.GetUser(ctx, created.UserID)
+		if err != nil || u.Status != "reconcile_required" {
+			t.Fatal("advertised effective state", u.Status, err)
+		}
+		page, err := r.ListUsers(ctx, 100, 0)
+		if err != nil || len(page) != 1 || page[0].Status != "reconcile_required" {
+			t.Fatal("list advertised active state", err)
+		}
+		var durable string
+		if err = r.db.QueryRow("SELECT status FROM users WHERE id=?", created.UserID).Scan(&durable); err != nil || durable != "active" {
+			t.Fatal("destroyed recovery prestate", err)
+		}
+	}
+}

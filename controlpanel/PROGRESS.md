@@ -1,6 +1,6 @@
 # Общий прогресс VPN Control
 
-> Возобновлено14.11.2026. Snapshot inspector c4bf7bb: целевые тесты и Go-потребители PASS. Online SQLite capture 5b01836 также проверен (W8_ONLINE_CAPTURE_2026-11-14.md). Это частичный W8/1, не готовый encrypted backup.
+> Возобновлено14.11.2026. Snapshot inspector c4bf7bb: целевые тесты и Go-потребители PASS. Online SQLite capture 5b01836 также проверен (W8_ONLINE_CAPTURE_2026-11-14.md). Привязка capturedDB/owner/key/file hashes bf04c54 также проверена (W8_BINDING_2026-11-14.md). Это частичный W8/1, не готовый encrypted backup.
 
 Дополнение 14.11.2026 — **W9.1 [░░░░░░] 0/6**, интеграция панели в общий установщик и публикация. [Подробный план/G9.1](W9_1_INSTALLER_INTEGRATION.md). Текущие W8/W9 выполняются в прежнем порядке. Общий счётчик ниже уже включает W9.1: 6/11 закрытых этапов. Общий выпуск E1 требует G9.1 после приёмки компонентов G9.
 

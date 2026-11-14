@@ -114,6 +114,7 @@ def main():
         data=candidate if name=='var/lib/vpn-control/state.db' else stage/name
         shutil.copyfile(data,dest);os.chown(dest,member['uid'],member['gid']);dest.chmod(member['mode'])
     restored=runtime(project,recovered,'w8-restored-'+destination)
+    private_write(recovery/'restored-runtime.txt',restored.encode())
     rollback=runtime(project,source,'w8-rollback-'+destination)
     if hashlib.sha256(cipher.read_bytes()).hexdigest()!=original_cipher:raise RuntimeError('source ciphertext changed')
     report=dict(outcome='restored_runtime_pass',backup_id=context['backup_id'],cipher_sha256=original_cipher,

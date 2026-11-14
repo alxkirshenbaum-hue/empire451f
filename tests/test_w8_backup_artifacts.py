@@ -22,6 +22,7 @@ class ArtifactTests(unittest.TestCase):
             for name, content in [("payload", payload), ("G3-SNAPSHOT.json", json.dumps(metadata).encode())]:
                 item = tarfile.TarInfo(name)
                 item.size = len(content)
+                item.mode = 384
                 tar.addfile(item, io.BytesIO(content))
             if extra:
                 tar.addfile(extra)
@@ -55,7 +56,7 @@ class ArtifactTests(unittest.TestCase):
 
     def test_bounded_archive_reads(self):
         from unittest.mock import patch
-        original = Path.open
+        original = module.os.fdopen
         class Guard:
             def __init__(self, file): self.file = file
             def __enter__(self): return self
@@ -67,7 +68,7 @@ class ArtifactTests(unittest.TestCase):
             def __getattr__(self, name): return getattr(self.file, name)
         def guarded(path, *args, **kwargs):
             return Guard(original(path, *args, **kwargs))
-        with patch.object(Path, "open", guarded):
+        with patch.object(module.os, "fdopen", guarded):
             self.check(self.archive())
     def test_plan_only(self):
         self.assertEqual(self.check(self.archive())["status"], "artifact_check_passed")

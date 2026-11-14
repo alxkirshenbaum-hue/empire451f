@@ -8,6 +8,8 @@ import json
 from pathlib import Path, PurePosixPath
 import re
 import tarfile
+import os
+import stat
 
 LIMIT = 32 * 1024 * 1024
 MAX_MEMBERS = 4096
@@ -34,8 +36,12 @@ def inspect_archive(path, expected_sha256, expected_generation, required_paths=(
     files = {}
     total = 0
     metadata_bytes = None
-    with path.open("rb") as source:
-        import os
+    # Portable caller boundary: private immutable staging, including parents.
+    # O_NOFOLLOW is only a leaf protection; Windows has no equivalent here.
+    descriptor_fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    with os.fdopen(descriptor_fd, "rb") as source:
+        before = os.fstat(source.fileno())
+        require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1)
         require(os.fstat(source.fileno()).st_size <= max_bytes)
         digest = hashlib.sha256()
         archive_bytes = 0
@@ -65,7 +71,7 @@ def inspect_archive(path, expected_sha256, expected_generation, required_paths=(
                 require(0 <= member.size <= max_bytes)
                 total += member.size
                 require(total <= max_bytes)
-                descriptor = {"kind": "directory", "sha256": None}
+                descriptor = {"kind": "directory", "sha256": None, "attrs": [member.uid, member.gid, member.mode]}
                 if member.isfile():
                     handle = archive.extractfile(member)
                     require(handle is not None)
@@ -83,8 +89,11 @@ def inspect_archive(path, expected_sha256, expected_generation, required_paths=(
                             content.extend(chunk)
                     if name == "G3-SNAPSHOT.json":
                         metadata_bytes = bytes(content)
-                    descriptor = {"kind": "file", "sha256": digest.hexdigest()}
+                    descriptor = {"kind": "file", "sha256": digest.hexdigest(), "attrs": [member.uid, member.gid, member.mode]}
                 files[name] = descriptor
+        after = os.fstat(source.fileno())
+        require((before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns, before.st_ctime_ns) ==
+                (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns))
     require("G3-SNAPSHOT.json" in files)
     def unique(pairs):
         result = {}
@@ -102,12 +111,21 @@ def inspect_archive(path, expected_sha256, expected_generation, required_paths=(
         require(isinstance(original, str) and original.startswith("/"))
         name = original[1:]
         require(name in files and isinstance(attrs, list) and len(attrs) == 5)
+        require(all(type(value) is int and value >= 0 for value in attrs[:3]))
+        require(attrs[2] <= 0o7777 and files[name]["attrs"] == attrs[:3])
+        require(isinstance(attrs[4], dict) and not attrs[4])
         digest = attrs[3]
+        require(digest is None or (isinstance(digest, str) and re.fullmatch(r"[0-9a-f]{64}", digest)))
         if digest is not None:
             require(files[name]["kind"] == "file" and
                     files[name]["sha256"] == digest)
         else:
             require(files[name]["kind"] == "directory")
+    allowed = {original[1:] for original in inventory}
+    allowed.update(("G3-SNAPSHOT.json", "var/lib/vpn-control/state.db"))
+    for name in files:
+        require(name in allowed or (files[name]["kind"] == "directory" and
+                any(child.startswith(name + "/") for child in allowed)))
     require(all(name in files and files[name]["kind"] == "file"
                 for name in required_paths))
     require(not any(name.endswith(("-wal", "-shm")) for name in files))

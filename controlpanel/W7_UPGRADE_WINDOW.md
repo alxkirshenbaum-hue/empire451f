@@ -1,3 +1,5 @@
+Current checkpoint: the owner approved this window and production connection is complete. See W7_PRODUCTION_WINDOW_2026-11-14.md. The preparation-time status below is historical; G6/G7 still require actual phone observations.
+
 # W7 upgrade window — prepared procedure, not authorization
 
 Scope for a future approval: nh1 API/worker/control-plane maintenance and the

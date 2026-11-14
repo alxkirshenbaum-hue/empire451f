@@ -1,3 +1,5 @@
+Current checkpoint: the owner approved this window and production connection is complete. See W7_PRODUCTION_WINDOW_2026-11-14.md. The preparation-time status below is historical; G6/G7 still require actual phone observations.
+
 # W7 package receipt — 2026-11-14
 
 Prepared and verified on copies, NOT deployed. W7 3/4/G7 OPEN; W6 3/4/G6 OPEN.

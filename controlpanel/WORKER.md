@@ -1,6 +1,6 @@
-# Verified create worker
+# Verified user-operation worker
 
-User changes use the verified Unix reload strategy; the runtime has no automatic service-restart fallback. The shared English `caddy.ApplyNotice` is emitted to stderr before CLI queue submission and must also be used by W5 mutation commands and W7 previews. It warns that uninterrupted service is not guaranteed, revocation affects new connections while existing tunnels may remain open, and a service restart interrupts VPN traffic and needs separate approval. The G4 notice code is tested on a copy; the current nh1 deployment remains the accepted G3 revision.
+User changes use the verified Unix reload strategy; the runtime has no automatic service-restart fallback. The shared English `caddy.ApplyNotice` is emitted to stderr before CLI queue submission and must also be used by W5 mutation commands and W7 previews. It warns that uninterrupted service is not guaranteed, revocation affects new connections while existing tunnels may remain open, and a service restart interrupts VPN traffic and needs separate approval. The shared notice and W5 operations are deployed in the approved W7 control-plane window; see W7_PRODUCTION_WINDOW_2026-11-14.md.
 
 `vpnctl worker once --installation nh1 --owner-run APPROVED_RUN_UUID` processes one operation or its recovery. It reports only an operation ID and `completed`/`idle`. It does not perform migration cutover or enable a Caddy socket. The nh1 worker/API were installed and enabled in the approved [G3 window](G3_ACCEPTANCE_2026-11-13.md); this is not an instruction to rerun that window.
 
@@ -29,7 +29,7 @@ Install the scripts together in a root-owned directory: `owned_auth.py`, `create
 
 Isolated probe regression: `python3 -B pilot/worker_probe_check.py` under `systemd-run` with `PrivateNetwork=yes`; it refuses any interface other than loopback. It reuses `pilot/recovery_probe.py` and installed Caddy/sing-box. This checks the shipped probe through stdin, TLS/site, new/control TCP/UoT, wrong-password rejection, changed-site rejection and a synthetic profile in the shared harness. It does not replace the full queue/download/return-to-installer rehearsal or phone acceptance.
 
-## Explicit SSH reconciliation (W5 development copy)
+## Explicit SSH reconciliation
 
 Use the same fixed policy, installation lock, Prepared and file journal:
 vpnctl worker reconcile --installation ID --owner-run RUN --operation OP --decision complete
@@ -44,4 +44,17 @@ recording rolled_back. Staged ciphertext is retained; no fresh password is
 generated. Failed proof leaves the queue blocked. Missing/damaged snapshots
 require manual SSH inspection rather than guessed reconstruction.
 A repeated completed decision checks registry/files and the full live baseline.
-Production still runs the G3 revision; these commands are not deployed there.
+These commands are now deployed with the W7 package. Explicit production recovery still requires an administrator decision and live evidence; the timer never chooses an ambiguous recovery decision.
+
+## Current nh1 deployment — W7, 2026-11-14
+
+The same executor handles create/disable/enable/rotate/delete; revoke aliases
+disable. No second adapter/journal/daemon was introduced.
+Binaries are the tested cd3de10 build; helpers are installed under
+/opt/empire-vpn/controlpanel/ad6b6532ae75ec0720f692314f626e97524cc44d.
+The existing worker unit6621689/default root identity was preserved.
+Actual API socket: /run/vpn-control-api/api.sock; set VPNCTL_SOCKET for owner CLI.
+Owner-run is supplied by the existing protected env/policy, never request input.
+New private frontend is vpn-control-panel.service. Original TLS/CA and owner
+credentials were reused. No transport reload/restart or agent user mutation
+occurred during this control-plane window. G6/G7 remain open pending phone.

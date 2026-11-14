@@ -169,3 +169,19 @@ stop/restart. Next action needs an approved control-plane window per
 W7_UPGRADE_WINDOW.md, with fresh protected snapshots/transient replay capture
 before stop. Entire production switch/rollback and phone remain unexecuted.
 W7 3/4, G7 OPEN; W6 3/4, G6 OPEN. E1 not released.
+## Approved production connection — 2026-11-14
+
+Owner explicitly approved the stated window. See
+[production protocol](W7_PRODUCTION_WINDOW_2026-11-14.md).
+Packagead6b653/tested binariescd3de10 and versioned helpers are deployed;
+schema7/integrityok/active4/gen2/unfinished0. API/new frontend/worker active.
+Actual mount/UID/cap/secret boundary, existing owner/admin separation,
+external privateport/Host/SNI, fresh existing-canary TCP/UoT/TLS/site/control
+and new SSH before/after passed. Original profiles/users/credentials/key/
+transport files and PIDs/restarts preserved. No agent production CRUD.
+Fresh pre(core+control)/post snapshots encrypted/decrypt/hash-verified with
+EXISTING owner recipient. Control-only guard canceled after window complete.
+Whole-window rollback was prepared but NOT executed; no transport restart.
+Three NEW private existing-user phone profiles issued without rotating creds;
+exact check3/3 and private Windows ACL passed. Actual phone remains OPEN.
+W6 3/4/G6 OPEN, W7 3/4/G7 OPEN. Earlier “not deployed” entries are historical.

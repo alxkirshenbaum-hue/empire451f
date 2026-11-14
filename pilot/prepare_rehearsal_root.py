@@ -12,6 +12,7 @@ def main():
     # Inside chroot this is '/', which dedicated service UIDs must traverse.
     # The host parent remains private; secret subdirectories below use 0700.
     root.mkdir(mode=0o755)
+    root.chmod(0o755)
     for name in ('usr','work','proc','sys','dev','tmp','var/tmp','etc/ssl','opt/empire-vpn/bin','run','var/lib'):
         (root/name).mkdir(parents=True,exist_ok=True)
         # Host recovery uses umask077; mount targets and traversal ancestors

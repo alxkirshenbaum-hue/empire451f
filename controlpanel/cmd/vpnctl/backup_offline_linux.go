@@ -73,13 +73,29 @@ func offlineVerify(args []string, out, stderr io.Writer) int {
 // Callers keep this recovery tree immutable throughout verification. Ancestors
 // may be root-owned; a sticky shared ancestor cannot rename our owned child.
 func trustedRecoveryParent(parent string) bool {
- for p:=parent;;p=filepath.Dir(p) {
-  i,e:=os.Lstat(p);if e!=nil||!i.IsDir()||i.Mode()&os.ModeSymlink!=0{return false}
-  st,ok:=i.Sys().(*syscall.Stat_t);if !ok{return false}
-  if p==parent {if st.Uid!=uint32(os.Geteuid())||i.Mode().Perm()&0077!=0{return false}} else {
-   if st.Uid!=0&&st.Uid!=uint32(os.Geteuid()){return false}
-   if i.Mode().Perm()&0022!=0&&i.Mode()&os.ModeSticky==0{return false}
-  }
-  if filepath.Dir(p)==p{return true}
- }
+	for p := parent; ; p = filepath.Dir(p) {
+		i, e := os.Lstat(p)
+		if e != nil || !i.IsDir() || i.Mode()&os.ModeSymlink != 0 {
+			return false
+		}
+		st, ok := i.Sys().(*syscall.Stat_t)
+		if !ok {
+			return false
+		}
+		if p == parent {
+			if st.Uid != uint32(os.Geteuid()) || i.Mode().Perm()&0077 != 0 {
+				return false
+			}
+		} else {
+			if st.Uid != 0 && st.Uid != uint32(os.Geteuid()) {
+				return false
+			}
+			if i.Mode().Perm()&0022 != 0 && i.Mode()&os.ModeSticky == 0 {
+				return false
+			}
+		}
+		if filepath.Dir(p) == p {
+			return true
+		}
+	}
 }

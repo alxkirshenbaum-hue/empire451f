@@ -47,7 +47,7 @@ def runtime(project,root,unit):
 
 def main():
     global WORK
-    f=argparse.ArgumentParser();f.add_argument('--project',required=True,type=Path);f.add_argument('--run-id',required=True);f.add_argument('--resume-source',action='store_true');f.add_argument('--destination-id')
+    f=argparse.ArgumentParser();f.add_argument('--project',required=True,type=Path);f.add_argument('--run-id',required=True);f.add_argument('--resume-source',action='store_true');f.add_argument('--destination-id');f.add_argument('--recovery-cli',type=Path)
     a=f.parse_args();project=a.project.resolve();ident=a.run_id
     if os.geteuid()!=0 or not ident.isdigit() or len(ident)>12:raise RuntimeError('root and numeric unique run ID required')
     WORK=project/('backup-drill-'+ident)
@@ -70,7 +70,7 @@ def main():
     if not destination.isdigit() or len(destination)>12:raise RuntimeError('numeric new destination required')
     recovery=WORK/('recovery-'+destination);recovery.mkdir(mode=0o700)
     prepared_parent=recovery/'prepared';prepared_parent.mkdir(mode=0o700)
-    stage=recovery/'verified';cli=project/'rehearsal-bin/vpnctl';helper=project/'backup_artifact.py'
+    stage=recovery/'verified';cli=a.recovery_cli or project/'rehearsal-bin/vpnctl';helper=project/'backup_artifact.py'
     args=[cli,'backup','offline-verify','--envelope',cipher,'--private-key',private,'--cipher-sha256',context['sha256'],
           '--manifest-sha256',context['manifest_sha256'],'--owner-run',context['owner_run'],'--own-operation',context['own_operation'],
           '--backup-id',context['backup_id'],'--prepare-parent',prepared_parent,'--staging',stage,'--helper',helper,

@@ -91,7 +91,7 @@ def main():
     Path('/run/vpn-control').chmod(0o755)
     put('/run/lock/empire-vpn.lock',b'')
     canary,old_password,owner_password = secrets.token_hex(24),secrets.token_hex(24),secrets.token_hex(24)
-    if os.environ.get('VPN_REHEARSAL_UI')=='1': owner_password='Synthetic W7 owner password'
+    if os.environ.get('VPN_REHEARSAL_UI')=='1' or os.environ.get('VPN_REHEARSAL_BACKUP')=='1': owner_password='Synthetic W7 owner password'
     cli=ROOT/'rehearsal-bin/vpnctl';api=ROOT/'rehearsal-bin/vpn-control';python=Path(sys.executable).resolve()
     auth=b'basic_auth "master_user" '+json.dumps(canary).encode()+b'\nbasic_auth "Old-User" '+json.dumps(old_password).encode()+b'\n'
     put(base/'auth.caddy',auth,0o640,986)
@@ -348,7 +348,7 @@ module.main()
         profile=json.loads(body)
         outbound=profile_client(stack,profile,19081,ca_file)
         require((state/'master_user.sfa.json').read_bytes()==old_profile,'original profile changed')
-        mutations = os.environ.get('VPN_REHEARSAL_MUTATIONS') == '1'
+        mutations = os.environ.get('VPN_REHEARSAL_MUTATIONS') == '1' or os.environ.get('VPN_REHEARSAL_BACKUP') == '1'
         if mutations:
             from create_probe import probe
             old_secret = outbound['password']
@@ -400,6 +400,11 @@ module.main()
                     require(request(api_dir/'api.sock','GET',route,headers={'Cookie':cookie})[0]==404,
                             'disabled/deleted profile disclosed')
             print('full-worker: disable/no-op/enable/rotate/delete/replay/new-old-control TCP/UoT PASS')
+        if os.environ.get('VPN_REHEARSAL_BACKUP')=='1':
+            from backup_restore_rehearsal import capture
+            capture(cli, migration, worker, api_dir/'api.sock', cookie, old_regular_bytes, old_secret)
+            print('backup-source: encrypted capture with active old and deleted negative fixture PASS',flush=True)
+            return
         export=Path('/run/export');export.mkdir(mode=0o700)
         run([cli,'migration','reverse-export','--approved-plan',migration,'--staging-db',db,'--vault-key-file',key,'--output-dir',export])
         exported=json.loads((export/'clients.json').read_bytes())['clients']

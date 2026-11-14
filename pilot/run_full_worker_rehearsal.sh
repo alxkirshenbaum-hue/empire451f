@@ -7,6 +7,11 @@ test "$(id -u)" = 0
 project=${VPN_REHEARSAL_PROJECT:-/run/vpn-w3-worker-tests}
 root=$project/rehearsal-root-$2
 python3 -B "$project/pilot/prepare_rehearsal_root.py" "$root"
+if [ "${VPN_REHEARSAL_BACKUP:-0}" = 1 ]; then
+ test -n "${VPN_REHEARSAL_BACKUP_PUBLIC:-}"
+ install -d -m 700 "$root/etc/vpn-control"
+ install -m 600 "$VPN_REHEARSAL_BACKUP_PUBLIC" "$root/etc/vpn-control/backup-recipient.pem"
+fi
 case "$1" in
  return_before) option=VPN_REHEARSAL_RETURN_BEFORE=1;;
  create_sqlite) option=VPN_REHEARSAL_FAILURE=sqlite;;
@@ -23,7 +28,7 @@ systemd-run $run_flags --unit="vpn-full-worker-root-$2" \
  -p "RootDirectory=$root" -p MountAPIVFS=yes -p PrivateNetwork=yes \
  -p PrivateDevices=yes -p NoNewPrivileges=yes -p ProtectSystem=strict \
  -p ReadWritePaths=+/etc -p ReadWritePaths=+/var/lib -p ReadWritePaths=+/run \
- -p ReadWritePaths=+/tmp -p ReadWritePaths=+/root -p "Environment=$option" -p "Environment=VPN_REHEARSAL_MUTATIONS=${VPN_REHEARSAL_MUTATIONS:-0}" -p "Environment=VPN_REHEARSAL_UI=${VPN_REHEARSAL_UI:-0}" \
+ -p ReadWritePaths=+/tmp -p ReadWritePaths=+/root -p "Environment=$option" -p "Environment=VPN_REHEARSAL_MUTATIONS=${VPN_REHEARSAL_MUTATIONS:-0}" -p "Environment=VPN_REHEARSAL_UI=${VPN_REHEARSAL_UI:-0}" -p "Environment=VPN_REHEARSAL_BACKUP=${VPN_REHEARSAL_BACKUP:-0}" \
  -p BindReadOnlyPaths=/usr -p BindReadOnlyPaths="$project/rehearsal-source/local:/usr/local" \
  -p BindReadOnlyPaths=/opt/empire-vpn/bin -p BindReadOnlyPaths=/etc/ssl \
  -p BindReadOnlyPaths="$project/rehearsal-source:/work" -p WorkingDirectory=/work \

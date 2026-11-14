@@ -25,7 +25,7 @@ def main():
     source=root.parent/'rehearsal-source'
     source.mkdir(mode=0o700,exist_ok=True)
     project=Path(__file__).resolve().parents[1]
-    for name in ('owned_auth.py','create_probe.py','g3_snapshot.py','g3_restore_runtime.py','inspect_legacy.py','handoff_legacy.py','return_legacy.py','render.py','verify.py'):
+    for name in ('owned_auth.py','create_probe.py','g3_snapshot.py','g3_restore_runtime.py','inspect_legacy.py','handoff_legacy.py','return_legacy.py','render.py','verify.py','backup_artifact.py'):
         shutil.copy2(project/name,source/name)
     for name in ('templates','rehearsal-bin'):
         shutil.copytree(project/name,source/name,dirs_exist_ok=True)
@@ -36,7 +36,7 @@ def main():
     (source/'local/bin/vpn-add-user').write_text(template.replace('@STATE@','/var/lib/empire-vpn/lab').replace('@BASE@','/etc/empire-vpn/lab').replace('@PREFIX@','evpn-lab'))
     (source/'local/bin/vpn-add-user').chmod(0o755)
     (source/'pilot').mkdir(exist_ok=True)
-    for name in ('recovery_probe.py','full_worker_rehearsal.py'):
+    for name in ('recovery_probe.py','full_worker_rehearsal.py','backup_restore_rehearsal.py'):
         shutil.copy2(project/'pilot'/name,source/'pilot'/name)
     # git archive may carry group-write bits. Reproduce secure installation
     # modes explicitly; the worker correctly refuses writable helper scripts.

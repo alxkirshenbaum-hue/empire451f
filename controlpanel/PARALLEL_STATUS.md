@@ -1,40 +1,69 @@
 # Parallel development journal
 
-## 2026-11-14 — round 1
+## 2026-11-14 — approved round 1, integrated portable checkpoint
 
 Owner approved PARALLEL_PLAN_2026-11-14 and automatic ASTRA escalation.
-Every progress/final report includes completed package steps and agent status.
-Steps are concrete deliverables, not tool calls or a replacement for Wn gates.
+Every progress/final report includes completed deliverable steps and agent status.
+Steps are package deliverables, not tool calls or Wn gate completion.
 
-Baseline/checkpoint: 84c5262. Two isolated branches/worktrees created:
-- SOL-A: work/w8-restore-20261114, worktrees/w8-restore.
-- SOL-B: work/w8-security-20261114, worktrees/w8-security.
+Baseline84c5262; Lead contract/checkpoint4bdd985. Two independent branches:
+SOL-A work/w8-restore-20261114, SOL-B work/w8-security-20261114, each in its
+own worktree. Integrations were sequential, existing commits retained as Git
+checkpoints. Tracked changes clean before integration; foreign BACKLOG untouched.
 
-| Agent | Package steps | Current status |
+| Agent | Completed steps | Result / current status |
 |---|---|---|
-| Lead | 1 isolation/checkpoint; 2 portable runtime; 3 integration contract; 4 independent review + integration | 3/4 prepared; contract awaiting independent review |
-| SOL-A | 1 reuse/interface; 2 artifact checks; 3 verification/report | 2/3; candidate 4285e73 under review, streaming/envelope negatives refinement requested |
-| SOL-B | 1 SEC inventory; 2 fixture checker; 3 verification/report | 3/3 candidate 2ba7245, 5 portable tests PASS; reviewing A, own code not yet accepted |
+| SOL Lead | 4/4: isolation/checkpoint, portable runtime, integration contract, review/integration | Integrated 4d64384; 13 targeted tests PASS; local Linux chosen, admin enable/reboot pending |
+| SOL-A | 3/3: reuse/interface, portable artifact checks, verification/report | Source6dde629 -> integrated7e0d761; 8 tests PASS, reviewed by B and Lead; package done, runtime proof pending |
+| SOL-B | 3/3: SEC inventory, fixture checker, verification/report; next mapping2/2 | Source2ba7245 ->7ff71f5; report7fdb84e ->4d64384; 5 tests PASS, 22-ID mapping done; A final review PASS limited scope |
 
-Linux identity/namespace/CGO/live restore/full suite/resource peaks: NOT_RUN.
-Windows Python 3.12.14 / SQLite3.53.1 / cryptography50.0.2 available from bundled
-runtime. No new software installed. Two sandbox worktree access failures were
-resolved with authorized local-path escalation; these are not bug-fix attempts.
+Lead contract was independently reviewed by BOTH A and B: no blocking findings.
+A independently reviewed B fixture-only code: no blocking finding within scope.
+B independently reviewed A and reran final8 tests; Lead reran integrated13.
+Review findings corrected before integration: whole-archive buffering, leaf
+FD/single-link/identity checks, inventory owner/mode/unlisted-member checks and
+Windows binary read mode. Parent/concurrent hostile mutation protection and
+GNUtar PAX/xattr producer compatibility remain explicitly unproven. Artifact
+checks never set registry consistency, persisted verified status or restore PASS.
+
+Targeted command: bundled Python unittest discovery tests/test_w8_*.py.
+Result at4d64384: Ran13, OK, no skips (0.673s). A includes19 artifact-negative
+cases + existing-envelope wrong-key/tamper; B covers fixture metadata only.
+Windows runtime Python3.12.14 / SQLite3.53.1 / cryptography50.0.2, no installation.
+Linux identities/namespaces/CGO/live restore/full suite/resource peaks: NOT_RUN.
+Full release/gate suite not claimed or rerun for this limited helper checkpoint.
+
+Existing audit gap map found SEC15/16/17/19/20/21 absent, plus missing actual
+API/frontend/worker identity and current restrictive capability coverage. Human
+collector labels are not stable SEC IDs. Never run collector blindly on live VDS.
+
+## Local Linux decision
+
+Owner has only production VDS and asked Lead to choose local or production.
+Lead selected local WSL2 first. Verified Windows10 Pro19045, firmware virtualization
+and SLAT true,32GiB RAM; WSL/VirtualMachinePlatform disabled. Windows admin token
+required for enabling, then manual reboot; unsandboxed tool is not admin.
+[Concrete next step and reversal](LOCAL_LINUX_RUNNER.md). No features installed,
+UAC prompts launched, reboot or production fallback performed. This environment
+step is not an ASTRA bug escalation and does not invalidate portable test results.
 
 W6 3/4, W7 3/4 unchanged. Three phone profiles connect; alpha13 owner login on
-Wi-Fi confirmed. Deferred ChatGPT/Download Manager failure stays deferred.
-Preparation of W8 does not supersede unresolved gate evidence or release E1.
-No production access, deploy, stop or CRUD performed in this round. BACKLOG left
-untouched. Only Lead updates PLAN/shared contracts and integrates agent commits.
+Wi-Fi confirmed. Deferred ChatGPT/Download Manager issue remains deferred.
+W8 preparation is not G8 acceptance and does not supersede missing G6/G7 evidence.
+No production access, deploy, stop or CRUD in this round. E1 not released.
 
 ## Automatic ASTRA routing log
 
-No cases routed yet (0).
+Cases routed:0. Failed corrective attempts on current cases:0.
+A first local import error was fixed successfully on first correction; ordinary
+review iterations are not failed fixes. Worktree sandbox-path denials resolved
+with authorized local escalation are also not bug-fix attempts.
 
-For each case record: ID/date, originating agent, affected task, reproducible
-symptom, three failed corrective attempts/SHAs, sanitized evidence, ASTRA agent
-and model, analysis/result, Lead decision, final test and remaining limitations.
-Do not put secrets or raw owner artifacts in this log. Count attempts across the
-team; ASTRA analysis does not reset them. After third failed SOL correction pause
-that case and start ASTRA in a freed slot (maximum two concurrent Subagents).
-After a fourth failed correction stop the blocker and report to the owner.
+For each ASTRA case record ID/date, originating agent, affected task, reproducible
+symptom,3 failed corrective attempts/SHAs, sanitized evidence, ASTRA agent/model,
+analysis/result, Lead decision, final test and limitations. No secrets/raw owner
+artifacts. Count across the team. After third failed SOL correction pause that
+case and start ASTRA in a freed slot (max2 concurrent Subagents). Analysis does
+not reset the count; after a fourth failed correction stop/report to owner.
+
+Final environment-plan review: SOL-B1/1 independently approved LOCAL_LINUX_RUNNER.md, no blocking findings; commands not executed. Agent tasks idle after completed portable packages/reviews, awaiting actual local environment step; no background production work.

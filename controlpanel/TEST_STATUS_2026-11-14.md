@@ -124,3 +124,20 @@ HTTPS login200, no-store/same-origin, unauthorized users401, admin route404.
 G6/G7 не принимаются. W6 3/4; W7 2/4, завершён только подшаг HTTPS sandbox W7/3.
 Следующий шаг: real owner CLI/browser downloads/alpha13, deploy/rollback package;
 production switching требует отдельного согласования, затем телефон G6/G7.
+## Дополнение: real owner CLI и browser — root7201
+
+Продуктовый код8fc03c7, source baselineaf63ab0, новый root7201.
+PASS CLI→real Unix API→canonical worker: create/replay/active/rename/CAS/
+protected denial,3 private profiles, no-overwrite,1144 option rejection,
+no secret/session stdout, fresh issued-profile TCP/UoT.
+Runner: ../pilot/owner_cli_rehearsal.py.
+
+PASS browser: owner sign-in, master_user mutation protection, alpha13 optional
+warning, option cleared+disabled on1144, downloadMedia сохранил3 actual files.
+JSON base/optional shape и API issuance client/variant/hash сверены, integrityok.
+Base1144 и basealpha13 имеют одинаковые bytes при одинаковом credential — это
+ожидаемо; issuance target записан отдельно. Профили не выводились и не вGit.
+Тестовые скачанные файлы и bridge удалены; root7201 inactive/MainPID0 подтверждён.
+Прежняя запись «download not confirmed» относится к7001 и этим дополнением
+заменена для desktop copy. Android/G6 и owner/nonadmin/external G7 открыты.
+Новая версия package/runner ещё ожидает полный pinned набор перед W7/3.

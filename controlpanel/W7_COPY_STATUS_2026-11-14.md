@@ -127,3 +127,17 @@ HTTPS login200, no-store/same-origin, unauthorized users401, admin route404.
 G6/G7 не принимаются. W6 3/4; W7 2/4, завершён только подшаг HTTPS sandbox W7/3.
 Следующий шаг: real owner CLI/browser downloads/alpha13, deploy/rollback package;
 production switching требует отдельного согласования, затем телефон G6/G7.
+## New copy7201: CLI/browser substep passed
+
+Baselineaf63ab0 with unchanged8fc03c7 product binaries. Real owner CLI,
+canonical queue/worker, three private profiles and fresh TCP/UoT passed.
+Desktop browser downloaded all3 supported variants; protected account/default/
+warning/version reset verified. Local profile hashes matched real API issuance
+metadata; no profile content printed or committed. The older unconfirmed
+browser download entry is historical. Root7201 was cleaned up and confirmed
+inactive/MainPID0; synthetic Downloads files and loopback helpers removed.
+
+Offline package draft: W7_UPGRADE_WINDOW.md and ../pilot/prepare_panel_upgrade.py.
+Trial assembly/hash/modes/unit syntax passed; final pinned full suite/package
+validation still pending. Whole production switch/rollback and phone G6/G7
+remain unexecuted. No production mutation/restart/deploy occurred.

@@ -1,8 +1,7 @@
 # W8 local harness portability review
 
 Baseline: original installer PLAN 0e98e9b context read. Qualification package
-2/3 complete (inventory and adaptation proposal); step3 independent Lead patch
-review PENDING. No heavy lab tests, SSH or production actions. Failed fixes0.
+3/3 complete (inventory, adaptation proposal, independent Lead patch review). No heavy lab tests, SSH or production actions. Failed fixes0.
 
 ## Blocking assumptions / minimal adaptations
 
@@ -54,3 +53,17 @@ review PENDING. No heavy lab tests, SSH or production actions. Failed fixes0.
    Lead sequencing. This checklist is not G6/G7/G8 or production-fidelity PASS.
 
 Lead common patch review remains pending; no shared harness edits by SOL-B.
+## Independent Lead patch review — completed
+
+Reviewed original installer working diff against 0e98e9b. Exactly two command
+paths changed: run_full_worker_rehearsal.sh:30 and panel_frontend_rehearsal.py:96,
+/usr/bin/python3.14 -> /usr/bin/python3. Both commands execute with read-only
+/usr bind, hence the lab's system Python and its corresponding /usr libraries.
+The /usr/local overlay does not replace /usr/bin/python3. No identity, mask,
+capability, syscall policy, socket bind or denial assertion changed. APPROVE
+limited portability patch; runtime qualification and pinned full suites remain
+Lead work, not implied PASS from this review.
+
+Windows bundled Python AST parse of the changed frontend module PASS. Shell
+change inspected as single executable path substitution; no shell execution or
+heavy WSL tests by SOL-B. Failed corrective attempts0. Package progress3/3.

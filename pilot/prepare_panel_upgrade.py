@@ -1,7 +1,7 @@
 """Prepare/verify a secret-free pinned package; never install or restart."""
 import argparse, hashlib, json, re
 from pathlib import Path
-HELPERS=("owned_auth.py","create_probe.py","inspect_legacy.py","handoff_legacy.py","return_legacy.py","render.py","verify.py")
+HELPERS=("owned_auth.py","create_probe.py","inspect_legacy.py","handoff_legacy.py","return_legacy.py","render.py","verify.py","g3_snapshot.py","g3_restore_runtime.py")
 def require(value,label):
     if not value:raise ValueError(label)
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()

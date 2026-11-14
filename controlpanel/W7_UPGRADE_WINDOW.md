@@ -112,3 +112,8 @@ the relay. It requires existing pilot certificate/config/key paths. Compare
 it with the captured CURRENT transient unit before approval; drift aborts.
 Its shell syntax is checked during package validation; production replay has
 not been executed.
+Snapshot/return helpers g3_snapshot.py and g3_restore_runtime.py are included
+beside the shared inspector/return modules in the same versioned directory.
+Use those reviewed compatible modules for a new window; do not accidentally
+import a historical schema-limited inspector from the old helper directory.
+The production replay script is not the old deploy/switch script.

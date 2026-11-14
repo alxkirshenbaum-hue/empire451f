@@ -1,5 +1,7 @@
 # W6/W7 — состояние проверок на 14.11.2026
 
+**Актуально: W6 3/4/G6 OPEN; W7 3/4/G7 OPEN. Старый sandbox FAIL устранён af63ab0; окончательные результаты — в последних дополнениях. Production switch/телефон не выполнены.**
+
 Это журнал фактов, а не приёмка G6/G7. Новые проверки в рамках этой
 документальной передачи не запускались. Последний полный проверенный
 продуктовый код — 8fc03c7; 9b9ea35 фиксирует остановку и незавершённый runner.
@@ -141,3 +143,18 @@ Base1144 и basealpha13 имеют одинаковые bytes при одина�
 Прежняя запись «download not confirmed» относится к7001 и этим дополнением
 заменена для desktop copy. Android/G6 и owner/nonadmin/external G7 открыты.
 Новая версия package/runner ещё ожидает полный pinned набор перед W7/3.
+## W7/3 copy acceptance — cd3de10
+
+Full pinned -count=1 Go/all flags PASS, Python69/4skip PASS, mod verify and
+unchanged go.sum PASS. Root7202 with binaries BUILT oncd3de10: real owner CLI
+and fresh profile TCP/UoT PASS; af63ab0 TLS/sandbox runner PASS. Browser
+root7201 evidence is reused with explicit product diff8fc03c7..cd3de10 empty.
+W7/3 checked; G7 still OPEN until connection and actual phone/security matrix.
+
+Offline package17 files/33,295,255 bytes: verify/hash/modes and negative
+tamper/symlink/unlisted-file checks PASS; readonly replay sh-n and systemd
+verify PASS (unrelated host CPUAccounting warnings). Public source checksum
+matches production approved source by read-only query; integrityok,
+unfinished0, generation2. Adding reviewed snapshot/return helper files changes
+package contents only; final revision/manifest recorded in the next checkpoint.
+Entire production deploy/rollback execution remains unperformed and unclaimed.

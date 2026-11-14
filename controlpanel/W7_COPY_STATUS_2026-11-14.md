@@ -1,6 +1,6 @@
 # W7 copy status — not accepted, 2026-11-14
 
-Do not deploy the candidate frontend. G6 and G7 are open.
+Current: copy checks passed after af63ab0/cd3de10; production deployment requires separate approval. G6 and G7 are open. Historical failures below are superseded by later checkpoints.
 
 ## Verified revisions
 
@@ -141,3 +141,17 @@ Offline package draft: W7_UPGRADE_WINDOW.md and ../pilot/prepare_panel_upgrade.p
 Trial assembly/hash/modes/unit syntax passed; final pinned full suite/package
 validation still pending. Whole production switch/rollback and phone G6/G7
 remain unexecuted. No production mutation/restart/deploy occurred.
+## W7/3 passed — final product binaries cd3de10 in root7202
+
+Full pinned Go(-count=1)/all flags, Python69/4skip, mod verify and repository
+go.sum passed. Real CLI and af63ab0 frontend sandbox/TLS passed together
+on a NEW root7202 with freshly compiled cd3de10 binaries. Browser evidence
+is reused from7201 because the product cmd/internal/migrations/systemd/
+frontend-template diff from8fc03c7 tocd3de10 is empty.
+W7 3/4; G7 still open, W6 3/4 and phone open.
+
+Package generator includes reviewed compatible snapshot/return helpers in the
+versioned directory, fixed actual API socket and readonly replay-only command.
+Read-only production preflight: approved source matches, integrityok,
+unfinished operations0, panel_generation2. No write/deploy/restart occurred.
+Next: final pinned payload/manifest then request control-plane window scope.

@@ -5,7 +5,8 @@ CREATE TABLE maintenance_intents (
  label TEXT NOT NULL DEFAULT '',
  backup_id TEXT,
  key_id TEXT NOT NULL DEFAULT '',
- expected_hash TEXT NOT NULL DEFAULT ''
+ expected_hash TEXT NOT NULL DEFAULT '',
+ evidence_json TEXT
 );
 CREATE TABLE backup_details (
  backup_id TEXT PRIMARY KEY REFERENCES backups(id),
@@ -16,7 +17,8 @@ CREATE TABLE backup_details (
  manifest_sha256 TEXT NOT NULL,
  verification_operation TEXT REFERENCES operations(id),
  verification_evidence TEXT,
- restore_tested_at TEXT
+ restore_tested_at TEXT,
+ restore_operation TEXT REFERENCES operations(id)
 );
 CREATE TABLE backup_configuration (
  singleton INTEGER PRIMARY KEY CHECK(singleton=1),

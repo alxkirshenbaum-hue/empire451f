@@ -92,3 +92,52 @@ compatibility, envelope/aggregate resource bounds and usable restore remain open
 Lead W8_INTEGRATION_CONTRACT.md independently reviewed: no blocking semantic
 finding; evidence levels, persisted-state prohibition and production gates clear.
 Failed corrective attempts attributable to this review: 0.
+## Final SOL-A revision and exact collector mapping
+
+6dde629 independently reviewed against 1de0c25: O_BINARY is appropriate for
+Windows binary archives; added binary/owner/mode/xattr/unlisted/hardlink tests.
+Executed final targeted suite: 8 tests PASS, no skips (0.717s). Prior limited
+merge verdict unchanged; no new blocker. No claim of GNU producer compatibility.
+
+Next package progress: 2/2 (source mapping + evidence/gap recording), static
+inspection only. References below are security_audit.py at baseline 84c5262;
+collector has human labels rather than implemented SEC-xx identifiers. Thus
+these are coverage mappings, NOT execution results or automatic SEC PASS.
+
+| Expected ID | Actual source coverage | Exact missing boundary |
+|---|---|---|
+| SEC-01 | 57–66 effective sshd config | line58 session assertion trusts launcher; no independent key-auth method evidence |
+| SEC-02 | 92–95 local1081 only | no complete external listen inventory on either node; no panel exposure scan |
+| SEC-03 | 50–55,75,82 rules equality;153–156 exit SSH | trusts installed reference files; equality not independent expected-policy review |
+| SEC-04 | 67–72 host route;80 namespace default;97–101 DNS/outbound;157–158 forwarding/allowedIPs | no full live WG peer/endpoint/routes/NAT semantic inventory |
+| SEC-05 | 75,82 reference rule match | no standalone semantic fail-closed proof independent of installed reference |
+| SEC-06 | none | dynamic WG-down TCP/UDP/DNS/IPv4/IPv6 belongs approved controlled suite, not this audit |
+| SEC-07 | 109–119 process ns/UID/caps/resolver;80 routes | no API/frontend/worker identities, exact allowed UID, mount secret denial, foreign UID/proc-root access test |
+| SEC-08 | 120 restart policy;159–161 active/enabled/graph/journal | no restart-count trend; current checks are point-in-time |
+| SEC-09 | 46–48,76,83,87–91 key/profile/ACME modes | no complete auth/vault/DB/WAL/snapshot/temp/log/SSH surface inventory, hardlink/ACL or log-secret inspection |
+| SEC-10 | 74 installed hashes;84–86 Caddy tokens | no plugin presence/order-handler/safe-auth semantic checks; tokens alone not effective config |
+| SEC-11 | 124–131 trusted TLS1.2/1.3 ALPN | no expiry margin or renewal method evidence; successful handshake only proves current validity |
+| SEC-12 | 102–106 pinned verifier;144–146 site200/404 | verifier supplied by launcher, collector-alone cannot run; independent scenario details delegated |
+| SEC-13 | 92–106 loopback config/listener plus UoT verifier | smoke delegated; no standalone evidence without pinned verifier |
+| SEC-14 | 102–106 expected verifier result | expected egress delegated, no independent direct-fallback observation here |
+| SEC-15 | none | system time/NTP drift, disk/volume space, OOM events and failed units absent |
+| SEC-16 | none | SQLite integrity/migrations/vault unlock/secrets protection absent |
+| SEC-17 | none | backup age, verified timestamp, actual restore evidence absent |
+| SEC-18 | 102–106 delegated valid-client probe;147–152 invalid/anonymous concealed | explicit local Caddy valid/invalid sample auth test not implemented as independent collector check |
+| SEC-19 | none | expiry/retention and old audit cleanup evidence absent |
+| SEC-20 | none | admin auth/bind/CSRF/session/risky endpoints absent |
+| SEC-21 | none | off-VDS custody, sentinel decrypt/pairing absent |
+| SEC-22 | 159–161 current boot graph/journal | no staged reboot, post-reboot real traffic/login proof |
+
+Evidence limitation: audit supports fresh installer-managed layouts and refuses
+legacy at lines23–27. Its Caddy/singbox capability masks at109 allow respectively
+NET_BIND_SERVICE and NET_RAW; these are not proof of current product's stricter
+identity policy. Do not automatically apply it unchanged to the deployed panel.
+Line74 hashes installed files without bounding reads; it is not a resource-peak
+measurement. Lines50–54 execute nft under unshare; read-only inventory here never
+executed that collector. Existing audit should be extended centrally by Lead
+through reviewed contracts, not copied into a second framework.
+
+Required next evidence: approved nonproduction Linux environment; pinned launcher
+and current layout/identity contract; then collect missing operations above and
+record observed/not_run per ID. No production access or state change occurred.

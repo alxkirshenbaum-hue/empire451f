@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,7 +14,7 @@ import (
 )
 
 func TestPrepareRestoreCopy(t *testing.T) {
-	for _, scenario := range []string{"success", "owner", "own", "backup", "cipher", "empty-own", "other", "abort"} {
+	for _, scenario := range []string{"success", "owner", "own", "backup", "cipher", "empty-own", "other", "abort", "target-type", "target-id", "intent-owner", "intent-backup", "intent-action"} {
 		t.Run(scenario, func(t *testing.T) {
 			_, r, u := snapshotFixture(t)
 			run := id()
@@ -30,12 +31,6 @@ func TestPrepareRestoreCopy(t *testing.T) {
 			if e = r.Transition(ctx, j.OperationID, "queued", "running"); e != nil {
 				t.Fatal(e)
 			}
-			if scenario == "other" {
-				_, e = r.db.Exec(`INSERT INTO operations(id,actor_id,kind,status,idempotency_key,request_hash,correlation_id,created_at) VALUES(?,'owner','user.create','queued',?,?,?,'now')`, id(), id(), strings.Repeat("a", 64), id())
-				if e != nil {
-					t.Fatal(e)
-				}
-			}
 			if scenario == "abort" {
 				_, e = r.db.Exec(`CREATE TRIGGER fail_restore BEFORE INSERT ON audit_runs BEGIN SELECT RAISE(ABORT,'fixture'); END`)
 				if e != nil {
@@ -47,16 +42,30 @@ func TestPrepareRestoreCopy(t *testing.T) {
 			}
 			sourceParent := t.TempDir()
 			os.Chmod(sourceParent, 0700)
-			// Other unfinished operations must already be refused at capture.
 			source, e := r.CaptureSnapshot(ctx, sourceParent, j.OperationID)
-			if scenario == "other" {
-				if e == nil {
-					t.Fatal("capture accepted other unfinished operation")
-				}
-				return
-			}
 			if e != nil {
 				t.Fatal(e)
+			}
+			mutations := map[string]string{
+				"other":         `INSERT INTO operations(id,actor_id,kind,status,idempotency_key,request_hash,correlation_id,created_at) VALUES('extra','owner','user.create','queued','extra','hash','extra','now')`,
+				"target-type":   `UPDATE operations SET target_type='user' WHERE kind='backup.create'`,
+				"target-id":     `UPDATE operations SET target_id='wrong' WHERE kind='backup.create'`,
+				"intent-owner":  `UPDATE maintenance_intents SET owner_run='mutation-run'`,
+				"intent-backup": `UPDATE maintenance_intents SET backup_id='wrong'`,
+				"intent-action": `UPDATE maintenance_intents SET request_json='{"action":"backup.verify"}'`,
+			}
+			if statement := mutations[scenario]; statement != "" {
+				db, e := sql.Open("sqlite3", snapshotURI(source.Path)+"?mode=rw&_journal_mode=DELETE")
+				if e != nil {
+					t.Fatal(e)
+				}
+				_, e = db.Exec(statement)
+				if e != nil {
+					t.Fatal(e)
+				}
+				if e = db.Close(); e != nil {
+					t.Fatal(e)
+				}
 			}
 			before, e := os.ReadFile(source.Path)
 			if e != nil {
@@ -119,6 +128,14 @@ func TestPrepareRestoreCopy(t *testing.T) {
 			}
 			if e = db.QueryRow("SELECT count(*) FROM audit_runs WHERE script_version='restore-copy-v1'").Scan(&count); e != nil || count != 1 {
 				t.Fatal(count, e)
+			}
+			var summary string
+			if e = db.QueryRow("SELECT summary FROM audit_runs WHERE script_version='restore-copy-v1'").Scan(&summary); e != nil {
+				t.Fatal(e)
+			}
+			var saved RestoreBinding
+			if e = json.Unmarshal([]byte(summary), &saved); e != nil || saved != binding {
+				t.Fatal("audit binding mismatch", e)
 			}
 			candidate, e := Open(ctx, out.Path, r.vault, r.keyVersion)
 			if e != nil {

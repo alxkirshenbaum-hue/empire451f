@@ -96,6 +96,15 @@ func PrepareRestoreCopy(ctx context.Context, source, parent string, key *vault.V
 	if e != nil {
 		return out, e
 	}
+	copied, ce := os.Open(path)
+	if ce != nil {
+		return out, ce
+	}
+	copiedHash, ce := restoreFileHash(copied)
+	ce = errors.Join(ce, copied.Close())
+	if ce != nil || copiedHash != sourceHash {
+		return out, ErrSnapshotState
+	}
 	after, e := src.Stat()
 	current, ce := os.Lstat(source)
 	checkHash, he := restoreFileHash(src)

@@ -18,7 +18,11 @@ def main():
     pid=int(command(["systemctl","show","vpn-full-worker-root-"+str(args.run),"-p","MainPID","--value"]))
     require(pid>1,"copy unit is not running")
     require(command(["nsenter","-t",pid,"-n","ip","-o","link","show"]).count("\n")==0,"loopback-only fixture required")
-    unit="vpn-panel-tls-copy-"+str(args.run)
+    unit="vpn-panel-tls-copy-"+str(args.run)+"-"+str(time.time_ns())
+    # RootDirectory + credentials gets a private /run. Bind only the API
+    # directory outside it; never expose the whole runtime or secret trees.
+    require((root/"run/vpn-control/api/api.sock").is_socket(), "fixture API socket missing")
+    require((root/"run/caddy-admin/admin.sock").is_socket(), "fixture admin socket missing")
     properties=[
         "RootDirectory="+str(root),"MountAPIVFS=yes",
         "NetworkNamespacePath=/proc/"+str(pid)+"/ns/net",
@@ -28,12 +32,16 @@ def main():
         "SystemCallFilter=~ptrace process_vm_readv process_vm_writev pidfd_getfd",
         "RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX",
         "IPAddressDeny=any","IPAddressAllow=localhost",
-        "InaccessiblePaths=/proc /var/lib/vpn-control /var/lib/empire-vpn /etc/empire-vpn /run/caddy-admin",
+        "InaccessiblePaths=+/proc +/var/lib/vpn-control +/var/lib/empire-vpn +/etc/empire-vpn",
         "BindReadOnlyPaths=/usr","BindReadOnlyPaths=/opt/empire-vpn/bin",
-        "ReadWritePaths=/run/ui-frontend-home","Environment=HOME=/run/ui-frontend-home",
+        "BindReadOnlyPaths="+str(root/"run/vpn-control/api")+":/api",
+        "RuntimeDirectory=ui-frontend-home","RuntimeDirectoryMode=0700","Environment=HOME=/run/ui-frontend-home",
     ]
+    config=root/"run/ui-frontend/config-frontend"
+    config.write_text((root/"run/ui-frontend/config").read_text().replace("/run/vpn-control/api/api.sock", "/api/api.sock"))
+    config.chmod(0o600)
     for name in ("cert","key","config"):
-        properties.append("LoadCredential="+name+":"+str(root/"run/ui-frontend"/name))
+        properties.append("LoadCredential="+name+":"+str(config if name=="config" else root/"run/ui-frontend"/name))
     start=["systemd-run","--quiet","--unit="+unit]
     for prop in properties:start.extend(["-p",prop])
     try:
@@ -76,8 +84,10 @@ for path in ['/var/lib/vpn-control','/var/lib/empire-vpn','/etc/empire-vpn','/pr
         if path.endswith('admin.sock') or path.endswith('/root'): os.stat(path)
         else: os.listdir(path)
     except PermissionError:pass
-    else:raise RuntimeError('frontend secret boundary readable')
-s=socket.socket(socket.AF_UNIX);s.connect('/run/vpn-control/api/api.sock');s.close()
+    except FileNotFoundError:
+        assert path.endswith("admin.sock"), "unexpected missing boundary: "+path
+    else:raise RuntimeError('frontend secret boundary readable: '+path)
+s=socket.socket(socket.AF_UNIX);s.connect('/api/api.sock');s.close()
 print('Frontend vault/proc-root/admin denied; private API socket allowed PASS')
 """
         probe_command=["systemd-run","--quiet","--wait","--pipe","--unit="+unit+"-denials"]

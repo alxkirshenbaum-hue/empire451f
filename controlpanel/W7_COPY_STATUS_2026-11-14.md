@@ -109,3 +109,21 @@ No new tests were run for this documentation checkpoint. The previous cleanup
 removed the synthetic7002 hold marker and stopped the local loopback helpers;
 check state before any future use rather than assuming the copy is running.
 The specific readable boundary and the cause of502 remain unknown.
+14.11.2026 — расследование явно возобновлено владельцем; W7/3 frontend harness исправлен.
+Новая синтетическая копия: w7-pinned-8fc03c7/rehearsal-root-7101; продуктовые бинарники 8fc03c7.
+Диагностика: читаемы /var/lib/vpn-control и /etc/empire-vpn; API connect возвращал ENOENT.
+Mountinfo подтвердил отдельный tmpfs /run у frontend с LoadCredential. Без префикса +
+InaccessiblePaths адресовали host paths, а не нужные пути RootDirectory. Это дефект harness,
+не установленная утечка production. +/run/caddy-admin отсутствовал именно в новом /run.
+Исправление pilot/panel_frontend_rehearsal.py: root-relative masks, узкий read-only bind
+каталога API в /api (bind под приватным /run также отказал NAMESPACE), синтетический config
+с /api/api.sock, RuntimeDirectory для HOME, уникальные transient names, точный failed path.
+До запуска проверяется наличие обоих исходных socket. ENOENT допустим только для скрытого
+admin socket; secret directories/proc-root требуют PermissionError. Защиты не снимались.
+Два последовательных итоговых запуска PASS: UID981/CapEff0/same isolated netns,
+vault/proc-root/admin denial, private API socket connect, trusted synthetic CA/exact SNI,
+HTTPS login200, no-store/same-origin, unauthorized users401, admin route404.
+Полный продуктовый набор повторно не запускался: продуктовый код/unit не менялись,
+G6/G7 не принимаются. W6 3/4; W7 2/4, завершён только подшаг HTTPS sandbox W7/3.
+Следующий шаг: real owner CLI/browser downloads/alpha13, deploy/rollback package;
+production switching требует отдельного согласования, затем телефон G6/G7.

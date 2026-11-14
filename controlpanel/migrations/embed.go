@@ -23,3 +23,6 @@ var ProfileRouting string
 
 //go:embed 007_profile_panel_dns.sql
 var ProfilePanelDNS string
+
+//go:embed 008_maintenance.sql
+var Maintenance string

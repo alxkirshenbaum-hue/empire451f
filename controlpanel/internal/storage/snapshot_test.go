@@ -22,7 +22,7 @@ func TestSnapshotInspectionReadOnlyAndRedacted(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.SchemaVersion != 7 || result.Users != 2 || result.Credentials != 2 || result.PendingOperations != 0 {
+	if result.SchemaVersion != 8 || result.Users != 2 || result.Credentials != 2 || result.PendingOperations != 0 {
 		t.Fatalf("unexpected aggregate: %+v", result)
 	}
 	encoded, err := json.Marshal(result)

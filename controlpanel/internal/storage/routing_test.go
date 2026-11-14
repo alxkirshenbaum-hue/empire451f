@@ -157,7 +157,7 @@ func TestVariantPolicyUpgradePreservesOldRevisions(t *testing.T) {
 	defer clear(oldSecret)
 	// Recreate schema6's immutable mapping from its distributed migration text.
 	prefix := strings.Split(migrations.ProfileRouting, "ALTER TABLE")[0]
-	if _, err = r.db.Exec("BEGIN IMMEDIATE; DROP TABLE profile_routing_variants;" + prefix + "DELETE FROM schema_migrations WHERE version=7; COMMIT;"); err != nil {
+	if _, err = r.db.Exec("BEGIN IMMEDIATE; DROP TABLE backup_configuration; DROP TABLE backup_details; DROP TABLE maintenance_intents; DELETE FROM schema_migrations WHERE version=8; DROP TABLE profile_routing_variants;" + prefix + "DELETE FROM schema_migrations WHERE version=7; COMMIT;"); err != nil {
 		t.Fatal(err)
 	}
 	var template string

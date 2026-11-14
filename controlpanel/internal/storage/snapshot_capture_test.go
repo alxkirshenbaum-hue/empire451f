@@ -47,7 +47,7 @@ func TestCaptureSnapshotStandaloneWALAndUnique(t *testing.T) {
 	if first.Bytes != int64(len(before)) || first.SHA256 != hex.EncodeToString(sum[:]) {
 		t.Fatal("capture digest/size mismatch")
 	}
-	if first.Inspection.SchemaVersion != 7 || first.Inspection.Users != 2 || first.Inspection.Credentials != 2 || first.Inspection.PendingOperations != 0 {
+	if first.Inspection.SchemaVersion != 8 || first.Inspection.Users != 2 || first.Inspection.Credentials != 2 || first.Inspection.PendingOperations != 0 {
 		t.Fatalf("aggregate: %+v", first.Inspection)
 	}
 	encoded, err := json.Marshal(first)

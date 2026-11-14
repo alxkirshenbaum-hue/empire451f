@@ -119,7 +119,7 @@ func TestInstallationSnapshotBinding(t *testing.T) {
 						t.Fatalf("unbound file digest %s: %q", path, got.Files[path])
 					}
 				}
-				if got.Capture.Inspection.SchemaVersion != 7 || got.Capture.Inspection.Users != 1 {
+				if got.Capture.Inspection.SchemaVersion != 8 || got.Capture.Inspection.Users != 1 {
 					t.Fatalf("unexpected inspection: %+v", got.Capture.Inspection)
 				}
 				b, e := os.ReadFile(got.Capture.Path)

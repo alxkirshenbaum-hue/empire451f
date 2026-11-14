@@ -113,3 +113,53 @@ WSL2 + separate lab distro without overwriting existing instances, then proves
 systemd/private namespace/socket/RootDirectory/CGO before product tests. No
 repeated feature enabling, old deployment scripts, production fallback or G6/G7
 acceptance implied by the reboot. Portable checkpoint9621e88 remains applicable.
+
+## 2026-11-14 — post-reboot local lab installed
+
+Owner confirmed manual Windows reboot. Both optional features enabled and
+HypervisorPresent=true. Old inbox WSL lacked --version; installed official stable
+microsoft/WSL3.0.5 (not prerelease), MSI exit0, AuthenticodeValid Microsoft,
+SHA2562313efc5873e3f8552f42e77f950fabd913c0289078fa89d2100f3421a525eaa.
+No automatic reboot. SOL-B independently reviewed install/config scope.
+
+Created only NEW VPNControl-Lab, WSL2 Ubuntu24.04, under
+C:\AllFiles\SoftWare\VPN\Amnezia\CodexVPN\worktrees\wsl-lab-20261114.
+Official Canonical image356736729bytes, SHA256
+2a790896740b14d637dbdc583cce1ba081ac53b9e9cdb46dc09a2f73abbd9934 verified
+by SOL-A and Lead. Rootfs/installer/source manifests/receipts/logs are outside Git
+in worktrees/wsl-setup-20261114. Existing distro inventory was empty.
+
+Preserved original /etc/wsl.conf in new distro. Enabled systemd, disabled automatic
+Windows drive mounts/interop/Windows PATH append; restarted ONLY VPNControl-Lab.
+This reduces accidental hostfile exposure, not a hostile-root boundary against
+Windows. No real owner materials copied. One trailing CR in a PowerShell-piped
+script caused final cat to fail; config was then reread and validated directly,
+no repeated feature/install changes. First correction successful, failedfix0.
+
+Observed WSL3.0.5.0/kernel6.18.58.1, Ubuntu Python3.12.3/cryptography41.0.7,
+SQLite3.45.1, GCC13.3.0; signed Ubuntu apt installed build-essential/pkg-config/
+python3-cryptography/nftables/CA packages, exit0. Exact Go1.27.3 installed in
+/opt/vpn-control/toolchain/go (CGO_ENABLED1/CCgcc observed, actual CGO build pending).
+Official Go archive70588678bytes SHA256
+65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40 verified
+by SOL-A and Lead before use. No Go network modules fetched.
+
+Base runtime observations PASS: PID1systemd; no /mnt/c mount or Windows PATH;
+unshare network/mount/PID available, nft list in private netns succeeds; real
+systemd transient PrivateNetwork/UID65534/CapEff0/NoNewPrivs1 job succeeds.
+Pinned tracked source e263338 transferred via binary stdin (no untracked BACKLOG,
+secrets or Windows mount) to /opt/vpn-control/src-e263338. Linux targeted W8
+suite Ran13 OK/no skips0.771s. This is NOT full Go/Python product gate evidence.
+
+Lead local runner2/3 done: features + engine/distro/tooling; third product harness
+qualification PARTIAL (base checks PASS). SOL-A Ubuntu artifact2/2 and Go artifact
+2/2 done; SOL-B install review1/1 and distro config review1/1 done. Previous
+portable A3/3/B3/3+mapping2/2 unchanged. ASTRA0, failed corrective attempts0.
+No production access/downtime/CRUD/deploy and no Windows reboot by agent.
+
+FIRST NEXT ACTION: qualify existing RootDirectory/LoadCredential/API Unix socket
+harness on this lab, bring verified module proxy (repository go.sum+mod verify),
+exact Caddy/Naive/SFA engines and run required pinned product tests. Actual restore,
+security identity matrix and disk/RAM peak remain open. No new gate accepted:
+W6 3/4/G6OPEN, W7 3/4/G7OPEN, G8OPEN, E1 unreleased. Local lab install succeeded;
+no further Windows action required now. Start interactively: wsl -d VPNControl-Lab.

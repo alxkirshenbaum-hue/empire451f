@@ -46,19 +46,19 @@ type RestorePlanReport struct {
 }
 
 type restorePlanUser struct {
-	Status, CredentialID, Login, DisplayName, Kind string
-	Protected                                      bool
-	SecretVersion                                  int64
-	Revoked                                        bool
+	Status, CredentialID, Login, DisplayName, Kind, CredentialDigest string
+	Protected                                                        bool
+	SecretVersion                                                    int64
+	Revoked                                                          bool
 }
 
 // PlanRestore compares two immutable standalone captured DBs read-only. Obtain
 // the current captured DB through canonical CaptureSnapshot under the writer;
 // do not pass a mutable live WAL registry. Caller authenticates archive receipt,
 // verifies source roots and holds both private staging trees immutable. The plan
-// is not restore approval and does not assert that a changed ID means a new password.
+// is not restore approval. Credential warnings compare IDs, versions and encrypted bytes; rewrapping under a new key can conservatively warn without a password change.
 func PlanRestore(ctx context.Context, currentPath, backupPath string, currentKey, backupKey *vault.Vault, b RestorePlanBinding) (out RestorePlanReport, err error) {
-	if b.CurrentObservedManifestGeneration < 1 || b.ExpectedManifestGeneration != b.CurrentObservedManifestGeneration || b.BackupManifestGeneration < 1 || !hashPattern.MatchString(b.CurrentDBSHA256) || !hashPattern.MatchString(b.BackupDBSHA256) {
+	if !uuidMaintenance.MatchString(b.OwnerRun) || (b.OwnBackupOperationID != "" && !uuidMaintenance.MatchString(b.OwnBackupOperationID)) || b.CurrentObservedManifestGeneration < 1 || b.ExpectedManifestGeneration != b.CurrentObservedManifestGeneration || b.BackupManifestGeneration < 1 || !hashPattern.MatchString(b.CurrentDBSHA256) || !hashPattern.MatchString(b.BackupDBSHA256) {
 		return out, ErrSnapshotState
 	}
 	if _, err = InspectCapturedSnapshot(ctx, currentPath, currentKey, b.OwnerRun, ""); err != nil {
@@ -98,7 +98,7 @@ func PlanRestore(ctx context.Context, currentPath, backupPath string, currentKey
 		}
 		impact := RestoreUserImpact{UserID: id, CurrentStatus: c.Status, BackupStatus: a.Status, Recreated: !hasCurrent && hasBackup, Removed: hasCurrent && !hasBackup}
 		impact.MetadataMayChange = hasCurrent && hasBackup && (c.Login != a.Login || c.DisplayName != a.DisplayName || c.Kind != a.Kind || c.Protected != a.Protected)
-		impact.CredentialMayChange = hasBackup && (!hasCurrent || c.CredentialID != a.CredentialID || c.SecretVersion != a.SecretVersion)
+		impact.CredentialMayChange = hasBackup && (!hasCurrent || c.CredentialID != a.CredentialID || c.SecretVersion != a.SecretVersion || c.CredentialDigest != a.CredentialDigest)
 		impact.CredentialReactivationRisk = hasBackup && a.Status == "active" && !a.Revoked && (!hasCurrent || c.Status != "active" || c.Revoked || impact.CredentialMayChange)
 		if impact.Recreated {
 			out.RecreatedCount++
@@ -136,7 +136,7 @@ func readRestorePlanUsers(ctx context.Context, path, expected string) (result ma
 		return nil, err
 	}
 	defer func() { err = errors.Join(err, db.Close()) }()
-	rows, err := db.QueryContext(ctx, `SELECT u.id,u.status,u.login,u.display_name,u.kind,u.protected,COALESCE(c.id,''),COALESCE(c.secret_version,0),c.revoked_at IS NOT NULL FROM users u LEFT JOIN user_current_credentials x ON x.user_id=u.id LEFT JOIN credentials c ON c.id=x.credential_id ORDER BY u.id`)
+	rows, err := db.QueryContext(ctx, `SELECT u.id,u.status,u.login,u.display_name,u.kind,u.protected,COALESCE(c.id,''),COALESCE(c.secret_version,0),c.revoked_at IS NOT NULL,COALESCE(hex(c.nonce)||hex(c.ciphertext),'') FROM users u LEFT JOIN user_current_credentials x ON x.user_id=u.id LEFT JOIN credentials c ON c.id=x.credential_id ORDER BY u.id`)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +144,7 @@ func readRestorePlanUsers(ctx context.Context, path, expected string) (result ma
 	for rows.Next() {
 		var id string
 		var user restorePlanUser
-		if err = rows.Scan(&id, &user.Status, &user.Login, &user.DisplayName, &user.Kind, &user.Protected, &user.CredentialID, &user.SecretVersion, &user.Revoked); err != nil {
+		if err = rows.Scan(&id, &user.Status, &user.Login, &user.DisplayName, &user.Kind, &user.Protected, &user.CredentialID, &user.SecretVersion, &user.Revoked, &user.CredentialDigest); err != nil {
 			rows.Close()
 			return nil, err
 		}

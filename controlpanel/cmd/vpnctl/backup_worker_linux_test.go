@@ -83,6 +83,10 @@ func TestMaintenanceWorkerRealArtifact(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	helperBytes, e := os.ReadFile(helper)
+	if e != nil { t.Fatal(e) }
+	helper = filepath.Join(root, "backup_artifact.py")
+	put(helper, helperBytes)
 	recipient := filepath.Join(root, "recipient.pem")
 	private := filepath.Join(root, "owner-private.pem")
 	rsaKey, e := rsa.GenerateKey(rand.Reader, 2048)

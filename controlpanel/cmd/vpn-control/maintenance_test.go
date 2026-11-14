@@ -1,21 +1,166 @@
 package main
-import("context";"crypto/sha256";"database/sql";"encoding/json";"fmt";"net/http";"net/http/httptest";"net/url";"os";"path/filepath";"strings";"testing"
-"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/auth"
-"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/storage"
-"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/vault")
-func TestMaintenanceOwnerAPI(t *testing.T){
- ctx:=context.Background();dir:=t.TempDir();os.Chmod(dir,0700);dbpath:=filepath.Join(dir,"state.db");v,_:=vault.New(make([]byte,32));r,e:=storage.Open(ctx,dbpath,v,1);if e!=nil{t.Fatal(e)};defer r.Close();db,e:=sql.Open("sqlite3",dbpath);if e!=nil{t.Fatal(e)};defer db.Close();run:="00000000-0000-4000-8000-000000000002";if _,e=db.Exec(`INSERT INTO legacy_migration_runs(id,phase,source_hashes,started_at,status) VALUES(?,'verified_cutover','{}','now','verified_cutover')`,run);e!=nil{t.Fatal(e)};if e=r.ConfigureBackups(ctx,"fixture-key");e!=nil{t.Fatal(e)}
- s,e:=auth.Open(dbpath);if e!=nil{t.Fatal(e)};defer s.Close();if e=s.Bootstrap(ctx,"owner","synthetic password");e!=nil{t.Fatal(e)};mux:=http.NewServeMux();panelRoutes(mux,r,run);h:=s.Handler(mux)
- login:=httptest.NewRequest("POST","/login",strings.NewReader(url.Values{"username":{"owner"},"password":{"synthetic password"}}.Encode()));login.Header.Set("Origin",auth.Origin);login.Header.Set("Content-Type","application/x-www-form-urlencoded");resp:=httptest.NewRecorder();h.ServeHTTP(resp,login);if resp.Code!=303{t.Fatal("login",resp.Code)};cookie:=resp.Result().Cookies()[0]
- key:=func()string{return fmt.Sprintf("00000000-0000-4000-8000-%012x",counterMaintenance())}
- call:=func(method,path,body,k string,authenticated,csrf bool,want int)*httptest.ResponseRecorder{t.Helper();req:=httptest.NewRequest(method,path,strings.NewReader(body));req.Header.Set("Content-Type","application/json");req.Header.Set("Origin",auth.Origin);req.Header.Set("Idempotency-Key",k);if authenticated{req.AddCookie(cookie)};if csrf{req.Header.Set("X-CSRF-Token",auth.CSRF(cookie.Value))};out:=httptest.NewRecorder();h.ServeHTTP(out,req);if out.Code!=want{t.Fatalf("%s %s status=%d want=%d body=%s",method,path,out.Code,want,out.Body.String())};if strings.Contains(out.Body.String(),dir){t.Fatal("private path disclosed")};return out}
- call("POST","/api/v1/backups",`{}`,key(),false,true,401);call("POST","/api/v1/backups",`{}`,key(),true,false,403);call("POST","/api/v1/backups",`{"unknown":true}`,key(),true,true,400)
- stable:=key();created:=call("POST","/api/v1/backups",`{"label":"synthetic"}`,stable,true,true,202);var j storage.MaintenanceJob;if e=json.Unmarshal(created.Body.Bytes(),&j);e!=nil{t.Fatal(e)};replay:=call("POST","/api/v1/backups",`{"label":"synthetic"}`,stable,true,true,202);if replay.Body.String()!=created.Body.String(){t.Fatalf("idempotent receipt differs first=%s replay=%s",created.Body.String(),replay.Body.String())};call("POST","/api/v1/backups",`{"label":"different"}`,stable,true,true,409)
- cipher:=[]byte("synthetic ciphertext bytes");sha:=fmt.Sprintf("%x",sha256.Sum256(cipher));path:=filepath.Join(dir,"artifact.jwe");os.WriteFile(path,cipher,0640);if e=r.Transition(ctx,j.OperationID,"queued","running");e!=nil{t.Fatal(e)};if e=r.Transition(ctx,j.OperationID,"running","verifying");e!=nil{t.Fatal(e)};if e=r.RegisterBackup(ctx,j,path,sha,int64(len(cipher)),1,strings.Repeat("b",64));e!=nil{t.Fatal(e)}
- info:=call("GET","/api/v1/backups/"+j.BackupID,"","",true,false,200);if strings.Contains(info.Body.String(),"encrypted_path")||!strings.Contains(info.Body.String(),`"created"`){t.Fatal(info.Body.String())};download:=call("GET","/api/v1/backups/"+j.BackupID+"/download","","",true,false,200);if fmt.Sprintf("%x",sha256.Sum256(download.Body.Bytes()))!=sha||download.Header().Get("Cache-Control")!="no-store"||download.Header().Get("X-Content-Type-Options")!="nosniff"{t.Fatal("download identity/security headers")}
- verify:=call("POST","/api/v1/backups/"+j.BackupID+"/verify",`{"sha256":"`+sha+`"}`,key(),true,true,202);var job storage.MaintenanceJob;json.Unmarshal(verify.Body.Bytes(),&job);if e=r.Transition(ctx,job.OperationID,"queued","running");e!=nil{t.Fatal(e)};if e=r.StartMaintenanceVerify(ctx,job);e!=nil{t.Fatal(e)}
- report:=storage.VerificationReport{BackupID:j.BackupID,Outcome:"verified",CipherSHA256:sha,KeyID:"fixture-key",VerifierRevision:"abcdef1",Checks:storage.VerificationChecks{true,true,true,true,true,true}};endpoint:="/api/v1/operations/"+job.OperationID+"/backup-verification";bad:=report;bad.KeyID="wrong";raw,_:=json.Marshal(bad);call("POST",endpoint,string(raw),key(),true,true,409);bad=report;bad.CipherSHA256=strings.Repeat("c",64);raw,_=json.Marshal(bad);call("POST",endpoint,string(raw),key(),true,true,409);raw,_=json.Marshal(report);call("POST",endpoint,string(raw),key(),true,true,200);call("POST",endpoint,string(raw),key(),true,true,200);call("POST","/api/v1/operations/"+job.OperationID+"/cancel",`{}`,key(),true,true,409)
- call("POST","/api/v1/backups/prune",`{"keep":3,"dry_run":true}`,key(),true,true,200);queued:=call("POST","/api/v1/backups",`{}`,key(),true,true,202);json.Unmarshal(queued.Body.Bytes(),&job);call("POST","/api/v1/operations/"+job.OperationID+"/cancel",`{}`,key(),true,true,200)
+
+import (
+	"context"
+	"crypto/sha256"
+	"database/sql"
+	"encoding/json"
+	"fmt"
+	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/auth"
+	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/storage"
+	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/vault"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+func TestMaintenanceOwnerAPI(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	os.Chmod(dir, 0700)
+	dbpath := filepath.Join(dir, "state.db")
+	v, _ := vault.New(make([]byte, 32))
+	r, e := storage.Open(ctx, dbpath, v, 1)
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer r.Close()
+	db, e := sql.Open("sqlite3", dbpath)
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer db.Close()
+	run := "00000000-0000-4000-8000-000000000002"
+	if _, e = db.Exec(`INSERT INTO legacy_migration_runs(id,phase,source_hashes,started_at,status) VALUES(?,'verified_cutover','{}','now','verified_cutover')`, run); e != nil {
+		t.Fatal(e)
+	}
+	if e = r.ConfigureBackups(ctx, "fixture-key"); e != nil {
+		t.Fatal(e)
+	}
+	s, e := auth.Open(dbpath)
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer s.Close()
+	if e = s.Bootstrap(ctx, "owner", "synthetic password"); e != nil {
+		t.Fatal(e)
+	}
+	mux := http.NewServeMux()
+	panelRoutes(mux, r, run)
+	h := s.Handler(mux)
+	login := httptest.NewRequest("POST", "/login", strings.NewReader(url.Values{"username": {"owner"}, "password": {"synthetic password"}}.Encode()))
+	login.Header.Set("Origin", auth.Origin)
+	login.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resp := httptest.NewRecorder()
+	h.ServeHTTP(resp, login)
+	if resp.Code != 303 {
+		t.Fatal("login", resp.Code)
+	}
+	cookie := resp.Result().Cookies()[0]
+	key := func() string { return fmt.Sprintf("00000000-0000-4000-8000-%012x", counterMaintenance()) }
+	call := func(method, path, body, k string, authenticated, csrf bool, want int) *httptest.ResponseRecorder {
+		t.Helper()
+		req := httptest.NewRequest(method, path, strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Origin", auth.Origin)
+		req.Header.Set("Idempotency-Key", k)
+		if authenticated {
+			req.AddCookie(cookie)
+		}
+		if csrf {
+			req.Header.Set("X-CSRF-Token", auth.CSRF(cookie.Value))
+		}
+		out := httptest.NewRecorder()
+		h.ServeHTTP(out, req)
+		if out.Code != want {
+			t.Fatalf("%s %s status=%d want=%d body=%s", method, path, out.Code, want, out.Body.String())
+		}
+		if strings.Contains(out.Body.String(), dir) {
+			t.Fatal("private path disclosed")
+		}
+		return out
+	}
+	call("POST", "/api/v1/backups", `{}`, key(), false, true, 401)
+	call("POST", "/api/v1/backups", `{}`, key(), true, false, 403)
+	call("POST", "/api/v1/backups", `{"unknown":true}`, key(), true, true, 400)
+	stable := key()
+	created := call("POST", "/api/v1/backups", `{"label":"synthetic"}`, stable, true, true, 202)
+	decode := func(raw []byte, out any) error {
+		var envelope struct {
+			Data json.RawMessage `json:"data"`
+		}
+		if err := json.Unmarshal(raw, &envelope); err != nil {
+			return err
+		}
+		return json.Unmarshal(envelope.Data, out)
+	}
+	var j storage.MaintenanceJob
+	if e = decode(created.Body.Bytes(), &j); e != nil {
+		t.Fatal(e)
+	}
+	replay := call("POST", "/api/v1/backups", `{"label":"synthetic"}`, stable, true, true, 202)
+	var replayJob storage.MaintenanceJob
+	if e = decode(replay.Body.Bytes(), &replayJob); e != nil {
+		t.Fatal(e)
+	}
+	if replayJob.OperationID != j.OperationID || replayJob.BackupID != j.BackupID {
+		t.Fatalf("idempotent receipt differs first=%s replay=%s", created.Body.String(), replay.Body.String())
+	}
+	call("POST", "/api/v1/backups", `{"label":"different"}`, stable, true, true, 409)
+	cipher := []byte("synthetic ciphertext bytes")
+	sha := fmt.Sprintf("%x", sha256.Sum256(cipher))
+	path := filepath.Join(dir, "artifact.jwe")
+	os.WriteFile(path, cipher, 0640)
+	if e = r.Transition(ctx, j.OperationID, "queued", "running"); e != nil {
+		t.Fatal(e)
+	}
+	if e = r.Transition(ctx, j.OperationID, "running", "verifying"); e != nil {
+		t.Fatal(e)
+	}
+	if e = r.RegisterBackup(ctx, j, path, sha, int64(len(cipher)), 1, strings.Repeat("b", 64)); e != nil {
+		t.Fatal(e)
+	}
+	info := call("GET", "/api/v1/backups/"+j.BackupID, "", "", true, false, 200)
+	if strings.Contains(info.Body.String(), "encrypted_path") || !strings.Contains(info.Body.String(), `"created"`) {
+		t.Fatal(info.Body.String())
+	}
+	download := call("GET", "/api/v1/backups/"+j.BackupID+"/download", "", "", true, false, 200)
+	if fmt.Sprintf("%x", sha256.Sum256(download.Body.Bytes())) != sha || download.Header().Get("Cache-Control") != "no-store" || download.Header().Get("X-Content-Type-Options") != "nosniff" {
+		t.Fatal("download identity/security headers")
+	}
+	verify := call("POST", "/api/v1/backups/"+j.BackupID+"/verify", `{"sha256":"`+sha+`"}`, key(), true, true, 202)
+	var job storage.MaintenanceJob
+	decode(verify.Body.Bytes(), &job)
+	if e = r.Transition(ctx, job.OperationID, "queued", "running"); e != nil {
+		t.Fatal(e)
+	}
+	if e = r.StartMaintenanceVerify(ctx, job); e != nil {
+		t.Fatal(e)
+	}
+	report := storage.VerificationReport{BackupID: j.BackupID, Outcome: "verified", CipherSHA256: sha, KeyID: "fixture-key", VerifierRevision: "abcdef1", Checks: storage.VerificationChecks{true, true, true, true, true, true}}
+	endpoint := "/api/v1/operations/" + job.OperationID + "/backup-verification"
+	bad := report
+	bad.KeyID = "wrong"
+	raw, _ := json.Marshal(bad)
+	call("POST", endpoint, string(raw), key(), true, true, 409)
+	bad = report
+	bad.CipherSHA256 = strings.Repeat("c", 64)
+	raw, _ = json.Marshal(bad)
+	call("POST", endpoint, string(raw), key(), true, true, 409)
+	raw, _ = json.Marshal(report)
+	call("POST", endpoint, string(raw), key(), true, true, 200)
+	call("POST", endpoint, string(raw), key(), true, true, 200)
+	call("POST", "/api/v1/operations/"+job.OperationID+"/cancel", `{}`, key(), true, true, 409)
+	call("POST", "/api/v1/backups/prune", `{"keep":3,"dry_run":true}`, key(), true, true, 200)
+	queued := call("POST", "/api/v1/backups", `{}`, key(), true, true, 202)
+	decode(queued.Body.Bytes(), &job)
+	call("POST", "/api/v1/operations/"+job.OperationID+"/cancel", `{}`, key(), true, true, 200)
 }
+
 var maintenanceCounter int
-func counterMaintenance()int{maintenanceCounter++;return maintenanceCounter}
+
+func counterMaintenance() int { maintenanceCounter++; return maintenanceCounter }

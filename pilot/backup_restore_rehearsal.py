@@ -56,6 +56,7 @@ def verify():
         relay=start(stack,unpriv(999)+[BIN/'sing-box','run','-c','/run/relay/config.json'],1081)
         caddy=start(stack,unpriv(982)+[BIN/'caddy','run','--config',base/'Caddyfile','--adapter','caddyfile'],18443)
         service_identity(relay,999);service_identity(caddy,982)
+        Path('/run/vpn-control').mkdir(mode=0o755,exist_ok=True)
         socket_dir=Path('/run/vpn-control/restore-api');socket_dir.mkdir(mode=0o700);os.chown(socket_dir,981,981)
         for p in (panel,panel/'state.db',panel/'vault.key'):os.chown(p,981,981)
         process=subprocess.Popen([str(x) for x in unpriv(981)]+[str(api),'--socket',str(socket_dir/'api.sock'),'--profile-domain','lab.example','--vault-key-file',str(panel/'vault.key'),'--owner-run',context['owner_run']],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)

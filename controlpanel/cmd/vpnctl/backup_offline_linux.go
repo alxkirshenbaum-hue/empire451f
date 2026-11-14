@@ -38,9 +38,9 @@ func offlineVerify(args []string, out, stderr io.Writer) int {
 	panel := f.String("source-panel-root", "", "Trusted source panel root")
 	state := f.String("source-state-root", "", "Trusted source state root")
 	config := f.String("source-config-root", "", "Trusted source config root")
-	wrapper:=f.String("source-wrapper","","Independently trusted exact wrapper path")
-	wrapperSHA:=f.String("source-wrapper-sha256","","Independently pinned wrapper digest")
-	if f.Parse(args) != nil || f.NArg() != 0 || !validCipherDigest(*cipherHash) || !validCipherDigest(*manifestHash) || !status.ValidID(*owner) || (*own != "" && !status.ValidID(*own)) || !filepath.IsAbs(*helper) || !filepath.IsAbs(*private) || !filepath.IsAbs(*envelope) || !filepath.IsAbs(*stage) || !(RestoreSourceRoots{PanelRoot:*panel,StateRoot:*state,ConfigRoot:*config,WrapperPath:*wrapper,WrapperSHA256:*wrapperSHA}).valid() {
+	wrapper := f.String("source-wrapper", "", "Independently trusted exact wrapper path")
+	wrapperSHA := f.String("source-wrapper-sha256", "", "Independently pinned wrapper digest")
+	if f.Parse(args) != nil || f.NArg() != 0 || !validCipherDigest(*cipherHash) || !validCipherDigest(*manifestHash) || !status.ValidID(*owner) || (*own != "" && !status.ValidID(*own)) || !filepath.IsAbs(*helper) || !filepath.IsAbs(*private) || !filepath.IsAbs(*envelope) || !filepath.IsAbs(*stage) || !(RestoreSourceRoots{PanelRoot: *panel, StateRoot: *state, ConfigRoot: *config, WrapperPath: *wrapper, WrapperSHA256: *wrapperSHA}).valid() {
 		fmt.Fprintln(stderr, "Expected authenticated receipt, trusted source roots and private recovery paths")
 		return 2
 	}
@@ -62,9 +62,14 @@ func offlineVerify(args []string, out, stderr io.Writer) int {
 		fmt.Fprintln(stderr, "Envelope authentication failed")
 		return 4
 	}
-	result, e := verifyManagedArchive(context.Background(), plain, *stage, *manifestHash, *owner, *own, RestoreSourceRoots{PanelRoot:*panel,StateRoot:*state,ConfigRoot:*config,WrapperPath:*wrapper,WrapperSHA256:*wrapperSHA})
+	result, e := verifyManagedArchive(context.Background(), plain, *stage, *manifestHash, *owner, *own, RestoreSourceRoots{PanelRoot: *panel, StateRoot: *state, ConfigRoot: *config, WrapperPath: *wrapper, WrapperSHA256: *wrapperSHA})
 	if e != nil {
-		var stageError *archiveStageError; if errors.As(e, &stageError) { fmt.Fprintln(stderr, "Archive consistency verification failed:",stageError.Stage) } else { fmt.Fprintln(stderr, "Archive consistency verification failed") }
+		var stageError *archiveStageError
+		if errors.As(e, &stageError) {
+			fmt.Fprintln(stderr, "Archive consistency verification failed:", stageError.Stage)
+		} else {
+			fmt.Fprintln(stderr, "Archive consistency verification failed")
+		}
 		return 4
 	}
 	var prepared string

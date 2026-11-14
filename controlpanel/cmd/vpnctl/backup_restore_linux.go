@@ -32,10 +32,15 @@ type VerifiedManagedArchive struct {
 }
 
 // RestoreSourceRoots is trusted caller policy, never read from the archive.
-type RestoreSourceRoots struct{ PanelRoot, StateRoot, ConfigRoot string; WrapperPath, WrapperSHA256 string }
+type RestoreSourceRoots struct {
+	PanelRoot, StateRoot, ConfigRoot string
+	WrapperPath, WrapperSHA256       string
+}
 
 func (r RestoreSourceRoots) valid() bool {
-	if (r.WrapperPath=="")!=(r.WrapperSHA256=="") || r.WrapperPath!="" && (!safeBackupOriginal(r.WrapperPath)||!backupDigest.MatchString(r.WrapperSHA256)) {return false}
+	if (r.WrapperPath == "") != (r.WrapperSHA256 == "") || r.WrapperPath != "" && (!safeBackupOriginal(r.WrapperPath) || !backupDigest.MatchString(r.WrapperSHA256)) {
+		return false
+	}
 	roots := []string{r.PanelRoot, r.StateRoot, r.ConfigRoot}
 	for i, p := range roots {
 		if !safeBackupOriginal(p) {
@@ -50,7 +55,9 @@ func (r RestoreSourceRoots) valid() bool {
 	return true
 }
 func (r RestoreSourceRoots) permits(path string) bool {
-	if r.WrapperPath!="" && path==r.WrapperPath{return true}
+	if r.WrapperPath != "" && path == r.WrapperPath {
+		return true
+	}
 	if path == filepath.Join(r.PanelRoot, "state.db") || path == filepath.Join(r.PanelRoot, "vault.key") {
 		return true
 	}
@@ -68,8 +75,12 @@ var backupDigest = regexp.MustCompile(`^[0-9a-f]{64}$`)
 // off-node by GCM and the authenticated ciphertext digest. It never opens live
 // installation paths: original absolute paths are metadata mapped below root.
 func verifyManagedArchive(ctx context.Context, archive, staging, expectedManifestSHA, expectedOwnerRun, ownID string, roots RestoreSourceRoots) (out VerifiedManagedArchive, resultErr error) {
- stage := "policy"
- defer func(){if resultErr!=nil {resultErr=&archiveStageError{stage,resultErr}}}()
+	stage := "policy"
+	defer func() {
+		if resultErr != nil {
+			resultErr = &archiveStageError{stage, resultErr}
+		}
+	}()
 	if !roots.valid() || !backupDigest.MatchString(expectedManifestSHA) || expectedOwnerRun == "" {
 		return out, storage.ErrSnapshotState
 	}
@@ -209,7 +220,9 @@ func verifyManagedArchive(ctx context.Context, archive, staging, expectedManifes
 	paths := map[string]ManagedArchiveMember{}
 	blobs := map[string]bool{}
 	for _, m := range manifest.Members {
-		if m.Path==roots.WrapperPath && (m.UID!=0||m.GID!=0||m.Mode!=0755||len(m.Xattrs)!=0||m.SHA256!=roots.WrapperSHA256) {return out,storage.ErrSnapshotState}
+		if m.Path == roots.WrapperPath && (m.UID != 0 || m.GID != 0 || m.Mode != 0755 || len(m.Xattrs) != 0 || m.SHA256 != roots.WrapperSHA256) {
+			return out, storage.ErrSnapshotState
+		}
 		actual, ok := seen[m.Blob]
 		if !ok || blobs[m.Blob] || !safeBackupOriginal(m.Path) || !roots.permits(m.Path) || !backupDigest.MatchString(m.SHA256) || m.SHA256 != actual.SHA256 || m.Size != actual.Size || m.Mode&^uint32(0777) != 0 || validateArchiveXattrs(m.Xattrs, m.Mode) != nil || m.XattrsSHA256 != archiveXattrsDigest(m.Xattrs) {
 			return out, storage.ErrSnapshotState
@@ -499,6 +512,10 @@ func copyVerifiedMemberMetadata(ctx context.Context, source, target string, m Ma
 	return nil
 }
 
-type archiveStageError struct { Stage string; Cause error }
-func(e *archiveStageError)Error() string{return "archive check failed at "+e.Stage}
-func(e *archiveStageError)Unwrap()error{return e.Cause}
+type archiveStageError struct {
+	Stage string
+	Cause error
+}
+
+func (e *archiveStageError) Error() string { return "archive check failed at " + e.Stage }
+func (e *archiveStageError) Unwrap() error { return e.Cause }

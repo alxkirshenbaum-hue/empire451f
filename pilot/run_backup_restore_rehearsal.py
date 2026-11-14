@@ -74,7 +74,8 @@ def main():
     args=[cli,'backup','offline-verify','--envelope',cipher,'--private-key',private,'--cipher-sha256',context['sha256'],
           '--manifest-sha256',context['manifest_sha256'],'--owner-run',context['owner_run'],'--own-operation',context['own_operation'],
           '--backup-id',context['backup_id'],'--prepare-parent',prepared_parent,'--staging',stage,'--helper',helper,
-          '--source-panel-root','/var/lib/vpn-control','--source-state-root','/var/lib/empire-vpn/lab','--source-config-root','/etc/empire-vpn']
+          '--source-panel-root','/var/lib/vpn-control','--source-state-root','/var/lib/empire-vpn/lab','--source-config-root','/etc/empire-vpn',
+          '--source-wrapper','/usr/local/bin/vpn-add-user','--source-wrapper-sha256',hashlib.sha256((project/'rehearsal-source/local/bin/vpn-add-user').read_bytes()).hexdigest()]
     checked=json.loads(run(args));candidate=Path(checked['prepared_copy'])
     # Parse only after authenticated/canonical offline verification. No tar extraction.
     plain=recovery/'authenticated.tar'

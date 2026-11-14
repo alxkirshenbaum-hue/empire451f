@@ -42,6 +42,9 @@ func TestPrepareRestoreCopy(t *testing.T) {
 					t.Fatal(e)
 				}
 			}
+			if _, e = r.db.Exec(`INSERT INTO admin_accounts(id,username,password_hash,created_at) VALUES('restore-owner','owner','synthetic-hash','now'); INSERT INTO admin_sessions(id,admin_id,token_hash,expires_at) VALUES('restore-session','restore-owner','synthetic-token','future')`); e != nil {
+				t.Fatal(e)
+			}
 			sourceParent := t.TempDir()
 			os.Chmod(sourceParent, 0700)
 			// Other unfinished operations must already be refused at capture.
@@ -105,6 +108,15 @@ func TestPrepareRestoreCopy(t *testing.T) {
 				t.Fatal(state, code, e)
 			}
 			var count int
+			if e = db.QueryRow("SELECT count(*) FROM admin_sessions").Scan(&count); e != nil || count != 0 {
+				t.Fatal("restored sessions survived", count, e)
+			}
+			if e = db.QueryRow("SELECT count(*) FROM admin_accounts WHERE id='restore-owner'").Scan(&count); e != nil || count != 1 {
+				t.Fatal("owner lost", count, e)
+			}
+			if e = db.QueryRow("SELECT count(*) FROM maintenance_intents WHERE operation_id=?", j.OperationID).Scan(&count); e != nil || count != 1 {
+				t.Fatal("intent history lost", count, e)
+			}
 			if e = db.QueryRow("SELECT count(*) FROM audit_runs WHERE script_version='restore-copy-v1'").Scan(&count); e != nil || count != 1 {
 				t.Fatal(count, e)
 			}

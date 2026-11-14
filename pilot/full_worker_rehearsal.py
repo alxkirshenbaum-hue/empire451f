@@ -348,6 +348,19 @@ module.main()
         profile=json.loads(body)
         outbound=profile_client(stack,profile,19081,ca_file)
         require((state/'master_user.sfa.json').read_bytes()==old_profile,'original profile changed')
+        if os.environ.get('VPN_REHEARSAL_BACKUP')=='1':
+            # The unchanged W5 fault matrix has independent evidence. This drill
+            # needs one genuinely revoked account and the old active profile.
+            with sqlite3.connect(db) as connection:
+                version=connection.execute('SELECT row_version FROM users WHERE id=?',(user,)).fetchone()[0]
+            run([cli,'user','delete','--installation','lab','--owner-run',migration,'--user',user,'--expected-version',str(version),'--idempotency-key',str(uuid.uuid4()),'--reason','isolated restore negative','--confirm-delete'])
+            run(worker_args)
+            from create_probe import probe
+            probe('/etc/vpn-control/probe-lab.json','New-User',outbound['password'],active=False)
+            from backup_restore_rehearsal import capture
+            capture(cli,migration,worker,api_dir/'api.sock',cookie,old_regular_bytes,outbound['password'])
+            print('backup-source: encrypted capture with active old and deleted negative fixture PASS',flush=True)
+            return
         mutations = os.environ.get('VPN_REHEARSAL_MUTATIONS') == '1' or os.environ.get('VPN_REHEARSAL_BACKUP') == '1'
         if mutations:
             from create_probe import probe

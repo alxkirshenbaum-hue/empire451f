@@ -24,7 +24,7 @@ def capture(cli, migration, worker, api_socket, cookie, old_profile, revoked_sec
     run([cli,'backup','configure','--installation','lab','--owner-run',migration])
     put('/root/backup-session',cookie.split('=',1)[1]+'\n')
     env=dict(os.environ,VPNCTL_SESSION_FILE='/root/backup-session',VPNCTL_SOCKET=str(api_socket))
-    run([cli,'backup','create','--label','isolated restore rehearsal','--idempotency-key','backup-restore-rehearsal'],env=env)
+    run([cli,'backup','create','--label','isolated restore rehearsal','--idempotency-key','00000000-0000-4000-8000-000000008501'],env=env)
     run([cli,'worker','once','--installation','lab','--owner-run',migration])
     with sqlite3.connect('/var/lib/vpn-control/state.db') as db:
         row=db.execute('SELECT b.id,b.encrypted_path,b.sha256,d.manifest_sha256,d.operation_id FROM backups b JOIN backup_details d ON d.backup_id=b.id WHERE b.status="created"').fetchone()

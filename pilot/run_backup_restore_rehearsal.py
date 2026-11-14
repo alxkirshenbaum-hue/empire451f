@@ -102,6 +102,12 @@ def main():
         p=recovered/name;p.mkdir(parents=True,exist_ok=True);p.chmod(0o750);os.chown(p,0,982)
     for member in manifest['members']:
         name=member['path'].lstrip('/');dest=recovered/name
+        if member['path']=='/usr/local/bin/vpn-add-user':
+            trusted=project/'rehearsal-source/local/bin/vpn-add-user'
+            if member.get('xattrs') or member['mode']!=0o755 or member['uid']!=0 or member['gid']!=0 or (stage/name).read_bytes()!=trusted.read_bytes():raise RuntimeError('trusted wrapper mismatch')
+            # The read-only /usr/local binding supplies this exact reviewed
+            # executable. Never install executable bytes selected by an archive.
+            continue
         if member.get('xattrs') or member['mode']&0o027 or member['uid'] not in (0,981) or member['gid'] not in (0,981,982):raise RuntimeError('fixture destination metadata policy mismatch')
         dest.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
         data=candidate if name=='var/lib/vpn-control/state.db' else stage/name

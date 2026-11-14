@@ -36,7 +36,8 @@ def runtime(project,root,unit):
     for prop in ['RootDirectory='+str(root),'MountAPIVFS=yes','PrivateNetwork=yes','PrivateDevices=yes','NoNewPrivileges=yes','ProtectSystem=strict',
                  'ReadWritePaths=+/etc','ReadWritePaths=+/var/lib','ReadWritePaths=+/run','ReadWritePaths=+/tmp','ReadWritePaths=+/root',
                  'BindReadOnlyPaths=/usr','BindReadOnlyPaths='+str(project/'rehearsal-source/local')+':/usr/local','BindReadOnlyPaths=/opt/empire-vpn/bin',
-                 'BindReadOnlyPaths=/etc/ssl','BindReadOnlyPaths='+str(project/'rehearsal-source')+':/work','WorkingDirectory=/work']:
+                 'BindReadOnlyPaths=/etc/ssl','BindReadOnlyPaths='+str(project/'rehearsal-source')+':/work',
+                 'BindReadOnlyPaths='+str(Path(__file__).resolve().parent/'backup_restore_rehearsal.py')+':/work/pilot/backup_restore_rehearsal.py','WorkingDirectory=/work']:
         args+=['-p',prop]
     result=run(args+['/usr/bin/python3','-B','/work/pilot/backup_restore_rehearsal.py'])
     completed(unit)

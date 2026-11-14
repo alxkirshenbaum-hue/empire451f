@@ -82,6 +82,12 @@ func download(registry *storage.Registry, domain string) http.HandlerFunc {
 }
 
 func serve(dbPath, socket, domain, keyPath string, keyVersion int64) error {
+	return servePanel(dbPath, socket, domain, keyPath, keyVersion, "")
+}
+func servePanel(dbPath, socket, domain, keyPath string, keyVersion int64, run string) error {
+	if run != "" && !status.ValidID(run) {
+		return errors.New("invalid approved owner run")
+	}
 	info, err := os.Lstat(filepath.Dir(socket))
 	if err != nil {
 		return err
@@ -124,6 +130,7 @@ func serve(dbPath, socket, domain, keyPath string, keyVersion int64) error {
 		}
 		defer registry.Close()
 		sessions.EnableProfileDownloads()
+		panelRoutes(mux, registry, run)
 		mux.HandleFunc("GET /api/v1/users/{id}/profiles/download", download(registry, domain))
 	}
 	listener, err := net.Listen("unix", socket)
@@ -141,6 +148,7 @@ func main() {
 	db := flag.String("db", "/var/lib/vpn-control/state.db", "Existing panel registry")
 	socket := flag.String("socket", "/run/vpn-control/api.sock", "Local Unix socket")
 	owner := flag.String("bootstrap-owner", "", "Create first independent panel owner and exit")
+	ownerRun := flag.String("owner-run", "", "Approved writer cutover run for panel mutations")
 	stdinPassword := flag.Bool("owner-password-stdin", false, "Read bootstrap password from protected stdin")
 	domain := flag.String("profile-domain", "", "VPN endpoint domain for profile downloads")
 	key := flag.String("vault-key-file", "", "Private vault key file for profile downloads")
@@ -171,7 +179,7 @@ func main() {
 		}
 		return
 	}
-	if err := serve(*db, *socket, *domain, *key, *version); err != nil {
+	if err := servePanel(*db, *socket, *domain, *key, *version, *ownerRun); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

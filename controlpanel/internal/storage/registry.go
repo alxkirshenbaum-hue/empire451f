@@ -25,6 +25,8 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+var ErrAlreadyExists = errors.New("login already exists")
+var ErrCapacity = errors.New("regular user capacity reached")
 var ErrIdempotencyConflict = errors.New("idempotency key reused with a different request")
 var ErrVaultKey = errors.New("registry key verification failed")
 var loginPattern = regexp.MustCompile("^[A-Za-z0-9][A-Za-z0-9_-]{0,47}$")
@@ -105,7 +107,7 @@ func (r *Registry) migrate(ctx context.Context) error {
 	if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%'").Scan(&count); err != nil {
 		return err
 	}
-	scripts := []string{migrations.Registry, migrations.VaultIdentity, migrations.MigrationDocuments, migrations.ProfileIssuance, migrations.UserMutations, migrations.ProfileRouting}
+	scripts := []string{migrations.Registry, migrations.VaultIdentity, migrations.MigrationDocuments, migrations.ProfileIssuance, migrations.UserMutations, migrations.ProfileRouting, migrations.ProfilePanelDNS}
 	if count != 0 {
 		if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM schema_migrations").Scan(&count); err != nil {
 			return err
@@ -220,6 +222,15 @@ func (r *Registry) QueueCreate(ctx context.Context, actor, key string, req Creat
 }
 
 func (r *Registry) stageCreate(ctx context.Context, tx *sql.Tx, actor, key string, req CreateRequest) (Receipt, error) {
+	return r.stageCreateWithVariant(ctx, tx, actor, key, req, false)
+}
+func (r *Registry) stageCreateWithVariant(ctx context.Context, tx *sql.Tx, actor, key string, req CreateRequest, strictVariant bool) (Receipt, error) {
+	if req.Login == "master_user" {
+		return Receipt{}, ErrProtectedAccount
+	}
+	if actor == "" || key == "" || req.TemplateRevisionID == "" || req.TargetClient == "" || !loginPattern.MatchString(req.Login) || !validDisplayName(req.DisplayName) {
+		return Receipt{}, ErrInvalidMetadata
+	}
 	encoded, err := json.Marshal([]string{"user.create", req.Login, req.DisplayName, req.TemplateRevisionID, req.TargetClient})
 	if err != nil {
 		return Receipt{}, err
@@ -236,6 +247,34 @@ func (r *Registry) stageCreate(ctx context.Context, tx *sql.Tx, actor, key strin
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
 		return Receipt{}, err
+	}
+	var existing, regular, blocked int
+	if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM users WHERE login=? COLLATE BINARY", req.Login).Scan(&existing); err != nil {
+		return Receipt{}, err
+	}
+	if existing != 0 {
+		return Receipt{}, ErrAlreadyExists
+	}
+	if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM operations WHERE status IN ('reconcile_required','rollback_running')").Scan(&blocked); err != nil {
+		return Receipt{}, err
+	}
+	if blocked != 0 {
+		return Receipt{}, ErrOperationInProgress
+	}
+	if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM users WHERE kind='regular' AND status!='deleted'").Scan(&regular); err != nil {
+		return Receipt{}, err
+	}
+	if regular >= 100 {
+		return Receipt{}, ErrCapacity
+	}
+	if strictVariant {
+		var current int
+		if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM profile_routing_variants m JOIN template_revisions s ON s.id=m.source_revision_id WHERE m.revision_id=? AND m.variant='base' AND m.policy_version=? AND s.status='approved'", req.TemplateRevisionID, RoutingPolicyVersion).Scan(&current); err != nil {
+			return Receipt{}, err
+		}
+		if current != 1 {
+			return Receipt{}, ErrTemplateIncompatible
+		}
 	}
 	var approved int
 	if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM template_revisions v JOIN profile_templates t ON t.id=v.template_id WHERE v.id=? AND v.status='approved' AND t.enabled=1 AND NOT EXISTS (SELECT 1 FROM profile_routing_variants m WHERE m.revision_id=v.id AND m.variant='ru_download_manager')", req.TemplateRevisionID).Scan(&approved); err != nil {

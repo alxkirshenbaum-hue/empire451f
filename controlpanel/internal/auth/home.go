@@ -4,18 +4,23 @@ import (
 	"database/sql"
 	_ "embed"
 	"errors"
+	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/caddy"
 	"html/template"
 	"net/http"
 )
 
 //go:embed home.html
 var pageSource string
+
+//go:embed panel.js
+var panelScript []byte
 var pageTemplate = template.Must(template.New("home").Parse(pageSource))
 
 type page struct {
-	Profiles []profileLink
-	CSRF     string
-	Error    string
+	Profiles    []profileLink
+	CSRF        string
+	Error       string
+	ApplyNotice string
 }
 
 type profileLink struct{ ID, Login string }
@@ -40,6 +45,7 @@ func loginError(w http.ResponseWriter, web bool, code int) {
 
 func (s *Service) home(w http.ResponseWriter, r *http.Request) {
 	var data page
+	data.ApplyNotice = caddy.ApplyNotice
 	if c, err := r.Cookie("session"); err == nil {
 		var id string
 		err = s.db.QueryRowContext(r.Context(), `UPDATE admin_sessions SET last_seen_at=CURRENT_TIMESTAMP

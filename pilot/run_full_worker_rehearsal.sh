@@ -18,7 +18,7 @@ systemd-run --quiet --wait --pipe --unit="vpn-full-worker-root-$2" \
  -p "RootDirectory=$root" -p MountAPIVFS=yes -p PrivateNetwork=yes \
  -p PrivateDevices=yes -p NoNewPrivileges=yes -p ProtectSystem=strict \
  -p ReadWritePaths=+/etc -p ReadWritePaths=+/var/lib -p ReadWritePaths=+/run \
- -p ReadWritePaths=+/tmp -p ReadWritePaths=+/root -p "Environment=$option" -p "Environment=VPN_REHEARSAL_MUTATIONS=${VPN_REHEARSAL_MUTATIONS:-0}" \
+ -p ReadWritePaths=+/tmp -p ReadWritePaths=+/root -p "Environment=$option" -p "Environment=VPN_REHEARSAL_MUTATIONS=${VPN_REHEARSAL_MUTATIONS:-0}" -p "Environment=VPN_REHEARSAL_UI=${VPN_REHEARSAL_UI:-0}" \
  -p BindReadOnlyPaths=/usr -p BindReadOnlyPaths="$project/rehearsal-source/local:/usr/local" \
  -p BindReadOnlyPaths=/opt/empire-vpn/bin -p BindReadOnlyPaths=/etc/ssl \
  -p BindReadOnlyPaths="$project/rehearsal-source:/work" -p WorkingDirectory=/work \

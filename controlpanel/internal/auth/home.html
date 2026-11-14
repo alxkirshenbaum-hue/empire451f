@@ -3,37 +3,77 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+{{if .CSRF}}<meta name="csrf-token" content="{{.CSRF}}"><script src="/assets/panel.js" defer></script>{{end}}
 <title>VPN Control</title>
 <style>
-* {box-sizing:border-box}
-body {margin:0;min-height:100svh;display:grid;place-items:center;padding:20px;background:#edf1ef;color:#18372c;font:16px/1.5 Inter,system-ui,sans-serif}
-main {width:min(100%,25rem);padding:clamp(24px,6vw,40px);background:#fff;border:1px solid #c6d4cb;border-radius:14px}
-header {font-weight:650;color:#336348}
-h1 {margin:1.2rem 0;font-size:1.75rem;line-height:1.2}
-label {display:block;margin-top:1rem}
-input,button {width:100%;padding:.75rem;font:inherit;border-radius:6px}
-input {margin-top:.3rem;border:1px solid #788b80}
-button {margin-top:1.5rem;background:#23583f;color:white;border:0;font-weight:650;cursor:pointer}
-:focus-visible {outline:3px solid #2084b1;outline-offset:2px}
-[role=alert] {color:#912e26}
+*{box-sizing:border-box}body{margin:0;padding:24px;background:#edf1ef;color:#18372c;font:15px/1.5 system-ui,sans-serif}
+main{max-width:25rem;margin:8vh auto;padding:32px;background:#fff;border:1px solid #cad7cf;border-radius:14px}
+.signed-in main{max-width:1120px;margin:0 auto;padding:24px}
+header{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.brand{font-weight:750;letter-spacing:.03em;color:#336348}h1{font-size:1.8rem;line-height:1.2;margin:20px 0}h2{font-size:1.15rem;margin:0 0 16px}
+h3{font-size:1rem;margin:18px 0 8px}label{display:block;margin:12px 0 6px;font-weight:600}
+input,select,button{font:inherit;border-radius:6px;padding:10px 12px}input,select{width:100%;border:1px solid #82958a;background:white;color:inherit}
+button,.button{border:1px solid #23583f;background:#23583f;color:white;font-weight:650;cursor:pointer;display:inline-block;text-decoration:none;padding:10px 14px;border-radius:6px}
+button:disabled{opacity:.5;cursor:not-allowed}.quiet{background:white;color:#23583f;border-color:#b0c1b6}.danger{background:#923f34;border-color:#923f34}
+:focus-visible{outline:3px solid #2084b1;outline-offset:3px}a{color:#1f604a}nav{display:flex;gap:8px;flex-wrap:wrap;border-bottom:1px solid #dce4df;padding:18px 0;margin-bottom:22px}
+nav a{text-decoration:none;padding:7px 12px;border-radius:5px}nav a[aria-current=page]{background:#e3eee6;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.card{border:1px solid #d6e0d9;border-radius:9px;padding:18px;background:#fff}.metric{font-size:1.8rem;font-weight:700;margin-top:8px}
+.muted,.help{color:#597065;font-size:.9rem}.notice{background:#fff8e6;border-left:3px solid #c99428;padding:12px 16px;font-size:.9rem;margin:16px 0}
+[role=alert]{color:#912e26}.actions{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.row{display:flex;gap:12px;align-items:end}.row>*{flex:1}.row button{flex:0 0 auto}
+section{margin-top:16px}[hidden]{display:none!important}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;text-align:left}th,td{padding:11px 8px;border-bottom:1px solid #e1e8e3;vertical-align:top}th{font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;color:#60756a}
+td button{padding:4px 8px}.badge{display:inline-block;border-radius:4px;background:#eef2ef;padding:2px 7px;font-size:.85rem}
+form.compact{margin:0}form.compact button{margin:0}.login-form button{margin-top:22px;width:100%}
+input[type=checkbox]{width:auto;margin-right:8px}.checkbox{font-weight:500}.two{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(260px,1fr);gap:18px}.mono{font:13px ui-monospace,monospace;overflow-wrap:anywhere}
+dl{display:grid;grid-template-columns:130px 1fr;gap:8px}dt{color:#61766a}dd{margin:0;overflow-wrap:anywhere}
+@media(max-width:720px){body{padding:10px}.signed-in main{padding:16px}.grid,.two{grid-template-columns:1fr}.row{flex-wrap:wrap}.row>*{flex:1 1 100%}nav{gap:3px}nav a{padding:6px 8px}h1{font-size:1.5rem}}
 </style>
 </head>
-<body><main>
-<header>VPN Control</header>
+<body {{if .CSRF}}class="signed-in"{{end}}><main>
+<header><span class="brand">VPN CONTROL</span>
+{{if .CSRF}}<form class="compact" action="/logout" method="post"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="quiet" type="submit">Sign out</button></form>{{end}}
+</header>
 {{if .CSRF}}
-<h1>Owner session</h1>
-{{with .Profiles}}
-<h2>SFA profiles</h2>
-<ul>{{range .}}<li><a href="/api/v1/users/{{.ID}}/profiles/download?client=sfa-1.14.4">Download profile for {{.Login}}</a></li>{{end}}</ul>
-{{end}}
-<form action="/logout" method="post">
-<input type="hidden" name="csrf" value="{{.CSRF}}">
-<button type="submit">Sign out</button>
-</form>
+<h1>Personal VPN</h1>
+<p id="message" role="status" aria-live="polite"></p>
+<p id="failure" role="alert" hidden></p><button id="retry-request" class="quiet" hidden>Retry original request</button>
+<nav aria-label="Main"><a href="#dashboard">Overview</a><a href="#users">Users</a><a href="#operations">Operations</a><a href="#audits">Audit</a><a href="#backups">Backups</a><a href="#system">System</a></nav>
+<section id="view-dashboard"><div class="grid">
+<div class="card"><h2>Regular accounts</h2><div id="regular-count" class="metric">—</div><div class="help">Maximum 100 regular accounts</div></div>
+<div class="card"><h2>Protected accounts</h2><div id="protected-count" class="metric">—</div><div class="help">Separate from the regular limit</div></div>
+<div class="card"><h2>Pending operations</h2><div id="pending-count" class="metric">—</div><div class="help">Includes required reconciliation</div></div>
+</div><div class="card"><h2>Connection health</h2><p>Live ingress → exit: <strong>Not measured</strong></p><p>Exit local audit: <strong>Not measured</strong></p><p class="help">Account and operation states are registry records, not live connection measurements.</p></div></section>
+<section id="view-users" hidden>
+<div class="two"><div>
+<div class="row"><label>Search exact case<input id="search" autocapitalize="none" autocomplete="off" spellcheck="false"></label><label>Status<select id="status-filter"><option value="">Current users</option><option value="active">Active</option><option value="disabled">New connections revoked</option><option value="provisioning">Provisioning</option><option value="reconcile_required">Needs reconciliation</option><option value="deleted">Deleted</option></select></label><button id="refresh-users" class="quiet">Refresh</button></div>
+<div class="table-wrap"><table><thead><tr><th>Login / name</th><th>State</th><th>Type</th><th></th></tr></thead><tbody id="users-body"></tbody></table></div>
+<div class="actions"><button id="previous-users" class="quiet" disabled>Previous</button><button id="next-users" class="quiet" disabled>Next</button></div>
+</div><form id="create-user" class="card">
+<h2>New user</h2><label>Login<input name="login" required maxlength="48" pattern="[A-Za-z0-9][A-Za-z0-9_-]{0,47}" autocapitalize="none" spellcheck="false"></label><p class="help">Case sensitive. Login cannot be changed.</p>
+<label>Display name<input name="display_name" required maxlength="80"></label>
+<label>Target SFA version<select name="target_client"><option value="sfa-1.14.4">1.14.4</option><option value="sfa-1.15-alpha13">1.15.0-alpha.13</option></select></label>
+<label>Approved base template<select name="template_revision_id" id="template-select" required></select></label>
+<p class="help">Base routing is the default. Optional RU / Download Manager routing is selected when downloading a profile.</p>
+<button id="create-button" type="submit" disabled>Create user</button>
+</form></div>
+<div class="notice">{{.ApplyNotice}}</div>
+<div id="user-detail" class="card" hidden><h2 id="user-heading"></h2><dl id="user-metadata"></dl>
+<form id="rename-user" class="row"><label>Display name<input name="display_name" maxlength="80" required></label><button type="submit" class="quiet">Save name</button></form>
+<div id="user-actions" class="actions"></div>
+<h3>Profile</h3><label>Target SFA version<select id="profile-client"><option value="sfa-1.14.4">1.14.4</option><option value="sfa-1.15-alpha13">1.15.0-alpha.13</option></select></label>
+<label class="checkbox"><input type="checkbox" id="profile-optional" disabled>Enable RU / Download Manager routing</label>
+<p id="routing-warning" class="notice"></p><p class="help">The profile contains a private credential. Store the downloaded file securely.</p>
+<a id="download-profile" class="button" hidden>Download profile</a><p id="profile-state" class="help"></p>
+<h3>Recent history</h3><div id="user-history"></div></div>
+</section>
+<section id="view-operations" hidden><div class="actions"><button id="refresh-operations" class="quiet">Refresh</button></div><div class="table-wrap"><table><thead><tr><th>Operation</th><th>Kind</th><th>State</th><th>Created</th></tr></thead><tbody id="operations-body"></tbody></table></div><div id="operation-detail" class="card" hidden></div></section>
+<section id="view-audits" hidden><h2>Stored audit reports</h2><p class="help">Stored report timestamps do not prove current live health. No checks are inferred from missing data.</p><div id="audit-list"></div></section>
+<section id="view-backups" hidden><h2>Encrypted backups</h2><p class="help">Verification status is the last stored result.</p><div class="actions"><button disabled>Create backup</button><button disabled>Restore plan</button></div><p>Backup creation and restore planning are not available in this panel yet. Use the approved SSH workflow.</p><div id="backup-list"></div></section>
+<section id="view-system" hidden><h2>System observations</h2><dl><dt>Ingress live check</dt><dd>Not measured</dd><dt>Exit local audit</dt><dd>Not measured</dd><dt>Config drift</dt><dd>Not measured</dd><dt>Resource usage</dt><dd>Not measured</dd></dl><p class="notice">{{.ApplyNotice}}</p></section>
+<noscript><p>JavaScript is required for management. SSH recovery remains available.</p>{{with .Profiles}}<h2>Base profiles</h2><ul>{{range .}}<li><a href="/api/v1/users/{{.ID}}/profiles/download?client=sfa-1.14.4">Download profile for {{.Login}}</a></li>{{end}}</ul>{{end}}</noscript>
 {{else}}
 <h1>Owner sign in</h1>
 {{if .Error}}<p role="alert">{{.Error}}</p>{{end}}
-<form action="/login" method="post">
+<form class="login-form" action="/login" method="post">
 <label>Username<input name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
 <label>Password<input type="password" name="password" autocomplete="current-password" required></label>
 <button type="submit">Sign in</button>

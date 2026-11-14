@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -18,6 +19,7 @@ import (
 	"time"
 
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/auth"
+	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/status"
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/storage"
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/vault"
 )
@@ -71,8 +73,16 @@ func TestOwnerDownloadsActiveProfile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	reader, e := status.Open(path)
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer reader.Close()
 	mux := http.NewServeMux()
+	mux.Handle("/", reader.Handler())
 	mux.HandleFunc("GET /api/v1/users/{id}/profiles/download", download(reg, "entry.example"))
+	panelRoutes(mux, reg, "00000000-0000-4000-8000-000000000002")
+	execSQL("INSERT INTO legacy_migration_runs(id,phase,source_hashes,started_at,status) VALUES(?,'verified_cutover','{}','now','verified_cutover')", "00000000-0000-4000-8000-000000000002")
 	handler := sessions.Handler(mux)
 	form := url.Values{"username": {"owner"}, "password": {"synthetic password"}}
 	login := httptest.NewRequest("POST", "/login", strings.NewReader(form.Encode()))
@@ -226,6 +236,101 @@ func TestOwnerDownloadsActiveProfile(t *testing.T) {
 				t.Fatal("wrong audited variant")
 			}
 		}
+	}
+	apiCall := func(method, path string, payload any, csrf, key string, want int) *httptest.ResponseRecorder {
+		var body io.Reader
+		if payload != nil {
+			b, e := json.Marshal(payload)
+			if e != nil {
+				t.Fatal(e)
+			}
+			body = strings.NewReader(string(b))
+		}
+		req := httptest.NewRequest(method, path, body)
+		req.AddCookie(cookie)
+		req.Header.Set("Origin", auth.Origin)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-CSRF-Token", csrf)
+		req.Header.Set("Idempotency-Key", key)
+		resp := httptest.NewRecorder()
+		handler.ServeHTTP(resp, req)
+		if resp.Code != want || resp.Header().Get("Cache-Control") != "no-store" {
+			t.Fatal("API boundary", method, path, resp.Code, want)
+		}
+		if strings.Contains(resp.Body.String(), string(secret)) {
+			t.Fatal("metadata exposed VPN credential")
+		}
+		return resp
+	}
+	for _, path := range []string{"/api/v1/users", "/api/v1/users/" + receipt.UserID, "/api/v1/users/" + receipt.UserID + "/credential", "/api/v1/templates", "/api/v1/capabilities", "/api/v1/operations", "/api/v1/audits", "/api/v1/backups"} {
+		apiCall("GET", path, nil, "", "", 200)
+		req := httptest.NewRequest("GET", path, nil)
+		resp := httptest.NewRecorder()
+		handler.ServeHTTP(resp, req)
+		if resp.Code != 401 {
+			t.Fatal("metadata unauthenticated", path, resp.Code)
+		}
+	}
+	templates, e := reg.ApprovedTemplates(ctx)
+	if e != nil || len(templates) == 0 {
+		t.Fatal("templates", e)
+	}
+	createPayload := map[string]any{"login": "Case-API", "display_name": "Case API", "template_revision_id": templates[0].ID, "target_client": storage.Client1144}
+	stable := "00000000-0000-4000-8000-000000000003"
+	apiCall("POST", "/api/v1/users", createPayload, "", stable, 403)
+	extractReceipt := func(resp *httptest.ResponseRecorder) string {
+		var envelope struct {
+			Data struct {
+				OperationID string `json:"operation_id"`
+				UserID      string `json:"user_id"`
+			}
+		}
+		if json.Unmarshal(resp.Body.Bytes(), &envelope) != nil {
+			t.Fatal("receipt JSON")
+		}
+		return envelope.Data.OperationID + "/" + envelope.Data.UserID
+	}
+	first := apiCall("POST", "/api/v1/users", createPayload, auth.CSRF(cookie.Value), stable, 202)
+	replay := apiCall("POST", "/api/v1/users", createPayload, auth.CSRF(cookie.Value), stable, 202)
+	if extractReceipt(first) != extractReceipt(replay) {
+		t.Fatal("API replay changed receipt")
+	}
+	apiCall("POST", "/api/v1/users", createPayload, auth.CSRF(cookie.Value), "00000000-0000-4000-8000-000000000004", 409)
+	createPayload["login"] = "case-api"
+	apiCall("POST", "/api/v1/users", createPayload, auth.CSRF(cookie.Value), "00000000-0000-4000-8000-000000000005", 202)
+	createPayload["password"] = "forbidden"
+	apiCall("POST", "/api/v1/users", createPayload, auth.CSRF(cookie.Value), "00000000-0000-4000-8000-000000000006", 400)
+	disable := map[string]any{"expected_version": 2, "reason": "owner test"}
+	endpoint := "/api/v1/users/" + receipt.UserID
+	apiCall("POST", endpoint+"/disable", disable, "wrong", "00000000-0000-4000-8000-000000000007", 403)
+	apiCall("POST", endpoint+"/disable", map[string]any{"reason": "missing version"}, auth.CSRF(cookie.Value), "00000000-0000-4000-8000-000000000007", 428)
+	response := apiCall("POST", endpoint+"/disable", disable, auth.CSRF(cookie.Value), "00000000-0000-4000-8000-000000000007", 202)
+	var queued struct {
+		Data struct {
+			ID string `json:"operation_id"`
+		}
+	}
+	if json.Unmarshal(response.Body.Bytes(), &queued) != nil || queued.Data.ID == "" {
+		t.Fatal("missing mutation receipt")
+	}
+	apiCall("POST", endpoint+"/credential/rotate", disable, auth.CSRF(cookie.Value), "00000000-0000-4000-8000-000000000008", 409)
+	apiCall("PATCH", endpoint, map[string]any{"expected_version": 2, "display_name": "blocked"}, auth.CSRF(cookie.Value), "00000000-0000-4000-8000-000000000009", 409)
+	if err = reg.Transition(ctx, queued.Data.ID, "queued", "cancelled"); err != nil {
+		t.Fatal(err)
+	}
+	rename := map[string]any{"expected_version": 2, "display_name": "Renamed <exact>"}
+	response = apiCall("PATCH", endpoint, rename, auth.CSRF(cookie.Value), "00000000-0000-4000-8000-00000000000a", 202)
+	replay = apiCall("PATCH", endpoint, rename, auth.CSRF(cookie.Value), "00000000-0000-4000-8000-00000000000a", 202)
+	if extractReceipt(response) != extractReceipt(replay) {
+		t.Fatal("rename replay changed receipt")
+	}
+	if json.Unmarshal(response.Body.Bytes(), &queued) != nil {
+		t.Fatal("rename receipt")
+	}
+	apiCall("GET", "/api/v1/operations/"+queued.Data.ID, nil, "", "", 200)
+	u, e := reg.GetUser(ctx, receipt.UserID)
+	if e != nil || u.Login != "Test-User" || u.DisplayName != "Renamed <exact>" || u.Version != 3 {
+		t.Fatal("rename changed immutable identity", e)
 	}
 	execSQL("UPDATE admin_sessions SET revoked_at=CURRENT_TIMESTAMP")
 	fetch("GET", cookie, 401)

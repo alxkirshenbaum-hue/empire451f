@@ -10,9 +10,13 @@ import (
 
 // UserMetadata excludes credentials, template bodies and profile downloads.
 type UserMetadata struct {
-	ID, Login, DisplayName, Kind, Status string
-	Protected                            bool
-	Version                              int64
+	ID          string `json:"id"`
+	Login       string `json:"login"`
+	DisplayName string `json:"display_name"`
+	Kind        string `json:"kind"`
+	Status      string `json:"status"`
+	Protected   bool   `json:"protected"`
+	Version     int64  `json:"row_version"`
 }
 
 var (
@@ -35,7 +39,7 @@ const userColumns = "id,login,display_name,kind,status,protected,row_version"
 
 // Keep durable pre-state for recovery, but never present uncertain effective
 // authentication as active/disabled to an owner.
-const effectiveUserColumns = "id,login,display_name,kind,CASE WHEN status IN ('active','disabled') AND EXISTS (SELECT 1 FROM operations o WHERE o.target_type='user' AND o.target_id=users.id AND o.status IN ('running','verifying','reconcile_required','rollback_running')) THEN 'reconcile_required' ELSE status END,protected,row_version"
+const effectiveUserColumns = "id,login,display_name,kind,CASE WHEN status IN ('active','disabled') AND EXISTS (SELECT 1 FROM operations o WHERE o.target_type='user' AND o.target_id=users.id AND o.status IN ('running','verifying','reconcile_required','rollback_running')) THEN 'reconcile_required' ELSE status END AS status,protected,row_version"
 
 type userRow interface{ Scan(...any) error }
 
@@ -78,7 +82,7 @@ func (r *Registry) UpdateDisplayName(ctx context.Context, id string, expected in
 		return zero, ErrInvalidMetadata
 	}
 	return r.updateUserCAS(ctx, id, expected, func(tx *sql.Tx, u UserMetadata) (UserMetadata, error) {
-		return scanUser(tx.QueryRowContext(ctx, "UPDATE users SET display_name=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now'),row_version=row_version+1 WHERE id=? AND row_version=? RETURNING "+userColumns, name, id, expected))
+		return writeDisplayName(ctx, tx, id, expected, name)
 	})
 }
 
@@ -117,6 +121,9 @@ func (r *Registry) UpdateEffectiveStateCAS(ctx context.Context, id string, expec
 }
 
 func (r *Registry) updateUserCAS(ctx context.Context, id string, expected int64, update func(*sql.Tx, UserMetadata) (UserMetadata, error)) (UserMetadata, error) {
+	return r.updateUserCASReplay(ctx, id, expected, nil, update)
+}
+func (r *Registry) updateUserCASReplay(ctx context.Context, id string, expected int64, replay func(*sql.Tx) (bool, error), update func(*sql.Tx, UserMetadata) (UserMetadata, error)) (UserMetadata, error) {
 	var zero UserMetadata
 	if expected < 1 {
 		return zero, ErrPreconditionRequired
@@ -126,6 +133,15 @@ func (r *Registry) updateUserCAS(ctx context.Context, id string, expected int64,
 		return zero, err
 	}
 	defer tx.Rollback()
+	if replay != nil {
+		done, e := replay(tx)
+		if e != nil {
+			return zero, e
+		}
+		if done {
+			return zero, nil
+		}
+	}
 	u, err := scanUser(tx.QueryRowContext(ctx, "SELECT "+effectiveUserColumns+" FROM users WHERE id=?", id))
 	if err != nil {
 		return zero, err
@@ -157,3 +173,7 @@ func (r *Registry) updateUserCAS(ctx context.Context, id string, expected int64,
 }
 
 var ErrProtectedAccount = errors.New("protected account")
+
+func writeDisplayName(ctx context.Context, tx *sql.Tx, id string, expected int64, name string) (UserMetadata, error) {
+	return scanUser(tx.QueryRowContext(ctx, "UPDATE users SET display_name=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now'),row_version=row_version+1 WHERE id=? AND row_version=? RETURNING "+userColumns, name, id, expected))
+}

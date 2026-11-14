@@ -91,6 +91,7 @@ def main():
     Path('/run/vpn-control').chmod(0o755)
     put('/run/lock/empire-vpn.lock',b'')
     canary,old_password,owner_password = secrets.token_hex(24),secrets.token_hex(24),secrets.token_hex(24)
+    if os.environ.get('VPN_REHEARSAL_UI')=='1': owner_password='Synthetic W7 owner password'
     cli=ROOT/'rehearsal-bin/vpnctl';api=ROOT/'rehearsal-bin/vpn-control';python=Path(sys.executable).resolve()
     auth=b'basic_auth "master_user" '+json.dumps(canary).encode()+b'\nbasic_auth "Old-User" '+json.dumps(old_password).encode()+b'\n'
     put(base/'auth.caddy',auth,0o640,986)
@@ -170,7 +171,7 @@ def main():
             require(result.returncode!=0,'admin socket exposed to isolated service')
         api_dir=Path('/run/vpn-control/api');api_dir.mkdir(mode=0o700);os.chown(api_dir,981,981)
         for p in (panel,db,key):os.chown(p,981,981)
-        api_process=subprocess.Popen([str(x) for x in unpriv(981)]+[str(api),'--socket',str(api_dir/'api.sock'),'--profile-domain','lab.example','--vault-key-file',str(key)],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+        api_process=subprocess.Popen([str(x) for x in unpriv(981)]+[str(api),'--socket',str(api_dir/'api.sock'),'--profile-domain','lab.example','--vault-key-file',str(key),'--owner-run',migration],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
         stack.callback(lambda: (api_process.terminate(),api_process.wait(timeout=5)))
         import time
         for _ in range(100):
@@ -263,6 +264,31 @@ module.main()
                 secured.sendall(b'GET /config/ HTTP/1.1\r\nHost: lab.example\r\nConnection: close\r\n\r\n')
                 response=http.client.HTTPResponse(secured);response.begin()
                 require(response.status==200 and response.read()==b'site','admin route exposed over HTTPS')
+        if os.environ.get('VPN_REHEARSAL_UI')=='1':
+            # Disposable browser/CLI fixture, still entirely in this synthetic root.
+            # No production credential is used. The public test password above is
+            # valid only in this loopback/root-marker-gated fixture.
+            put('/root/ui-owner-session',cookie.split('=',1)[1]+'\n')
+            frontend=Path('/run/ui-frontend');frontend.mkdir(mode=0o700)
+            run(['openssl','req','-new','-x509','-nodes','-newkey','rsa:2048','-days','1','-subj','/CN=panel.home.arpa',
+                 '-addext','subjectAltName=DNS:panel.home.arpa','-keyout',frontend/'key','-out',frontend/'cert'])
+            for file in frontend.iterdir():file.chmod(0o600)
+            gateway=(ROOT/'templates/panel-frontend.Caddyfile').read_text().replace('@API_SOCKET@',str(api_dir/'api.sock'))
+            put(frontend/'config',gateway)
+            home=Path('/run/ui-frontend-home');home.mkdir(mode=0o700);os.chown(home,981,981)
+            put('/run/ui-context.json',json.dumps(dict(synthetic=True,owner_run=migration,api_socket=str(api_dir/'api.sock'))))
+            marker=Path('/run/ui-hold');put(marker,'isolated UI rehearsal\n')
+            deadline=time.monotonic()+1800
+            print('ui-rehearsal: ready; disposable owner and canonical worker active',flush=True)
+            while marker.exists() and time.monotonic()<deadline:
+                result=subprocess.run([str(cli),'worker','once','--installation','lab','--owner-run',migration],
+                                      stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=180)
+                if result.returncode:
+                    print('ui-worker: blocked; explicit inspection required',flush=True)
+                time.sleep(2)
+            require(not marker.exists(),'UI rehearsal timed out')
+            print('ui-rehearsal: stopped cleanly',flush=True)
+            return
         # The original wrapper runs unmodified apart from its installation token.
         wrapper_path='/usr/local/bin/vpn-add-user'
         def return_installer():

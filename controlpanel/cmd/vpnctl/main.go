@@ -9,13 +9,15 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/status"
 )
 
 func execute(args []string, out, stderr io.Writer) int {
+	if ownerCLIMode(args) {
+		return ownerCLI(args, out, stderr)
+	}
 	if len(args) >= 2 && args[0] == "worker" && args[1] == "reconcile" {
 		return workerReconcile(args[2:], out, stderr)
 	}
@@ -59,31 +61,9 @@ func execute(args []string, out, stderr io.Writer) int {
 	if socket == "" {
 		socket = "/run/vpn-control/api.sock"
 	}
-	sessionFile := os.Getenv("VPNCTL_SESSION_FILE")
-	if sessionFile == "" {
-		fmt.Fprintln(stderr, "Set VPNCTL_SESSION_FILE to a private session file")
-		return 3
-	}
-	f, err := os.Open(sessionFile)
+	cookie, err := ownerCookie()
 	if err != nil {
-		fmt.Fprintln(stderr, "Cannot read session file")
-		return 3
-	}
-	defer f.Close()
-	info, err := f.Stat()
-	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm()&0077 != 0 {
-		fmt.Fprintln(stderr, "Session file must be private")
-		return 3
-	}
-	b, err := io.ReadAll(io.LimitReader(f, 515))
-	token := strings.TrimSpace(string(b))
-	if err != nil || len(b) > 514 || token == "" || len(token) > 512 {
-		fmt.Fprintln(stderr, "Invalid session file")
-		return 3
-	}
-	cookie := http.Cookie{Name: "session", Value: token}
-	if err := cookie.Valid(); err != nil {
-		fmt.Fprintln(stderr, "Invalid session token")
+		fmt.Fprintln(stderr, "Private owner session unavailable")
 		return 3
 	}
 	client := localClient(socket)

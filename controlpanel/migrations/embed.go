@@ -20,3 +20,6 @@ var UserMutations string
 
 //go:embed 006_profile_routing.sql
 var ProfileRouting string
+
+//go:embed 007_profile_panel_dns.sql
+var ProfilePanelDNS string

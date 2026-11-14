@@ -134,7 +134,7 @@ func (r *Registry) renderSFA(ctx context.Context, tx *sql.Tx, userID, domain str
 	if err = tx.QueryRowContext(ctx, "SELECT COALESCE((SELECT source_revision_id FROM profile_routing_variants WHERE revision_id=?),?)", source, source).Scan(&root); err != nil {
 		return nil, err
 	}
-	err = tx.QueryRowContext(ctx, "SELECT v.id,v.body_json,v.sha256,v.min_version,v.max_version FROM profile_routing_variants m JOIN template_revisions v ON v.id=m.revision_id JOIN template_revisions s ON s.id=m.source_revision_id WHERE m.source_revision_id=? AND m.variant=? AND v.status='approved' AND s.status='approved'", root, variant).Scan(selected, &body, &checksum, &min, &max)
+	err = tx.QueryRowContext(ctx, "SELECT v.id,v.body_json,v.sha256,v.min_version,v.max_version FROM profile_routing_variants m JOIN template_revisions v ON v.id=m.revision_id JOIN template_revisions s ON s.id=m.source_revision_id WHERE m.source_revision_id=? AND m.variant=? AND m.policy_version=? AND v.status='approved' AND s.status='approved'", root, variant, RoutingPolicyVersion).Scan(selected, &body, &checksum, &min, &max)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrTemplateIncompatible
 	}

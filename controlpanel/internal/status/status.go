@@ -141,11 +141,12 @@ type Response struct {
 	Meta  Metadata   `json:"meta"`
 }
 
-func newResponse() Response {
+func NewMetadata() Metadata {
 	var raw [16]byte
 	rand.Read(raw[:])
-	return Response{Meta: Metadata{RequestID: hex.EncodeToString(raw[:]), ObservedAt: time.Now().UTC().Format(time.RFC3339Nano)}}
+	return Metadata{RequestID: hex.EncodeToString(raw[:]), ObservedAt: time.Now().UTC().Format(time.RFC3339Nano)}
 }
+func newResponse() Response { return Response{Meta: NewMetadata()} }
 
 // Unavailable preserves the OPS-02 envelope when session refresh fails before lookup.
 func Unavailable(w http.ResponseWriter) {

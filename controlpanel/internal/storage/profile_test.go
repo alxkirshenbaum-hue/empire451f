@@ -55,7 +55,11 @@ func TestRenderBoundSFA(t *testing.T) {
 	}
 	defer clear(password)
 	var want, got map[string]any
-	base, e := DeriveBaseRouting(template)
+	prepared, e := WithPanelDestination(template)
+	if e != nil {
+		t.Fatal(e)
+	}
+	base, e := DeriveBaseRouting(prepared)
 	if e != nil {
 		t.Fatal(e)
 	}

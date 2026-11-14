@@ -10,6 +10,7 @@ import (
 	"slices"
 )
 
+const RoutingPolicyVersion = 2
 const Client1144 = "sfa-1.14.4"
 const ClientAlpha13 = "sfa-1.15-alpha13"
 const RoutingWarning = "Requires SFA 1.15.0-alpha.13. Routes selected Russian resources and other Download Manager traffic directly; OpenAI downloads stay on the VPN. Compatibility must be verified on your device."
@@ -168,13 +169,17 @@ func (r *Registry) InstallRoutingVariants(ctx context.Context, source, approved 
 	if hash != approved || digest([]byte(body)) != approved {
 		return nil, ErrLegacyDrift
 	}
-	base, err := DeriveBaseRouting([]byte(body))
+	prepared, err := WithPanelDestination([]byte(body))
+	if err != nil {
+		return nil, err
+	}
+	base, err := DeriveBaseRouting(prepared)
 	if err != nil {
 		return nil, err
 	}
 	result := map[string]string{}
 	for _, variant := range []string{"base", "ru_download_manager"} {
-		candidate := []byte(body)
+		candidate := prepared
 		minimum := "1.15.0-alpha.13"
 		var maximum any = minimum
 		if variant == "base" {
@@ -185,7 +190,7 @@ func (r *Registry) InstallRoutingVariants(ctx context.Context, source, approved 
 		checksum := digest(candidate)
 		var revision, saved, state, stored, storedMin string
 		var storedMax sql.NullString
-		err = tx.QueryRowContext(ctx, "SELECT v.id,v.sha256,v.status,v.body_json,v.min_version,v.max_version FROM profile_routing_variants m JOIN template_revisions v ON v.id=m.revision_id WHERE m.source_revision_id=? AND m.variant=?", source, variant).Scan(&revision, &saved, &state, &stored, &storedMin, &storedMax)
+		err = tx.QueryRowContext(ctx, "SELECT v.id,v.sha256,v.status,v.body_json,v.min_version,v.max_version FROM profile_routing_variants m JOIN template_revisions v ON v.id=m.revision_id WHERE m.source_revision_id=? AND m.variant=? AND m.policy_version=?", source, variant, RoutingPolicyVersion).Scan(&revision, &saved, &state, &stored, &storedMin, &storedMax)
 		if err == nil {
 			if saved != checksum || state != "approved" || stored != string(candidate) || storedMin != minimum || storedMax.Valid != (maximum != nil) || storedMax.Valid && storedMax.String != maximum {
 				return nil, ErrLegacyDrift
@@ -197,14 +202,96 @@ func (r *Registry) InstallRoutingVariants(ctx context.Context, source, approved 
 			return nil, err
 		}
 		revision = id()
-		_, err = tx.ExecContext(ctx, "INSERT INTO template_revisions(id,template_id,semver,client_family,min_version,max_version,body_json,sha256,status,created_at,approved_at) VALUES(?,?,?,'sfa',?,?,?,?,'approved',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)", revision, template, "w6-"+variant+"-"+checksum[:16], minimum, maximum, string(candidate), checksum)
+		_, err = tx.ExecContext(ctx, "INSERT INTO template_revisions(id,template_id,semver,client_family,min_version,max_version,body_json,sha256,status,created_at,approved_at) VALUES(?,?,?,'sfa',?,?,?,?,'approved',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)", revision, template, "w6-p2-"+variant+"-"+checksum[:16], minimum, maximum, string(candidate), checksum)
 		if err != nil {
 			return nil, err
 		}
-		if _, err = tx.ExecContext(ctx, "INSERT INTO profile_routing_variants VALUES(?,?,?)", source, variant, revision); err != nil {
+		if _, err = tx.ExecContext(ctx, "INSERT INTO profile_routing_variants VALUES(?,?,?,?)", source, variant, RoutingPolicyVersion, revision); err != nil {
 			return nil, err
 		}
 		result[variant] = revision
 	}
 	return result, tx.Commit()
+}
+
+// WithPanelDestination is the reviewed exact private-panel policy. It adds no
+// generic private route or DNS fallback. The current relay already maps only
+// this name/address on TCP443 to the private frontend in namespace naive.
+func WithPanelDestination(body []byte) ([]byte, error) {
+	var profile map[string]any
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	decoder.UseNumber()
+	if decoder.Decode(&profile) != nil {
+		return nil, ErrTemplateIncompatible
+	}
+	var extra any
+	if !errors.Is(decoder.Decode(&extra), io.EOF) {
+		return nil, ErrTemplateIncompatible
+	}
+	dns, ok := profile["dns"].(map[string]any)
+	if !ok {
+		return nil, ErrTemplateIncompatible
+	}
+	servers, ok := dns["servers"].([]any)
+	if !ok {
+		return nil, ErrTemplateIncompatible
+	}
+	for _, value := range servers {
+		server, ok := value.(map[string]any)
+		if !ok {
+			return nil, ErrTemplateIncompatible
+		}
+		if server["tag"] == "panel-dns" {
+			return nil, ErrTemplateIncompatible
+		}
+	}
+	hosts := map[string]any{"type": "hosts", "tag": "panel-dns", "predefined": map[string]string{"panel.home.arpa": "192.0.2.119"}}
+	dns["servers"] = append([]any{hosts}, servers...)
+	dnsRules := []any{}
+	if existing, exists := dns["rules"]; exists {
+		var ok bool
+		dnsRules, ok = existing.([]any)
+		if !ok {
+			return nil, ErrTemplateIncompatible
+		}
+	}
+	for _, value := range dnsRules {
+		rule, ok := value.(map[string]any)
+		if !ok {
+			return nil, ErrTemplateIncompatible
+		}
+		if exactStrings(rule["domain"], []string{"panel.home.arpa"}) {
+			return nil, ErrTemplateIncompatible
+		}
+	}
+	dns["rules"] = append([]any{map[string]any{"domain": []string{"panel.home.arpa"}, "server": "panel-dns", "action": "route"}}, dnsRules...)
+	route, ok := profile["route"].(map[string]any)
+	if !ok {
+		return nil, ErrTemplateIncompatible
+	}
+	rules, ok := route["rules"].([]any)
+	if !ok {
+		return nil, ErrTemplateIncompatible
+	}
+	result := make([]any, 0, len(rules)+1)
+	found := false
+	for _, value := range rules {
+		rule, ok := value.(map[string]any)
+		if !ok {
+			return nil, ErrTemplateIncompatible
+		}
+		result = append(result, rule)
+		if exactStrings(rule["domain"], []string{"panel.home.arpa"}) {
+			if found || rule["outbound"] != "naive-out" {
+				return nil, ErrTemplateIncompatible
+			}
+			found = true
+			result = append(result, map[string]any{"ip_cidr": []string{"192.0.2.119/32"}, "port": 443, "action": "route", "outbound": "naive-out"})
+		}
+	}
+	if !found {
+		return nil, ErrTemplateIncompatible
+	}
+	route["rules"] = result
+	return json.Marshal(profile)
 }

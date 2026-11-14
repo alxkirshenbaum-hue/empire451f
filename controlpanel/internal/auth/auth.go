@@ -114,6 +114,10 @@ func fail(w http.ResponseWriter, code int) { http.Error(w, http.StatusText(code)
 func (s *Service) Handler(operations http.Handler) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", s.home)
+	mux.HandleFunc("GET /assets/panel.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+		w.Write(panelScript)
+	})
 	mux.HandleFunc("POST /login", s.login)
 	mux.HandleFunc("POST /logout", s.logout)
 	mux.HandleFunc("POST /api/v1/auth/login", s.login)
@@ -134,8 +138,8 @@ func (s *Service) Handler(operations http.Handler) http.Handler {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "no-referrer")
-		w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")
-		if r.Method == "POST" && r.Header.Get("Origin") != Origin {
+		w.Header().Set("Content-Security-Policy", "default-src 'none'; script-src 'self'; connect-src 'self'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")
+		if r.Method != "GET" && r.Method != "HEAD" && r.Method != "OPTIONS" && r.Header.Get("Origin") != Origin {
 			fail(w, 403)
 			return
 		}

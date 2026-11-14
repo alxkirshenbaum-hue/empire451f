@@ -1,0 +1,16 @@
+{
+ admin off
+ auto_https off
+ persist_config off
+ log {
+  output discard
+ }
+}
+https://panel.home.arpa:18650 {
+ bind 127.0.0.1
+ tls {$CREDENTIALS_DIRECTORY}/cert {$CREDENTIALS_DIRECTORY}/key
+ header Cache-Control no-store
+ reverse_proxy unix/@API_SOCKET@ {
+  header_up Host panel.home.arpa
+ }
+}

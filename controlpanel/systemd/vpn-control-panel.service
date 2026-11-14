@@ -1,0 +1,36 @@
+[Unit]
+Description=Private VPN owner panel TLS frontend
+Wants=vpn-control-api.service
+After=vpn-control-api.service evpn-nh1-caddy.service
+
+[Service]
+Type=exec
+User=evpn-panel
+Group=evpn-panel
+NetworkNamespacePath=/run/netns/naive
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+IPAddressDeny=any
+IPAddressAllow=localhost
+InaccessiblePaths=/var/lib/vpn-control /var/lib/empire-vpn /etc/empire-vpn /run/evpn-nh1-caddy-admin
+RuntimeDirectory=vpn-control-panel
+RuntimeDirectoryMode=0700
+Environment=HOME=/run/vpn-control-panel
+LoadCredential=cert:/etc/vpn-control/private-panel/leaf.crt
+LoadCredential=key:/etc/vpn-control/private-panel/tls.key
+LoadCredential=config:/etc/vpn-control/private-panel/Caddyfile
+ExecStart=/opt/empire-vpn/bin/caddy run --adapter caddyfile --config ${CREDENTIALS_DIRECTORY}/config
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=15
+MemoryMax=128M
+
+[Install]
+WantedBy=multi-user.target

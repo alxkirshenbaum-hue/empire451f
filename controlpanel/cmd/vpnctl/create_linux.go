@@ -113,7 +113,7 @@ func withOwnedInstallationRecovery(state, config, lockPath, panel, run string, r
 	return action(ctx, registry)
 }
 
-// verifyOwnedFiles streams individual managed files with a 32 MiB per-file bound.
+// verifyOwnedFiles streams managed files without a snapshot size policy.
 // The snapshot-only aggregate bound is not applied to ordinary queue consumers.
 func verifyOwnedFiles(state, config, run string) (int64, error) {
 	observation, err := observeOwnedFiles(state, config, run, false)

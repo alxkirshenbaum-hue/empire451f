@@ -5,8 +5,8 @@ package main
 import (
 	"context"
 	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
+	
+	
 	"errors"
 	"flag"
 	"fmt"
@@ -114,45 +114,10 @@ func withOwnedInstallationRecovery(state, config, lockPath, panel, run string, r
 	return action(ctx, registry)
 }
 
+// verifyOwnedFiles streams individual managed files with a 32 MiB per-file bound.
+// The snapshot-only aggregate bound is not applied to ordinary queue consumers.
 func verifyOwnedFiles(state, config, run string) (int64, error) {
-	data, err := os.ReadFile(filepath.Join(state, "manifest.json"))
-	if err != nil {
-		return 0, err
-	}
-	var manifest struct {
-		Generation int64             `json:"panel_generation"`
-		Run        string            `json:"panel_run_id"`
-		Hash       string            `json:"panel_auth_hash"`
-		Files      map[string]string `json:"files"`
-		Config     struct {
-			ID string `json:"id"`
-		} `json:"config"`
-	}
-	err = json.Unmarshal(data, &manifest)
-	auth := filepath.Join(config, filepath.Base(state), "auth.caddy")
-	_, legacy := manifest.Files[auth]
-	if err != nil || manifest.Files == nil || legacy || manifest.Config.ID != filepath.Base(state) || manifest.Generation < 1 || manifest.Run != run {
-		return 0, storage.ErrLegacyConflict
-	}
-	content, err := os.ReadFile(auth)
-	if err != nil {
-		return 0, err
-	}
-	sum := sha256.Sum256(content)
-	clear(content)
-	if hex.EncodeToString(sum[:]) != manifest.Hash {
-		return 0, storage.ErrLegacyDrift
-	}
-	for path, expected := range manifest.Files {
-		data, e := os.ReadFile(path)
-		if e != nil {
-			return 0, storage.ErrLegacyDrift
-		}
-		digest := sha256.Sum256(data)
-		clear(data)
-		if hex.EncodeToString(digest[:]) != expected {
-			return 0, storage.ErrLegacyDrift
-		}
-	}
-	return manifest.Generation, nil
+ observation, err := observeOwnedFiles(state, config, run, false)
+ if err != nil { return 0, err }
+ return observation.generation, nil
 }

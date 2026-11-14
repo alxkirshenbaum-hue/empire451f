@@ -95,3 +95,17 @@ No new production deploy/CRUD/restart occurred. Reserve remains untouched.
    Actual Android/Download Manager/Wi-Fi/mobile evidence remains mandatory.
 7. G6/G7 and full E1 must not be marked accepted prematurely. W8/W9 backup and
    measurement actions remain visibly unavailable pending their implementation.
+## Documentation checkpoint after 9b9ea35
+
+W6 remains the first unaccepted stage (3/4). Independent W7 implementation
+(2/4) was prepared to combine a future manual phone session; this was the
+agent's scheduling interpretation, not acceptance of G6. Neither G6 nor G7
+has passed. The owner's request for an explanation/handoff does not restart
+the blocked sandbox investigation.
+
+See [test status matrix](TEST_STATUS_2026-11-14.md) for explicit
+PASS/PARTIAL/FAIL/OPEN and [handoff prompt](HANDOFF-W6-W7.md).
+No new tests were run for this documentation checkpoint. The previous cleanup
+removed the synthetic7002 hold marker and stopped the local loopback helpers;
+check state before any future use rather than assuming the copy is running.
+The specific readable boundary and the cause of502 remain unknown.

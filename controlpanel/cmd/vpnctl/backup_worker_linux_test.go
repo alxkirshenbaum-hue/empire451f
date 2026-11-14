@@ -150,6 +150,31 @@ func TestMaintenanceWorkerRealArtifact(t *testing.T) {
 	if _, e = artifactCommand(context.Background(), helper, map[string]string{"action": "decrypt", "envelope": backup.EncryptedPath, "private_key_path": private, "output": decrypted, "expected_sha256": backup.SHA256}); e != nil {
 		t.Fatal("owner decrypt", e)
 	}
+	prepareParent := filepath.Join(root, "restore-candidates")
+	if e = os.Mkdir(prepareParent, 0700); e != nil {
+		t.Fatal(e)
+	}
+	sourceBefore, e := os.ReadFile(backup.EncryptedPath)
+	if e != nil {
+		t.Fatal(e)
+	}
+	var cliOut, cliErr bytes.Buffer
+	if code := execute([]string{"backup", "offline-verify", "--envelope", backup.EncryptedPath, "--private-key", private, "--cipher-sha256", backup.SHA256, "--manifest-sha256", backup.ManifestSHA256, "--owner-run", run, "--own-operation", created.OperationID, "--backup-id", created.BackupID, "--helper", helper, "--source-panel-root", panel, "--source-state-root", state, "--source-config-root", config, "--staging", filepath.Join(root, "offline-checked"), "--prepare-parent", prepareParent}, &cliOut, &cliErr); code != 0 {
+		t.Fatalf("offline prepare code%d: %s", code, cliErr.String())
+	}
+	var prepared struct {
+		Path string `json:"prepared_copy"`
+	}
+	if e = json.Unmarshal(cliOut.Bytes(), &prepared); e != nil || prepared.Path == "" {
+		t.Fatal("prepared receipt", e)
+	}
+	if _, e = storage.InspectCapturedSnapshot(context.Background(), prepared.Path, cipher, run, ""); e != nil {
+		t.Fatal("prepared canonical", e)
+	}
+	sourceAfter, e := os.ReadFile(backup.EncryptedPath)
+	if e != nil || !bytes.Equal(sourceBefore, sourceAfter) {
+		t.Fatal("source ciphertext changed", e)
+	}
 	entries, e := os.ReadDir(policy.BackupWork)
 	if e != nil || len(entries) != 0 {
 		t.Fatal("plaintext work leaked", e)

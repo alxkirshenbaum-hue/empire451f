@@ -13,13 +13,19 @@ import (
 	"os"
 	"path/filepath"
 	"syscall"
+	"strings"
+	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/vault"
 )
 
 // This command authenticates off-node and checks a NEW private staging copy.
 // Its report deliberately cannot promote a registry backup to verified.
 func offlineVerify(args []string, out, stderr io.Writer) int {
+	prepareParent := ""
+	backupID := ""
 	f := flag.NewFlagSet("backup offline-verify", flag.ContinueOnError)
 	f.SetOutput(io.Discard)
+	f.StringVar(&prepareParent,"prepare-parent","","Create a NEW normalized database below this private recovery parent")
+	f.StringVar(&backupID,"backup-id","","Authenticated backup receipt ID")
 	envelope := f.String("envelope", "", "Encrypted envelope")
 	private := f.String("private-key", "", "Off-node recipient key file")
 	cipherHash := f.String("cipher-sha256", "", "Authenticated receipt digest")
@@ -58,12 +64,22 @@ func offlineVerify(args []string, out, stderr io.Writer) int {
 		fmt.Fprintln(stderr, "Archive consistency verification failed")
 		return 4
 	}
+ var prepared string
+ if prepareParent!="" {
+  if !filepath.IsAbs(prepareParent)||!trustedRecoveryParent(prepareParent)||!status.ValidID(backupID)||!status.ValidID(*own){fmt.Fprintln(stderr,"Explicit backup binding and trusted preparation parent required");return 2}
+  keyPath:=filepath.Join(*stage,strings.TrimPrefix(filepath.Join(*panel,"vault.key"),"/"))
+  key,e:=os.ReadFile(keyPath);if e!=nil{return 4};v,e:=vault.New(key);clear(key);if e!=nil{return 4}
+  source:=filepath.Join(*stage,strings.TrimPrefix(filepath.Join(*panel,"state.db"),"/"))
+  candidate,e:=storage.PrepareRestoreCopy(context.Background(),source,prepareParent,v,storage.RestoreBinding{OwnerRun:*owner,OwnOperationID:*own,BackupID:backupID,CipherSHA256:*cipherHash,ManifestSHA256:*manifestHash})
+  if e!=nil{fmt.Fprintln(stderr,"Restore copy preparation failed");return 4};prepared=candidate.Path
+ }
 	report := struct {
 		Outcome        string                     `json:"outcome"`
 		ManifestSHA256 string                     `json:"manifest_sha256"`
 		Inspection     storage.SnapshotInspection `json:"inspection"`
+		PreparedCopy string `json:"prepared_copy,omitempty"`
 		UsableRestore  string                     `json:"usable_restore"`
-	}{"artifact_check_passed", result.ManifestSHA256, result.Inspection, "not_run"}
+	}{"artifact_check_passed", result.ManifestSHA256, result.Inspection, prepared, "not_run"}
 	if json.NewEncoder(out).Encode(report) != nil {
 		return 9
 	}

@@ -93,7 +93,7 @@ print('Frontend vault/proc-root/admin denied; private API socket allowed PASS')
         probe_command=["systemd-run","--quiet","--wait","--pipe","--unit="+unit+"-denials"]
         for prop in properties:
             if not prop.startswith("LoadCredential="):probe_command.extend(["-p",prop])
-        print(command(probe_command+["/usr/bin/python3.14","-B","-c",probe]))
+        print(command(probe_command+["/usr/bin/python3","-B","-c",probe]))
         print(command(["nsenter","-t",pid,"-n","python3","-c",client,root/"run/ui-frontend/cert"]))
         print("Frontend UID981/CapEff0/isolated namespace PASS")
     finally:subprocess.run(["systemctl","stop",unit],check=False,capture_output=True)

@@ -27,4 +27,4 @@ systemd-run $run_flags --unit="vpn-full-worker-root-$2" \
  -p BindReadOnlyPaths=/usr -p BindReadOnlyPaths="$project/rehearsal-source/local:/usr/local" \
  -p BindReadOnlyPaths=/opt/empire-vpn/bin -p BindReadOnlyPaths=/etc/ssl \
  -p BindReadOnlyPaths="$project/rehearsal-source:/work" -p WorkingDirectory=/work \
- /usr/bin/python3.14 -B /work/pilot/full_worker_rehearsal.py
+ /usr/bin/python3 -B /work/pilot/full_worker_rehearsal.py

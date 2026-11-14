@@ -128,3 +128,5 @@ W9.1 will reuse the accepted backup/restore interface AFTER W8/W9. G9 certifies
 panel components; overall E1 additionally requires the six-item G9.1 matrix.
 
 Current runtime qualification supersedes the initial unconfirmed-runner note: W8_LAB_QUALIFICATION_2026-11-14.md /774c07a confirms local systemd/RootDirectory/API/frontend/Go/Python proof. Full backup/restore and aggregate resource gates remain OPEN. Canonical-binding clarification independently reviewed SOL-B1/1, no blockers.
+
+InspectSnapshot c4bf7bb validates only its own read-transaction view; that view ends on return. It cannot authorize a subsequently copied DB: actual backup must validate the captured SQLite image and bind file/writer observations to that capture, accounting for auth/session/issuance writes. No snapshot-copy consistency or verified state is implied by preflight success.

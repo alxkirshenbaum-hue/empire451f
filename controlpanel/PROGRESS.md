@@ -1,6 +1,6 @@
 # Общий прогресс VPN Control
 
-> ПАУЗА по просьбе владельца. [Точная точка продолжения W8](RESUME_W8_2026-11-14.md). WIP fcea3d4 не протестирован; gates не изменились.
+> Возобновлено14.11.2026. Snapshot inspector c4bf7bb: целевые тесты и Go-потребители PASS. Это частичный W8/1, не готовый backup.
 
 Дополнение 14.11.2026 — **W9.1 [░░░░░░] 0/6**, интеграция панели в общий установщик и публикация. [Подробный план/G9.1](W9_1_INSTALLER_INTEGRATION.md). Текущие W8/W9 выполняются в прежнем порядке. Общий счётчик ниже уже включает W9.1: 6/11 закрытых этапов. Общий выпуск E1 требует G9.1 после приёмки компонентов G9.
 
@@ -51,7 +51,7 @@ ChatGPT/Download Manager имеет сообщённые сбои; владел�
 
 1. **Общий encrypted backup/verify/restore-plan/prune workflow — ЧАСТИЧНО.**
    Есть исторические snapshot/envelope helpers, metadata schema/list,
-   read-only inspector + bounded raw-tar guard, negative tests. Нет подключённого
+   read-only inspector + bounded raw-tar guard, negative tests; canonical Registry.InspectSnapshot c4bf7bb проверен на Linux (см. W8_SNAPSHOT_INSPECTION_2026-11-14.md). Нет подключённого
    BKP workflow с согласованной SQLite/WAL/generation/vault моделью, retention
    и доказанной совместимостью GNUtar/PAX/ACL. backup_creation_available=false.
 2. **Полный secret inventory/security audit/hardening — ЧАСТИЧНО.**

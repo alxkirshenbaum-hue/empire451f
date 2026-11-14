@@ -25,6 +25,9 @@ func TestMaintenanceWorkerRealArtifact(t *testing.T) {
 		t.Skip("root fixture policy")
 	}
 	root := t.TempDir()
+	if e := os.Chmod(root, 0700); e != nil {
+		t.Fatal(e)
+	}
 	state := filepath.Join(root, "state", "lab")
 	config := filepath.Join(root, "etc")
 	panel := filepath.Join(root, "panel")

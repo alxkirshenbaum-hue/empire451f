@@ -102,3 +102,5 @@ Lead: local runner3/3, integration/qualification завершены. ASTRA0.
 
 Во всех следующих итоговых отчётах сначала единый E1 bar и таблица W6–W9.1,
 затем только изменения текущего этапа и короткий поагентный статус.
+
+15.11.2026 — local development resumed by owner through W9.1, production excluded. Actual evidence is collected in W8_RESUMED_VALIDATION_2026-11-15.md and latest PLAN entries. Pinned4dd8956 API/crypto-worker/offline/rotation targets PASS; integrated ACL6a525bc targets PASS; b0dbd99 restore13scenarios PASS;03bb43f encrypted worker→offline preparedDB PASS. Runtime restored stack still pending, G8OPEN/W8 0/4. Active package: existing RootDirectory vertical encrypted backup/restore/rollback, no nested agents. ASTRA W8-SEC-002 code findings addressed under explicit source/principal trust contracts; runtime acceptance not inferred. Previous pause is superseded by new user authorization.

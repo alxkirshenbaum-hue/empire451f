@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/vault"
 	"github.com/mattn/go-sqlite3"
-"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/vault"
 )
 
 const SnapshotMaxBytes = 32 * 1024 * 1024
@@ -36,7 +36,7 @@ type SnapshotCapture struct {
 // replacement. SQLite pins the database view, including WAL, independently of
 // the installation writer; no global registry generation or auth freeze exists.
 func (r *Registry) CaptureSnapshot(ctx context.Context, directory, ownBackupOperationID string) (SnapshotCapture, error) {
- return r.captureSnapshot(ctx, directory, ownBackupOperationID, r.vault, "")
+	return r.captureSnapshot(ctx, directory, ownBackupOperationID, r.vault, "")
 }
 
 func (r *Registry) captureSnapshot(ctx context.Context, directory, ownBackupOperationID string, expectedVault *vault.Vault, ownerRun string) (out SnapshotCapture, err error) {
@@ -205,9 +205,13 @@ func (r *Registry) captureSnapshot(ctx context.Context, directory, ownBackupOper
 	}
 	captured.SetMaxOpenConns(1)
 	var inspection SnapshotInspection
-var inspectErr error
-if ownerRun != "" { inspectErr = requireVerifiedCutover(ctx, captured, ownerRun) }
-if inspectErr == nil { inspection, inspectErr = (&Registry{db: captured, vault: expectedVault, keyVersion: r.keyVersion}).InspectSnapshot(ctx, ownBackupOperationID) }
+	var inspectErr error
+	if ownerRun != "" {
+		inspectErr = requireVerifiedCutover(ctx, captured, ownerRun)
+	}
+	if inspectErr == nil {
+		inspection, inspectErr = (&Registry{db: captured, vault: expectedVault, keyVersion: r.keyVersion}).InspectSnapshot(ctx, ownBackupOperationID)
+	}
 	if err = errors.Join(inspectErr, captured.Close()); err != nil {
 		return out, err
 	}

@@ -2,7 +2,6 @@
 package storage
 
 import (
-	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
@@ -21,7 +20,6 @@ import (
 	"time"
 
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/vault"
-	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/migrations"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -107,7 +105,7 @@ func (r *Registry) migrate(ctx context.Context) error {
 	if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%'").Scan(&count); err != nil {
 		return err
 	}
-	scripts := []string{migrations.Registry, migrations.VaultIdentity, migrations.MigrationDocuments, migrations.ProfileIssuance, migrations.UserMutations, migrations.ProfileRouting, migrations.ProfilePanelDNS}
+	scripts := registryMigrationScripts
 	if count != 0 {
 		if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM schema_migrations").Scan(&count); err != nil {
 			return err
@@ -150,21 +148,13 @@ func (r *Registry) migrate(ctx context.Context) error {
 		if _, err = tx.ExecContext(ctx, "INSERT INTO vault_identity VALUES(1,?,?,?)", r.keyVersion, nonce, ciphertext); err != nil {
 			return err
 		}
-	} else {
-		var nonce, ciphertext []byte
-		var version int64
-		if err = tx.QueryRowContext(ctx, "SELECT key_version,nonce,ciphertext FROM vault_identity WHERE singleton=1").Scan(&version, &nonce, &ciphertext); err != nil {
-			return err
-		}
-		plain, err := r.vault.Decrypt(binding, nonce, ciphertext)
-		if err != nil || version != r.keyVersion || !bytes.Equal(plain, marker) {
-			return ErrVaultKey
-		}
+	} else if err = r.verifyVaultIdentity(ctx, tx); err != nil {
+		return err
 	}
 	return tx.Commit()
 }
 
-func (r *Registry) verifyPriorCredentials(ctx context.Context, tx *sql.Tx) error {
+func (r *Registry) verifyPriorCredentials(ctx context.Context, tx snapshotQuerier) error {
 	rows, err := tx.QueryContext(ctx, "SELECT user_id,secret_version,key_version,nonce,ciphertext FROM credentials")
 	if err != nil {
 		return err

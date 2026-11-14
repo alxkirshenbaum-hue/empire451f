@@ -4,7 +4,7 @@
  const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
  if (!csrf) return;
  const pendingKey = "vpn-control.pending-intent";
- const stateLabels={active:"Active",disabled:"New connections revoked",provisioning:"Provisioning",deleted:"Deleted",queued:"Queued",running:"Applying",verifying:"Verifying",succeeded:"Completed",failed:"Failed",cancelled:"Cancelled",rollback_running:"Restoring",rolled_back:"Restored",reconcile_required:"Needs SSH reconciliation"};
+ const stateLabels={active:"Active",disabled:"New connections revoked",provisioning:"Provisioning",deleted:"Deleted",queued:"Queued",running:"Applying",verifying:"Verifying",succeeded:"Completed",failed:"Failed",cancelled:"Cancelled",rollback_running:"Restoring",rolled_back:"Restored",reconcile_required:"Unconfirmed"};
  const stateLabel=value=>stateLabels[value]||value;
  const kindLabels={"user.create":"Create user","user.disable":"Revoke new connections","user.enable":"Enable user","user.delete":"Delete user","credential.rotate":"Rotate credential","user.rename":"Rename user"};
  const kindLabel=value=>kindLabels[value]||value;
@@ -166,7 +166,7 @@
  async function showOperation(id) {
   if(state.poll)clearTimeout(state.poll);
   const op=await api("/api/v1/operations/"+id),detail=byId("operation-detail");detail.hidden=false;empty(detail);
-  detail.append(node("h2",kindLabel(op.kind)),node("p",op.operation_id,"mono"),node("p","Recorded state: "+stateLabel(op.status)));
+  detail.append(node("h2",kindLabel(op.kind)),node("p",op.operation_id,"mono"),node("p","Recorded state: "+(op.status==="reconcile_required"?"Needs SSH reconciliation":stateLabel(op.status))));
   const timeline=node("ol");
   for(const step of op.steps||[])timeline.append(node("li",step.name+" · "+step.state+(step.error_code?" · "+step.error_code:"")));
   if(!timeline.children.length)detail.append(node("p","No step receipts recorded.","help"));else detail.append(timeline);

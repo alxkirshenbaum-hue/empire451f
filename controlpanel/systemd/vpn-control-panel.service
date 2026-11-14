@@ -16,10 +16,12 @@ ProtectHome=yes
 PrivateTmp=yes
 PrivateDevices=yes
 RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+SystemCallFilter=~ptrace process_vm_readv process_vm_writev pidfd_getfd
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 IPAddressDeny=any
 IPAddressAllow=localhost
-InaccessiblePaths=/var/lib/vpn-control /var/lib/empire-vpn /etc/empire-vpn /run/evpn-nh1-caddy-admin
+InaccessiblePaths=/proc /var/lib/vpn-control /var/lib/empire-vpn /etc/empire-vpn /run/evpn-nh1-caddy-admin
 RuntimeDirectory=vpn-control-panel
 RuntimeDirectoryMode=0700
 Environment=HOME=/run/vpn-control-panel

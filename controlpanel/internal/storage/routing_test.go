@@ -126,6 +126,13 @@ func TestProfileCheckerMatrix(t *testing.T) {
 			if err = command.Run(); err != nil {
 				t.Fatal("exact-version profile check failed", err)
 			}
+			if os.Getenv("VPN_TEST_SFA_DNS") == "1" {
+				probe := exec.Command("python3", "-B", "../../../pilot/profile_dns_check.py", binary)
+				probe.Stdin = bytes.NewReader(blob)
+				if err = probe.Run(); err != nil {
+					t.Fatal("exact-version panel DNS probe failed", err)
+				}
+			}
 		})
 	}
 }

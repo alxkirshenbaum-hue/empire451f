@@ -16,15 +16,18 @@ def capture(cli, migration, worker, api_socket, cookie, old_profile, revoked_sec
     require(Path('/.vpn-control-rehearsal').is_file(), 'isolated root required')
     public=Path('/etc/vpn-control/backup-recipient.pem')
     require(public.is_file(), 'host supplied public recipient required')
-    directory=Path('/var/lib/vpn-control-backups');directory.mkdir(mode=0o750);os.chown(directory,0,981)
+    directory=Path('/var/lib/vpn-control-backups');directory.mkdir(mode=0o750,exist_ok=True);os.chown(directory,0,981)
     Path('/root').mkdir(mode=0o700,exist_ok=True)
-    work=Path('/root/backup-work');work.mkdir(mode=0o700)
+    work=Path('/root/backup-work');work.mkdir(mode=0o700,exist_ok=True)
     worker.update(backup_helper=str(ROOT/'backup_artifact.py'),backup_recipient=str(public),backup_directory=str(directory),backup_work=str(work))
     put('/etc/vpn-control/worker-lab.json',json.dumps(worker))
     run([cli,'backup','configure','--installation','lab','--owner-run',migration])
     put('/root/backup-session',cookie.split('=',1)[1]+'\n')
     env=dict(os.environ,VPNCTL_SESSION_FILE='/root/backup-session',VPNCTL_SOCKET=str(api_socket))
-    run([cli,'backup','create','--label','isolated restore rehearsal','--idempotency-key','00000000-0000-4000-8000-000000008501'],env=env)
+    result=subprocess.run([str(cli),'backup','create','--label','isolated restore rehearsal','--idempotency-key','00000000-0000-4000-8000-000000008501'],env=env,capture_output=True,timeout=30)
+    if result.returncode:
+        put('/root/backup-cli-diagnostic.stderr',result.stderr[:4096])
+        raise RuntimeError('owner backup CLI failed; private bounded stderr preserved')
     run([cli,'worker','once','--installation','lab','--owner-run',migration])
     with sqlite3.connect('/var/lib/vpn-control/state.db') as db:
         row=db.execute('SELECT b.id,b.encrypted_path,b.sha256,d.manifest_sha256,d.operation_id FROM backups b JOIN backup_details d ON d.backup_id=b.id WHERE b.status="created"').fetchone()
@@ -76,4 +79,27 @@ def verify():
         print('backup-restore: owner login / unchanged old profile fresh TCP-UoT / revoked negative / Caddy validate PASS',flush=True)
 
 
-if __name__=='__main__':verify()
+
+def resume_capture():
+    require(Path('/.vpn-control-rehearsal').is_file(),'isolated source required')
+    import time
+    migration=json.loads(Path('/var/lib/empire-vpn/lab/manifest.json').read_bytes())['panel_run_id']
+    socket=Path('/run/vpn-control/capture-api.sock')
+    api=ROOT/'rehearsal-bin/vpn-control'
+    process=subprocess.Popen(['/usr/bin/setpriv','--reuid=981','--regid=981','--clear-groups','--bounding-set=-all',str(api),'--socket',str(socket),'--profile-domain','lab.example','--vault-key-file','/var/lib/vpn-control/vault.key','--owner-run',migration],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    try:
+        for _ in range(100):
+            if socket.exists():break
+            require(process.poll() is None,'capture API exited');time.sleep(.05)
+        status,headers,_=request(socket,'POST','/login',urllib.parse.urlencode(dict(username='owner',password='Synthetic W7 owner password')),{'Origin':'https://panel.home.arpa','Content-Type':'application/x-www-form-urlencoded'})
+        require(status==303,'fresh source owner login failed')
+        profile=json.loads(Path('/run/profile-19081.json').read_bytes())
+        secret=next(o['password'] for o in profile['outbounds'] if o['type']=='naive')
+        capture(ROOT/'rehearsal-bin/vpnctl',migration,json.loads(Path('/etc/vpn-control/worker-lab.json').read_bytes()),socket,headers['Set-Cookie'].split(';',1)[0],Path('/var/lib/empire-vpn/lab/vpn-Old-User.json').read_bytes(),secret)
+    finally:
+        process.terminate();process.wait(timeout=5)
+
+if __name__=='__main__':
+    import sys
+    if '--resume-capture' in sys.argv:resume_capture()
+    else:verify()

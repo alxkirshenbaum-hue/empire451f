@@ -17,6 +17,7 @@ def capture(cli, migration, worker, api_socket, cookie, old_profile, revoked_sec
     public=Path('/etc/vpn-control/backup-recipient.pem')
     require(public.is_file(), 'host supplied public recipient required')
     directory=Path('/var/lib/vpn-control-backups');directory.mkdir(mode=0o750);os.chown(directory,0,981)
+    Path('/root').mkdir(mode=0o700,exist_ok=True)
     work=Path('/root/backup-work');work.mkdir(mode=0o700)
     worker.update(backup_helper=str(ROOT/'backup_artifact.py'),backup_recipient=str(public),backup_directory=str(directory),backup_work=str(work))
     put('/etc/vpn-control/worker-lab.json',json.dumps(worker))

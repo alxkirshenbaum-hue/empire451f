@@ -89,7 +89,7 @@ func observeOwnedFiles(state,config,run string, bounded bool) (*ownedObservation
  if _,err = o.read(auth,storage.SnapshotMaxBytes,false); err != nil { return nil,err }
  if o.files[auth]!=manifest.Hash { return nil,storage.ErrLegacyDrift }
  for path,expected := range manifest.Files {
-  if _,err = o.read(path,storage.SnapshotMaxBytes,false); err != nil { return nil,err }
+  if _,err = o.read(path,storage.SnapshotMaxBytes,false); err != nil { return nil,errors.Join(storage.ErrLegacyDrift,err) }
   if o.files[path]!=expected { return nil,storage.ErrLegacyDrift }
  }
  o.generation=manifest.Generation

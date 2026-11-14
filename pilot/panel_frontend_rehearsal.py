@@ -3,7 +3,9 @@ import argparse, os, subprocess, time
 from pathlib import Path
 
 def command(args):
-    return subprocess.check_output([str(x) for x in args],stderr=subprocess.STDOUT,text=True).strip()
+    result=subprocess.run([str(x) for x in args],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
+    if result.returncode: raise RuntimeError(result.stdout.strip() or "isolated subprocess failed")
+    return result.stdout.strip()
 def require(value,label):
     if not value: raise RuntimeError(label)
 
@@ -26,9 +28,9 @@ def main():
         "SystemCallFilter=~ptrace process_vm_readv process_vm_writev pidfd_getfd",
         "RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX",
         "IPAddressDeny=any","IPAddressAllow=localhost",
-        "InaccessiblePaths=+/proc +/var/lib/vpn-control +/var/lib/empire-vpn +/etc/empire-vpn +/run/caddy-admin",
+        "InaccessiblePaths=/proc /var/lib/vpn-control /var/lib/empire-vpn /etc/empire-vpn /run/caddy-admin",
         "BindReadOnlyPaths=/usr","BindReadOnlyPaths=/opt/empire-vpn/bin",
-        "ReadWritePaths=+/run/ui-frontend-home","Environment=HOME=/run/ui-frontend-home",
+        "ReadWritePaths=/run/ui-frontend-home","Environment=HOME=/run/ui-frontend-home",
     ]
     for name in ("cert","key","config"):
         properties.append("LoadCredential="+name+":"+str(root/"run/ui-frontend"/name))
@@ -40,7 +42,7 @@ def main():
         for _ in range(60):
             tls_pid=int(command(["systemctl","show",unit,"-p","MainPID","--value"]))
             if tls_pid:
-                ready=subprocess.run(["nsenter","-t",pid,"-n","ss","-ltnH","sport = :18650"],capture_output=True,text=True)
+                ready=subprocess.run(["nsenter","-t",str(pid),"-n","ss","-ltnH","sport = :18650"],capture_output=True,text=True)
                 if ready.stdout:break
             time.sleep(.1)
         require(tls_pid>1 and ready and ready.stdout,"TLS frontend failed to listen")
@@ -58,19 +60,21 @@ def get(path):
     response=connection.getresponse();body=response.read();headers=dict(response.getheaders());connection.close()
     return response.status,headers,body
 status,headers,body=get('/')
-assert status==200 and b'Owner sign in' in body
+assert status==200 and b'Owner sign in' in body, ('frontend HTTP status',status,'body bytes',len(body))
 assert headers.get('Cache-Control')=='no-store'
 assert headers.get('Referrer-Policy')=='same-origin'
 assert get('/api/v1/users')[0]==401
 assert get('/config/')[0]==404
 print('HTTPS exact SNI/trusted CA/login/no-store/owner denial/admin denial PASS')
 """
-        print(command(["nsenter","-t",pid,"-n","python3","-c",client,root/"run/ui-frontend/cert"]))
+
         probe=r"""
 import os, socket
 assert os.geteuid()==981
 for path in ['/var/lib/vpn-control','/var/lib/empire-vpn','/etc/empire-vpn','/proc/1/root','/run/caddy-admin/admin.sock']:
-    try:os.stat(path)
+    try:
+        if path.endswith('admin.sock') or path.endswith('/root'): os.stat(path)
+        else: os.listdir(path)
     except PermissionError:pass
     else:raise RuntimeError('frontend secret boundary readable')
 s=socket.socket(socket.AF_UNIX);s.connect('/run/vpn-control/api/api.sock');s.close()
@@ -80,6 +84,7 @@ print('Frontend vault/proc-root/admin denied; private API socket allowed PASS')
         for prop in properties:
             if not prop.startswith("LoadCredential="):probe_command.extend(["-p",prop])
         print(command(probe_command+["/usr/bin/python3.14","-B","-c",probe]))
+        print(command(["nsenter","-t",pid,"-n","python3","-c",client,root/"run/ui-frontend/cert"]))
         print("Frontend UID981/CapEff0/isolated namespace PASS")
     finally:subprocess.run(["systemctl","stop",unit],check=False,capture_output=True)
 if __name__=="__main__":main()

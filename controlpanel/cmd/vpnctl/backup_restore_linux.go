@@ -32,9 +32,10 @@ type VerifiedManagedArchive struct {
 }
 
 // RestoreSourceRoots is trusted caller policy, never read from the archive.
-type RestoreSourceRoots struct{ PanelRoot, StateRoot, ConfigRoot string }
+type RestoreSourceRoots struct{ PanelRoot, StateRoot, ConfigRoot string; WrapperPath, WrapperSHA256 string }
 
 func (r RestoreSourceRoots) valid() bool {
+	if (r.WrapperPath=="")!=(r.WrapperSHA256=="") || r.WrapperPath!="" && (!safeBackupOriginal(r.WrapperPath)||!backupDigest.MatchString(r.WrapperSHA256)) {return false}
 	roots := []string{r.PanelRoot, r.StateRoot, r.ConfigRoot}
 	for i, p := range roots {
 		if !safeBackupOriginal(p) {
@@ -49,6 +50,7 @@ func (r RestoreSourceRoots) valid() bool {
 	return true
 }
 func (r RestoreSourceRoots) permits(path string) bool {
+	if r.WrapperPath!="" && path==r.WrapperPath{return true}
 	if path == filepath.Join(r.PanelRoot, "state.db") || path == filepath.Join(r.PanelRoot, "vault.key") {
 		return true
 	}
@@ -207,6 +209,7 @@ func verifyManagedArchive(ctx context.Context, archive, staging, expectedManifes
 	paths := map[string]ManagedArchiveMember{}
 	blobs := map[string]bool{}
 	for _, m := range manifest.Members {
+		if m.Path==roots.WrapperPath && (m.UID!=0||m.GID!=0||m.Mode!=0755||len(m.Xattrs)!=0||m.SHA256!=roots.WrapperSHA256) {return out,storage.ErrSnapshotState}
 		actual, ok := seen[m.Blob]
 		if !ok || blobs[m.Blob] || !safeBackupOriginal(m.Path) || !roots.permits(m.Path) || !backupDigest.MatchString(m.SHA256) || m.SHA256 != actual.SHA256 || m.Size != actual.Size || m.Mode&^uint32(0777) != 0 || validateArchiveXattrs(m.Xattrs, m.Mode) != nil || m.XattrsSHA256 != archiveXattrsDigest(m.Xattrs) {
 			return out, storage.ErrSnapshotState

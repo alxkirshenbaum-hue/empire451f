@@ -82,3 +82,12 @@ func TestOfflineVerifyEncryptedRoundtrip(t *testing.T) {
 		}
 	}
 }
+
+func TestOfflineRecoveryParentOwnership(t *testing.T) {
+ root:=t.TempDir();if e:=os.Chmod(root,0700);e!=nil{t.Fatal(e)}
+ if !trustedRecoveryParent(root){t.Fatal("owned private parent rejected")}
+ unsafe:=filepath.Join(root,"writable");if e:=os.Mkdir(unsafe,0777);e!=nil{t.Fatal(e)};if e:=os.Chmod(unsafe,0777);e!=nil{t.Fatal(e)}
+ child:=filepath.Join(unsafe,"private");if e:=os.Mkdir(child,0700);e!=nil{t.Fatal(e)}
+ if trustedRecoveryParent(child){t.Fatal("mutable ancestor accepted")}
+ if os.Geteuid()==0 {foreign:=filepath.Join(root,"foreign");if e:=os.Mkdir(foreign,0700);e!=nil{t.Fatal(e)};if e:=os.Chown(foreign,65534,65534);e!=nil{t.Fatal(e)};if trustedRecoveryParent(foreign){t.Fatal("foreign private parent accepted")}}
+}

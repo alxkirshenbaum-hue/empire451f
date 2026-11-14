@@ -158,3 +158,17 @@ matches production approved source by read-only query; integrityok,
 unfinished0, generation2. Adding reviewed snapshot/return helper files changes
 package contents only; final revision/manifest recorded in the next checkpoint.
 Entire production deploy/rollback execution remains unperformed and unclaimed.
+## Final package checkpoint — ad6b653
+
+See [package receipt](W7_PACKAGE_RECEIPT_2026-11-14.md) and
+[public manifest](W7_PACKAGE_MANIFEST_ad6b653.json).19files/33,306,900bytes.
+ManifestSHA256 e512a536a57256dbaff7025991621551cda11687b14423ebb9ce5abb281b6ba0.
+Final verify/tamper/symlink/unlisted-file/unit syntax/replay sh-n passed.
+Payload binaries are byte-identical to tested cd3de10; product/tests/deps/
+shipped helpers diffcd3de10..ad6b653 empty. Full pinnedcd3de10 reused;
+no redundant full Go run for packaging-only changes.
+Root7202 inactive/MainPID0/Resultsuccess observed. No production deploy/CRUD/
+stop/restart. Next action needs an approved control-plane window per
+W7_UPGRADE_WINDOW.md, with fresh protected snapshots/transient replay capture
+before stop. Entire production switch/rollback and phone remain unexecuted.
+W7 3/4, G7 OPEN; W6 3/4, G6 OPEN. E1 not released.

@@ -1,0 +1,125 @@
+{
+  "api_socket": "/run/vpn-control-api/api.sock",
+  "files": [
+    {
+      "mode": 493,
+      "path": "bin/vpn-control",
+      "sha256": "3a0aace4b2adf1fdd78361564042f0ee59428bb0df5a16eaf727abc21e95be68",
+      "size": 17826408
+    },
+    {
+      "mode": 493,
+      "path": "bin/vpnctl",
+      "sha256": "fc9c04642431149860b6c16f1aca997c8871ebdbefb409169462d1c988b6513d",
+      "size": 15389336
+    },
+    {
+      "mode": 420,
+      "path": "helpers/owned_auth.py",
+      "sha256": "d161f67951f732bf1b671afefb8bf3cf58be16badf7a65514a4f55ba610caadd",
+      "size": 10334
+    },
+    {
+      "mode": 420,
+      "path": "helpers/create_probe.py",
+      "sha256": "b6d3f93737e3cf0c950aa46b87515a3b04a0f91a32ce7b196c84c3ecb923c12f",
+      "size": 6872
+    },
+    {
+      "mode": 420,
+      "path": "helpers/inspect_legacy.py",
+      "sha256": "cf10ce45376928561540751189d74337c7293ce6e15f01ee4c5ded824d71fb5f",
+      "size": 10033
+    },
+    {
+      "mode": 420,
+      "path": "helpers/handoff_legacy.py",
+      "sha256": "a2ab3f73ccf67fd12db7d9c0144f6abd7d8cae22af356d94bec59a27a569c9e7",
+      "size": 10861
+    },
+    {
+      "mode": 420,
+      "path": "helpers/return_legacy.py",
+      "sha256": "dae1d6545f1badf24d6c59ad0ae2d84a52b61c3d9dcf600cca155975da5db434",
+      "size": 8392
+    },
+    {
+      "mode": 420,
+      "path": "helpers/render.py",
+      "sha256": "f184ab524304cbc8fe5b892cbc84fb9f61f75bc68ed0f1009d28d7bc2087678e",
+      "size": 10086
+    },
+    {
+      "mode": 420,
+      "path": "helpers/verify.py",
+      "sha256": "b57472a4836a59ef2dbc0b01e35f6104193c309f8fa57172a0afaee25965ebe1",
+      "size": 8635
+    },
+    {
+      "mode": 420,
+      "path": "helpers/g3_snapshot.py",
+      "sha256": "85e1c89d2a18cd0612aa351be315e74e7fb06166bb38410bf2ec33d2b57bc4cf",
+      "size": 6306
+    },
+    {
+      "mode": 420,
+      "path": "helpers/g3_restore_runtime.py",
+      "sha256": "9c7da6a54b35e14898c09feb26787d3f7aadf9624fd99b64873d5b405895e9ee",
+      "size": 4967
+    },
+    {
+      "mode": 420,
+      "path": "systemd/vpn-control-panel.service",
+      "sha256": "a98db0b1f6bd023b8ea4ecef929bb3ffa5e7fb236ccf15b031d657c5fd0dfa02",
+      "size": 1167
+    },
+    {
+      "mode": 420,
+      "path": "systemd/vpn-control-worker@.service",
+      "sha256": "a885820138213564fe0d271ef5183a921e5bb8c302639fb90b9cd7cf398113ea",
+      "size": 999
+    },
+    {
+      "mode": 420,
+      "path": "systemd/vpn-control-worker@.timer",
+      "sha256": "e23845370813efd060be6ad9ca5b7a602cb03b993367c108f249b7cdc62f8f02",
+      "size": 175
+    },
+    {
+      "mode": 420,
+      "path": "WINDOW.md",
+      "sha256": "40f2489bec47cbbd9acf1e778819cf26143097ed79b4641cdf1b1e93087f81ff",
+      "size": 7249
+    },
+    {
+      "mode": 448,
+      "path": "replay-readonly-frontend.sh",
+      "sha256": "292ef054b22944c19cc2cd08edc3a5d04ac2be1825f77a32053c077a1651b67e",
+      "size": 1121
+    },
+    {
+      "mode": 420,
+      "path": "private-panel.Caddyfile",
+      "sha256": "9058665647f3eaeef3f1e78249388a4de816c0ce5220260d85098d0ef908f885",
+      "size": 311
+    },
+    {
+      "mode": 420,
+      "path": "systemd/20-owner-run.conf",
+      "sha256": "35b9d06eca4ca4263b147390a3006602284d67f23a09f8b271f6bc9e7b7e82b1",
+      "size": 288
+    },
+    {
+      "mode": 420,
+      "path": "sfa-template.json",
+      "sha256": "1cea56f365912867563039963cc6fe25c47c1873c10010bcd1916d23c1a9a1b8",
+      "size": 3360
+    }
+  ],
+  "format": 1,
+  "helper_destination": "/opt/empire-vpn/controlpanel/ad6b6532ae75ec0720f692314f626e97524cc44d",
+  "installation": "nh1",
+  "requires_production_approval": true,
+  "revision": "ad6b6532ae75ec0720f692314f626e97524cc44d",
+  "source_template_sha256": "1cea56f365912867563039963cc6fe25c47c1873c10010bcd1916d23c1a9a1b8"
+}

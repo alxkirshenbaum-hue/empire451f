@@ -65,7 +65,7 @@ func ownerCLIMode(args []string) bool {
 	allowed := map[string]string{
 		"user": "|list|show|create|rename|disable|enable|delete|history|check|",
 		"cred": "|status|rotate|revoke|", "profile": "|download|", "template": "|list|",
-		"operation": "|list|", "audit": "|list|", "backup": "|list|", "system": "|show|",
+		"operation": "|list|", "audit": "|list|", "backup": "|list|create|show|download|verify|complete|cancel|prune|", "system": "|show|",
 	}
 	return strings.Contains(allowed[args[0]], "|"+args[1]+"|")
 }
@@ -75,7 +75,7 @@ func ownerCLI(args []string, out, stderr io.Writer) int {
 	flags.SetOutput(io.Discard)
 	var user string
 	rest := args[2:]
-	needsID := group == "user" && action != "list" && action != "create" || group == "cred" || group == "profile"
+	needsID := group == "user" && action != "list" && action != "create" || group == "cred" || group == "profile" || group=="backup" && action!="list" && action!="create" && action!="prune"
 	if needsID {
 		if len(rest) == 0 || !status.ValidID(rest[0]) {
 			fmt.Fprintln(stderr, "Expected user UUID")
@@ -101,6 +101,12 @@ func ownerCLI(args []string, out, stderr io.Writer) int {
 	cursor := flags.String("cursor", "", "Page cursor")
 	machine := flags.Bool("json", false, "JSON response")
 	quiet := flags.Bool("quiet", false, "No metadata output")
+	label := flags.String("label","","Backup label")
+	sha := flags.String("sha256","","Expected encrypted artifact SHA256")
+	report := flags.String("report","","Private sanitized owner verification report")
+	keep := flags.Int("keep",3,"Verified generations to retain")
+	dryRun := flags.Bool("dry-run",false,"Show a read-only retention plan")
+	expectedState := flags.String("expected-state","","Expected retention state SHA256")
 	if flags.Parse(rest) != nil || flags.NArg() != 0 || *machine && *quiet {
 		fmt.Fprintln(stderr, "Invalid command options")
 		return 2
@@ -119,6 +125,12 @@ func ownerCLI(args []string, out, stderr io.Writer) int {
 		allowedFlags += "expected-version|reason|idempotency-key|confirm-delete|"
 	case "profile/download":
 		allowedFlags += "client|ru-dm|acknowledge|output|"
+	case "backup/create":allowedFlags+="label|idempotency-key|"
+	case "backup/download":allowedFlags+="output|sha256|"
+	case "backup/verify":allowedFlags+="sha256|idempotency-key|"
+	case "backup/complete":allowedFlags+="report|idempotency-key|"
+	case "backup/cancel":allowedFlags+="idempotency-key|"
+	case "backup/prune":allowedFlags+="keep|dry-run|expected-state|idempotency-key|"
 	}
 	invalid := false
 	flags.Visit(func(f *flag.Flag) {
@@ -133,6 +145,19 @@ func ownerCLI(args []string, out, stderr io.Writer) int {
 	method, path := "GET", ""
 	var body any
 	switch group {
+	case "backup":
+		switch action {
+		case "list":path="/api/v1/backups"
+		case "show":path="/api/v1/backups/"+user
+		case "download":
+			if *output=="" || !validCipherDigest(*sha) {fmt.Fprintln(stderr,"Expected private output file and encrypted artifact SHA256");return 2};path="/api/v1/backups/"+user+"/download"
+		case "create":method,path,body="POST","/api/v1/backups",map[string]any{"label":*label}
+		case "verify":method,path,body="POST","/api/v1/backups/"+user+"/verify",map[string]any{"sha256":*sha}
+		case "complete":
+			value,e:=readVerificationReport(*report);if e!=nil {fmt.Fprintln(stderr,"Private verification report unavailable");return 3};method,path,body="POST","/api/v1/operations/"+user+"/backup-verification",value
+		case "cancel":method,path,body="POST","/api/v1/operations/"+user+"/cancel",map[string]any{}
+		case "prune":method,path,body="POST","/api/v1/backups/prune",map[string]any{"keep":*keep,"dry_run":*dryRun,"expected_state":*expectedState}
+		}
 	case "user":
 		switch action {
 		case "list":
@@ -193,17 +218,15 @@ func ownerCLI(args []string, out, stderr io.Writer) int {
 		path = "/api/v1/operations"
 	case "audit":
 		path = "/api/v1/audits"
-	case "backup":
-		path = "/api/v1/backups"
 	case "system":
 		path = "/api/v1/dashboard"
 	}
 	mutation := method != "GET" && action != "check"
-	if path == "" || mutation && !status.ValidID(*key) || mutation && action != "create" && *expected < 1 {
+	if path == "" || mutation && !status.ValidID(*key) || mutation && group!="backup" && action != "create" && *expected < 1 {
 		fmt.Fprintln(stderr, "Expected stable idempotency key and current row version")
 		return 2
 	}
-	if mutation {
+	if mutation && group!="backup" {
 		fmt.Fprintln(stderr, caddy.ApplyNotice)
 	}
 	cookie, err := ownerCookie()
@@ -243,6 +266,9 @@ func ownerCLI(args []string, out, stderr io.Writer) int {
 		return 5
 	}
 	defer response.Body.Close()
+	if group=="backup"&&action=="download"&&response.StatusCode==200 {
+		if err=saveCipherDownload(response.Body,*output,*sha);err!=nil{fmt.Fprintln(stderr,"Cannot save verified encrypted artifact; existing files are never replaced");return 9};if !*quiet{fmt.Fprintln(out,"Encrypted backup saved")};return 0
+	}
 	if group == "profile" && response.StatusCode == 200 {
 		raw, e := io.ReadAll(io.LimitReader(response.Body, 2*1024*1024+1))
 		if e != nil || len(raw) > 2*1024*1024 || !json.Valid(raw) {

@@ -136,7 +136,9 @@ func panelRoutes(mux *http.ServeMux, registry *storage.Registry, run string) {
 			panelError(w, err)
 			return
 		}
-		panelJSON(w, 200, map[string]any{"clients": []string{storage.Client1144, storage.ClientAlpha13}, "routing_warning": storage.RoutingWarning, "apply_notice": caddy.ApplyNotice, "mutations_enabled": ready, "capacity": 100, "live_observed_state": "unknown", "backup_creation_available": false})
+		backupReady, err := registry.BackupConfigured(r.Context())
+		if err != nil { panelError(w,err); return }
+		panelJSON(w, 200, map[string]any{"clients": []string{storage.Client1144, storage.ClientAlpha13}, "routing_warning": storage.RoutingWarning, "apply_notice": caddy.ApplyNotice, "mutations_enabled": ready, "capacity": 100, "live_observed_state": "unknown", "backup_creation_available": backupReady})
 	}))
 	mux.HandleFunc("GET /api/v1/users", owner(false, func(w http.ResponseWriter, r *http.Request, _ string) {
 		q := r.URL.Query()
@@ -269,4 +271,5 @@ func panelRoutes(mux *http.ServeMux, registry *storage.Registry, run string) {
 		}
 		panelJSON(w, 200, data)
 	}))
+	maintenanceRoutes(mux,registry,run,owner)
 }

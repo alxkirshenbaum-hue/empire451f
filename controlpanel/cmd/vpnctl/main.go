@@ -15,6 +15,7 @@ import (
 )
 
 func execute(args []string, out, stderr io.Writer) int {
+	if len(args)>=2 && args[0]=="backup" && args[1]=="configure" {return configureBackup(args[2:],out,stderr)}
 	if ownerCLIMode(args) {
 		return ownerCLI(args, out, stderr)
 	}

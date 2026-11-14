@@ -142,6 +142,9 @@ func (r *Registry) updateUserCASReplay(ctx context.Context, id string, expected 
 			return zero, nil
 		}
 	}
+	if err = MaintenanceBlocked(ctx, tx); err != nil {
+		return zero, err
+	}
 	u, err := scanUser(tx.QueryRowContext(ctx, "SELECT "+effectiveUserColumns+" FROM users WHERE id=?", id))
 	if err != nil {
 		return zero, err

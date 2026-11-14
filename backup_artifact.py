@@ -211,6 +211,11 @@ def seal_file(source, public_key_path, output):
     return _publish(output, operation)
 
 
+def recipient_fingerprint(public_key_path):
+    """Return the configured public recipient identity; never read a private key."""
+    return _fingerprint(_key(public_key_path))
+
+
 def decrypt_file(envelope, private_key_path, output, expected_sha256):
     """Publish plaintext only after GCM authentication and envelope SHA verification."""
     if not isinstance(expected_sha256, str) or not re.fullmatch('[0-9a-f]{64}', expected_sha256):
@@ -255,3 +260,34 @@ def decrypt_file(envelope, private_key_path, output, expected_sha256):
                 raise ValueError('artifact digest mismatch')
             return dict(sha256=digest.hexdigest(), size_bytes=size, key_fingerprint=_fingerprint(recipient))
     return _publish(output, operation)
+
+
+def main():
+    """Bounded stdin protocol for the existing root worker and off-node owner."""
+    import sys
+    try:
+        raw = sys.stdin.buffer.read(8193)
+        if len(raw) > 8192:
+            raise ValueError('request exceeds limit')
+        request = json.loads(raw)
+        action = request.pop('action')
+        if action == 'seal' and set(request) == {'source', 'public_key_path', 'output'}:
+            receipt = seal_file(**request)
+        elif action == 'decrypt' and set(request) == {'envelope', 'private_key_path', 'output', 'expected_sha256'}:
+            receipt = decrypt_file(**request)
+        elif action == 'recipient' and set(request) == {'public_key_path'}:
+            receipt = dict(key_fingerprint=recipient_fingerprint(**request))
+        else:
+            raise ValueError('invalid artifact action')
+        print(json.dumps(receipt, sort_keys=True))
+        return 0
+    except PublicationUncertainError:
+        print('Artifact publication requires reconciliation', file=sys.stderr)
+        return 4
+    except Exception:
+        print('Artifact operation failed', file=sys.stderr)
+        return 2
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

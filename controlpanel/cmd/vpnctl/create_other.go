@@ -7,6 +7,8 @@ import (
 	"io"
 )
 
+func configureBackup(args []string,out,stderr io.Writer) int {fmt.Fprintln(stderr,"Configure the public backup recipient on the Linux entry");return 2}
+
 func createLocalUser(args []string, out, stderr io.Writer) int {
 	fmt.Fprintln(stderr, "Run vpnctl user create on the Linux entry")
 	return 2

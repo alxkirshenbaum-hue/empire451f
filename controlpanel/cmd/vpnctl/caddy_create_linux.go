@@ -5,6 +5,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"os"
@@ -25,6 +26,7 @@ type createCaddyWorker struct {
 	probe                                   func(context.Context, string, vault.PlainSecret) error
 	baseline                                func(context.Context) error
 	mutationProbe                           func(context.Context, storage.AuthJob, vault.PlainSecret, vault.PlainSecret) error
+	backupPolicy *workerPolicy
 }
 
 // Helper requests are root-owned deployment policy; secrets travel only on stdin.
@@ -163,6 +165,9 @@ func (w *createCaddyWorker) once() (storage.Receipt, error) {
 			if cleaned, err := w.cleanupCompleted(ctx, reg); err != nil || cleaned.OperationID != "" {
 				return cleaned, err
 			}
+			maintenance,err:=reg.NextMaintenance(ctx,w.run)
+			if err==nil { return w.applyMaintenance(ctx,reg,maintenance) }
+			if !errors.Is(err,sql.ErrNoRows) {return storage.Receipt{},err}
 			receipt, phase, err := reg.NextOwnedAuth(ctx, w.run)
 			if err != nil || phase == "" {
 				return receipt, err

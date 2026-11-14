@@ -238,6 +238,9 @@ func (r *Registry) stageCreateWithVariant(ctx context.Context, tx *sql.Tx, actor
 	if !errors.Is(err, sql.ErrNoRows) {
 		return Receipt{}, err
 	}
+	if err = MaintenanceBlocked(ctx, tx); err != nil {
+		return Receipt{}, err
+	}
 	var existing, regular, blocked int
 	if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM users WHERE login=? COLLATE BINARY", req.Login).Scan(&existing); err != nil {
 		return Receipt{}, err

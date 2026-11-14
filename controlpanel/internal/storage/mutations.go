@@ -67,6 +67,9 @@ func (r *Registry) QueueOwnedMutation(ctx context.Context, run, actor, key strin
 	if !errors.Is(err, sql.ErrNoRows) {
 		return Receipt{}, err
 	}
+	if err = MaintenanceBlocked(ctx, tx); err != nil {
+		return Receipt{}, err
+	}
 	u, err := scanUser(tx.QueryRowContext(ctx, "SELECT "+userColumns+" FROM users WHERE id=?", req.UserID))
 	if err != nil {
 		return Receipt{}, err

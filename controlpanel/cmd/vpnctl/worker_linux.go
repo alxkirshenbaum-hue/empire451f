@@ -29,6 +29,10 @@ type workerPolicy struct {
 	Helper       string   `json:"helper"`
 	Validate     []string `json:"validate_command"`
 	Probe        []string `json:"probe_command"`
+	BackupHelper string `json:"backup_helper,omitempty"`
+	BackupRecipient string `json:"backup_recipient,omitempty"`
+	BackupDirectory string `json:"backup_directory,omitempty"`
+	BackupWork string `json:"backup_work,omitempty"`
 }
 
 func rootFile(path string, private bool) error {
@@ -82,6 +86,10 @@ func readWorkerPolicy(path, installation, run string) (workerPolicy, error) {
 				}
 			}
 		}
+	}
+	if p.BackupHelper!="" || p.BackupRecipient!="" || p.BackupDirectory!="" || p.BackupWork!="" {
+		for _,file:=range []string{p.BackupHelper,p.BackupRecipient} { if err=rootFile(file,false);err!=nil{return p,err} }
+		for _,dir:=range []string{p.BackupDirectory,p.BackupWork} {if err=backupRootDirectory(dir);err!=nil{return p,err}}
 	}
 	return p, nil
 }
@@ -168,6 +176,7 @@ func workerCommand(args []string, out, stderr io.Writer, reconcile bool) int {
 		return 5
 	}
 	w := createCaddyWorker{state: filepath.Join("/var/lib/empire-vpn", *installation), config: "/etc/empire-vpn", lock: "/run/lock/empire-vpn.lock", panel: "/var/lib/vpn-control", run: *run, helper: policy.Helper, runtime: runtime, probe: commandProbe(policy.Probe)}
+	w.backupPolicy = &policy
 	w.mutationProbe = commandMutationProbe(policy.Probe)
 	w.baseline = func(ctx context.Context) error {
 		return caddyBaseline(ctx, policy, runtime, filepath.Join(w.config, *installation, "Caddyfile"))

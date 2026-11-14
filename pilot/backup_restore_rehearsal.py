@@ -79,6 +79,7 @@ def verify():
         profile=json.loads((proof/'old-profile.json').read_bytes())
         require(Path('/var/lib/empire-vpn/lab/vpn-Old-User.json').read_bytes()==(proof/'old-profile.json').read_bytes(),'old profile bytes changed')
         profile_client(stack,profile,19088,cert)
+        scratch=Path('/run/vpn-control/probes');scratch.mkdir(mode=0o700);scratch.chmod(0o700)
         from create_probe import probe
         probe('/etc/vpn-control/probe-lab.json','New-User',context['revoked_secret'],active=False)
         print('backup-restore: owner login / unchanged old profile fresh TCP-UoT / revoked negative / Caddy validate PASS',flush=True)

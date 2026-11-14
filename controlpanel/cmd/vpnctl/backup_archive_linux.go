@@ -6,6 +6,8 @@ import (
 	"archive/tar"
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -15,6 +17,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
+	"strings"
 	"syscall"
 
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/storage"
@@ -55,8 +58,8 @@ type ManagedArchiveManifest struct {
 }
 
 // createInstallationArchive is called only while holding the existing installation
-// writer. Parents must remain trusted and immutable. ACLs/xattrs are conservatively
-// rejected, not silently discarded. Archive production is not restore verification.
+// writer. Parents must remain trusted and immutable. Supported ACLs/xattrs are
+// inventoried in bounded manifest metadata. Archive production is not restore verification.
 func createInstallationArchive(ctx context.Context, reg *storage.Registry, state, config, panel, run, workdir, ownID string) (out ManagedArchive, resultErr error) {
 	extra, err := archiveLegacyObservation(state)
 	if err != nil {
@@ -240,11 +243,9 @@ func archiveMember(ctx context.Context, tw *tar.Writer, path, blob, expected str
 	if !ok || !info.Mode().IsRegular() || st.Nlink != 1 || info.Size() > storage.SnapshotMaxBytes {
 		return member, storage.ErrSnapshotState
 	}
-	// Reject all extended attributes, including POSIX ACLs, until a bounded,
-	// roundtrip-tested restore policy exists. Unsupported filesystems fail closed.
-	n, err := unix.Flistxattr(fd, nil)
-	if err != nil || n != 0 {
-		return member, storage.ErrSnapshotState
+	attrs, err := readArchiveXattrs(fd, st.Mode&0777)
+	if err != nil {
+		return member, err
 	}
 	if err = tw.WriteHeader(&tar.Header{Name: blob, Mode: 0600, Size: info.Size(), Typeflag: tar.TypeReg, Format: tar.FormatUSTAR}); err != nil {
 		return member, err
@@ -271,11 +272,11 @@ func archiveMember(ctx context.Context, tw *tar.Writer, path, blob, expected str
 	}
 	end, err := f.Stat()
 	current, e := os.Lstat(path)
-	attrs, ae := unix.Flistxattr(fd, nil)
-	if err != nil || e != nil || ae != nil || attrs != 0 || !os.SameFile(info, current) || !archiveSameMetadata(info, end) || hex.EncodeToString(h.Sum(nil)) != expected {
+	endAttrs, ae := readArchiveXattrs(fd, st.Mode&0777)
+	if err != nil || e != nil || ae != nil || !reflect.DeepEqual(attrs, endAttrs) || !os.SameFile(info, current) || !archiveSameMetadata(info, end) || hex.EncodeToString(h.Sum(nil)) != expected {
 		return member, storage.ErrLegacyDrift
 	}
-	return ManagedArchiveMember{Path: path, Blob: blob, SHA256: expected, Size: info.Size(), UID: st.Uid, GID: st.Gid, Mode: st.Mode & 07777, Xattrs: map[string]string{}, XattrsSHA256: fmt.Sprintf("%x", sha256.Sum256([]byte("{}")))}, nil
+	return ManagedArchiveMember{Path: path, Blob: blob, SHA256: expected, Size: info.Size(), UID: st.Uid, GID: st.Gid, Mode: st.Mode & 07777, Xattrs: attrs, XattrsSHA256: archiveXattrsDigest(attrs)}, nil
 }
 
 func archiveSameMetadata(a, b os.FileInfo) bool {
@@ -288,4 +289,128 @@ func archiveSameMetadata(a, b os.FileInfo) bool {
 		return false
 	}
 	return x.Dev == y.Dev && x.Ino == y.Ino && x.Size == y.Size && x.Mode == y.Mode && x.Uid == y.Uid && x.Gid == y.Gid && x.Nlink == y.Nlink && x.Mtim == y.Mtim && x.Ctim == y.Ctim
+}
+
+// Attributes are manifest metadata, never PAX records. Privileged namespaces and
+// directory default ACLs are unsupported. Values are canonical base64, not text.
+func archiveXattrsDigest(attrs map[string]string) string {
+	raw, _ := json.Marshal(attrs)
+	return fmt.Sprintf("%x", sha256.Sum256(raw))
+}
+func validateArchiveXattrs(attrs map[string]string, mode uint32) error {
+	if attrs == nil || len(attrs) > 64 {
+		return storage.ErrSnapshotState
+	}
+	total := 0
+	for name, value := range attrs {
+		if len(name) > 255 || !(strings.HasPrefix(name, "user.") && len(name) > 5 || name == "system.posix_acl_access") {
+			return storage.ErrSnapshotState
+		}
+		for _, c := range []byte(name) {
+			if c < 33 || c > 126 {
+				return storage.ErrSnapshotState
+			}
+		}
+		if len(value) > 87384 {
+			return storage.ErrSnapshotState
+		}
+		raw, err := base64.StdEncoding.Strict().DecodeString(value)
+		if err != nil || base64.StdEncoding.EncodeToString(raw) != value {
+			return storage.ErrSnapshotState
+		}
+		total += len(name) + len(raw)
+		if total > 65536 {
+			return storage.ErrSnapshotState
+		}
+		if name == "system.posix_acl_access" && !validArchiveACL(raw, mode) {
+			return storage.ErrSnapshotState
+		}
+	}
+	return nil
+}
+func validArchiveACL(raw []byte, mode uint32) bool {
+	if len(raw) < 28 || (len(raw)-4)%8 != 0 || binary.LittleEndian.Uint32(raw) != 2 {
+		return false
+	}
+	stage := uint16(0)
+	bases := map[uint16]uint16{}
+	named := false
+	lastID := uint32(0)
+	haveID := false
+	for p := 4; p < len(raw); p += 8 {
+		tag := binary.LittleEndian.Uint16(raw[p:])
+		perm := binary.LittleEndian.Uint16(raw[p+2:])
+		id := binary.LittleEndian.Uint32(raw[p+4:])
+		if perm > 7 || !(tag == 1 || tag == 2 || tag == 4 || tag == 8 || tag == 16 || tag == 32) || tag < stage {
+			return false
+		}
+		if tag == 2 || tag == 8 {
+			named = true
+			if id == 0xffffffff || tag == stage && haveID && id <= lastID {
+				return false
+			}
+			lastID = id
+			haveID = true
+		} else {
+			if id != 0xffffffff {
+				return false
+			}
+			if _, ok := bases[tag]; ok {
+				return false
+			}
+			bases[tag] = perm
+			haveID = false
+		}
+		stage = tag
+	}
+	for _, tag := range []uint16{1, 4, 32} {
+		if _, ok := bases[tag]; !ok {
+			return false
+		}
+	}
+	group := bases[4]
+	if mask, ok := bases[16]; ok {
+		group = mask
+	} else if named {
+		return false
+	}
+	return uint32(bases[1]) == mode>>6&7 && uint32(group) == mode>>3&7 && uint32(bases[32]) == mode&7
+}
+func readArchiveXattrs(fd int, mode uint32) (map[string]string, error) {
+	n, err := unix.Flistxattr(fd, nil)
+	if err != nil || n > 65536 {
+		return nil, storage.ErrSnapshotState
+	}
+	names := make([]byte, n)
+	got, err := unix.Flistxattr(fd, names)
+	if err != nil || got != n {
+		return nil, storage.ErrLegacyDrift
+	}
+	attrs := map[string]string{}
+	total := 0
+	if n > 0 {
+		if names[n-1] != 0 {
+			return nil, storage.ErrSnapshotState
+		}
+		for _, name := range strings.Split(string(names[:n-1]), "\x00") {
+			if len(attrs) >= 64 {
+				return nil, storage.ErrSnapshotState
+			}
+			size, e := unix.Fgetxattr(fd, name, nil)
+			if e != nil || size > 65536-total-len(name) {
+				return nil, storage.ErrSnapshotState
+			}
+			total += size + len(name)
+			value := make([]byte, size)
+			got, e := unix.Fgetxattr(fd, name, value)
+			if e != nil || got != size {
+				return nil, storage.ErrLegacyDrift
+			}
+			attrs[name] = base64.StdEncoding.EncodeToString(value)
+		}
+	}
+	if err := validateArchiveXattrs(attrs, mode); err != nil {
+		return nil, err
+	}
+	return attrs, nil
 }

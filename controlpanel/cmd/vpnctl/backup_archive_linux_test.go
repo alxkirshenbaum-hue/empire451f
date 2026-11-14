@@ -98,7 +98,7 @@ func TestManagedArchiveRejectsAndCleans(t *testing.T) {
 				f.Truncate(32 * 1024 * 1024)
 				f.Close()
 			case "xattr":
-				if err := unix.Setxattr(source, "user.fixture", []byte("value"), 0); err != nil {
+				if err := unix.Setxattr(source, "user.unsupported\n", []byte("value"), 0); err != nil {
 					t.Skip("filesystem does not support user xattrs")
 				}
 			case "cancel":

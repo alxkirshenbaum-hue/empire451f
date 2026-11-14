@@ -6,10 +6,12 @@ import (
 	"archive/tar"
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"golang.org/x/sys/unix"
 	"io"
 	"os"
 	"path/filepath"
@@ -76,7 +78,7 @@ func verifyManagedArchive(ctx context.Context, archive, staging, expectedManifes
 		return out, storage.ErrSnapshotState
 	}
 	pi, err := os.Stat(parent)
-	if err != nil || !pi.IsDir() || pi.Mode().Perm()&0077 != 0 {
+	if err != nil || !pi.IsDir() || pi.Mode().Perm()&0077 != 0 || !trustedRecoveryParent(parent) {
 		return out, storage.ErrSnapshotState
 	}
 	if err = os.Mkdir(staging, 0700); err != nil {
@@ -200,7 +202,7 @@ func verifyManagedArchive(ctx context.Context, archive, staging, expectedManifes
 	blobs := map[string]bool{}
 	for _, m := range manifest.Members {
 		actual, ok := seen[m.Blob]
-		if !ok || blobs[m.Blob] || !safeBackupOriginal(m.Path) || !roots.permits(m.Path) || !backupDigest.MatchString(m.SHA256) || m.SHA256 != actual.SHA256 || m.Size != actual.Size || m.Mode&^uint32(0777) != 0 || len(m.Xattrs) != 0 || m.XattrsSHA256 != fmt.Sprintf("%x", sha256.Sum256([]byte("{}"))) {
+		if !ok || blobs[m.Blob] || !safeBackupOriginal(m.Path) || !roots.permits(m.Path) || !backupDigest.MatchString(m.SHA256) || m.SHA256 != actual.SHA256 || m.Size != actual.Size || m.Mode&^uint32(0777) != 0 || validateArchiveXattrs(m.Xattrs, m.Mode) != nil || m.XattrsSHA256 != archiveXattrsDigest(m.Xattrs) {
 			return out, storage.ErrSnapshotState
 		}
 		if _, ok := paths[m.Path]; ok {
@@ -368,5 +370,118 @@ func validateBackupCoverage(manifest ManagedArchiveManifest, paths map[string]Ma
 			return storage.ErrSnapshotState
 		}
 	}
+	return nil
+}
+
+// copyVerifiedMemberMetadata creates only a NEW file under a caller-owned private,
+// immutable parent. approvedUID/GID are trusted destination policy, not archive
+// authority. The verifier's private staging is never granted archived ACL access.
+func copyVerifiedMemberMetadata(ctx context.Context, source, target string, m ManagedArchiveMember, approvedUID, approvedGID uint32, approvedACLHash string) (resultErr error) {
+	if m.UID != approvedUID || m.GID != approvedGID || m.Mode&^uint32(0777) != 0 || validateArchiveXattrs(m.Xattrs, m.Mode) != nil || m.XattrsSHA256 != archiveXattrsDigest(m.Xattrs) {
+		return storage.ErrSnapshotState
+	}
+	if value, ok := m.Xattrs["system.posix_acl_access"]; ok {
+		raw, _ := base64.StdEncoding.DecodeString(value)
+		if approvedACLHash != fmt.Sprintf("%x", sha256.Sum256(raw)) {
+			return storage.ErrSnapshotState
+		}
+	} else if approvedACLHash != "" {
+		return storage.ErrSnapshotState
+	}
+	parent := filepath.Dir(target)
+	resolved, err := filepath.EvalSymlinks(parent)
+	if err != nil || resolved != parent {
+		return storage.ErrSnapshotState
+	}
+	pi, err := os.Stat(parent)
+	if err != nil || !pi.IsDir() || pi.Mode().Perm()&0077 != 0 || !trustedRecoveryParent(parent) {
+		return storage.ErrSnapshotState
+	}
+	pst, ok := pi.Sys().(*syscall.Stat_t)
+	if !ok || pst.Uid != uint32(os.Geteuid()) {
+		return storage.ErrSnapshotState
+	}
+	pf, err := os.Open(parent)
+	if err != nil {
+		return err
+	}
+	defer pf.Close()
+	if _, e := unix.Fgetxattr(int(pf.Fd()), "system.posix_acl_default", nil); e != unix.ENODATA {
+		return storage.ErrSnapshotState
+	}
+	fd, err := unix.Open(source, unix.O_RDONLY|unix.O_NOFOLLOW|unix.O_NONBLOCK|unix.O_CLOEXEC, 0)
+	if err != nil {
+		return err
+	}
+	in := os.NewFile(uintptr(fd), source)
+	defer in.Close()
+	info, err := in.Stat()
+	if err != nil {
+		return err
+	}
+	st, ok := info.Sys().(*syscall.Stat_t)
+	if !ok || !info.Mode().IsRegular() || st.Nlink != 1 || info.Size() != m.Size {
+		return storage.ErrSnapshotState
+	}
+	out, err := os.OpenFile(target, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err != nil {
+		return err
+	}
+	accepted := false
+	defer func() {
+		out.Close()
+		if !accepted {
+			resultErr = errors.Join(resultErr, os.Remove(target))
+		}
+	}()
+	h := sha256.New()
+	n, err := copyBackupContext(ctx, io.MultiWriter(out, h), in, m.Size)
+	if err != nil || n != m.Size || hex.EncodeToString(h.Sum(nil)) != m.SHA256 {
+		return storage.ErrSnapshotState
+	}
+	if err = out.Chown(int(approvedUID), int(approvedGID)); err != nil {
+		return err
+	}
+	if err = out.Chmod(os.FileMode(m.Mode)); err != nil {
+		return err
+	}
+	// ACL first; no subsequent chmod may alter its mask.
+	if value, ok := m.Xattrs["system.posix_acl_access"]; ok {
+		raw, _ := base64.StdEncoding.DecodeString(value)
+		if err = unix.Fsetxattr(int(out.Fd()), "system.posix_acl_access", raw, 0); err != nil {
+			return err
+		}
+	}
+	for name, value := range m.Xattrs {
+		if name == "system.posix_acl_access" {
+			continue
+		}
+		raw, _ := base64.StdEncoding.DecodeString(value)
+		if err = unix.Fsetxattr(int(out.Fd()), name, raw, 0); err != nil {
+			return err
+		}
+	}
+	actual, err := readArchiveXattrs(int(out.Fd()), m.Mode)
+	if err != nil || !reflect.DeepEqual(actual, m.Xattrs) {
+		return storage.ErrSnapshotState
+	}
+	final, err := out.Stat()
+	if err != nil {
+		return err
+	}
+	fs := final.Sys().(*syscall.Stat_t)
+	if fs.Uid != approvedUID || fs.Gid != approvedGID || fs.Mode&07777 != m.Mode {
+		return storage.ErrSnapshotState
+	}
+	if err = out.Sync(); err != nil {
+		return err
+	}
+	if err = out.Close(); err != nil {
+		return err
+	}
+	if err = pf.Sync(); err != nil {
+		return err
+	}
+	accepted = true
 	return nil
 }

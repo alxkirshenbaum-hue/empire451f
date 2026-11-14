@@ -129,22 +129,50 @@ class _Reader:
         return data
 
 
+class PublicationUncertainError(RuntimeError):
+    """Output was linked, but durability or staging cleanup did not complete.
+
+    Callers must reconcile the existing output before retrying. Never delete
+    it blindly: it may already be the successfully published artifact.
+    """
+
+
+def _sync_parent(parent):
+    # Windows does not support opening/fsyncing a directory via this API.
+    # Its parent ACL and platform durability policy remain caller concerns.
+    if os.name != 'posix':
+        return
+    fd = os.open(parent, os.O_RDONLY | getattr(os, 'O_DIRECTORY', 0))
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
 def _publish(output, operation):
     output = Path(output)
     if os.path.lexists(output):
         raise FileExistsError('artifact output occupied')
-    # New private child prevents unauthenticated plaintext from being visible
-    # at the destination. Parent must not be writable by an adversary.
-    with tempfile.TemporaryDirectory(prefix='.artifact-', dir=output.parent) as directory:
-        stage = Path(directory) / 'data'
-        fd = os.open(stage, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, 'O_BINARY', 0), 0o600)
-        with os.fdopen(fd, 'wb') as stream:
-            receipt = operation(stream)
-            stream.flush()
-            os.fsync(stream.fileno())
-        # Atomic no-replace publication, including POSIX where rename overwrites.
-        os.link(stage, output)
+    published = False
+    try:
+        # New private child prevents unauthenticated plaintext from being visible
+        # at the destination. Parent must not be writable by an adversary.
+        with tempfile.TemporaryDirectory(prefix='.artifact-', dir=output.parent) as directory:
+            stage = Path(directory) / 'data'
+            fd = os.open(stage, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, 'O_BINARY', 0), 0o600)
+            with os.fdopen(fd, 'wb') as stream:
+                receipt = operation(stream)
+                stream.flush()
+                os.fsync(stream.fileno())
+            # Atomic no-replace publication, including POSIX where rename overwrites.
+            os.link(stage, output)
+            published = True
+            _sync_parent(output.parent)
         return receipt
+    except BaseException:
+        if published:
+            raise PublicationUncertainError('artifact publication uncertain; reconcile existing output') from None
+        raise
 
 
 def seal_file(source, public_key_path, output):

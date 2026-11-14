@@ -118,6 +118,39 @@ class ArtifactTests(unittest.TestCase):
         self.assertFalse(output.exists())
         self.assertFalse(list(self.root.glob('.artifact-*')))
 
+    @unittest.skipUnless(os.name == 'posix', 'POSIX directory fsync')
+    def test_publication_durability_order_and_failure(self):
+        source, output = self.root/'source', self.root/'out'
+        source.write_bytes(b'synthetic')
+        events = []
+        real_fsync, real_link = os.fsync, os.link
+        def sync(fd):
+            import stat
+            events.append('directory' if stat.S_ISDIR(os.fstat(fd).st_mode) else 'file')
+            real_fsync(fd)
+        def link(*args):
+            events.append('link')
+            real_link(*args)
+        with mock.patch.object(artifact.os, 'fsync', side_effect=sync), mock.patch.object(artifact.os, 'link', side_effect=link):
+            artifact.seal_file(source, self.pub, output)
+        self.assertEqual(events, ['file', 'link', 'directory'])
+        output.unlink()
+        def fail_directory(fd):
+            import stat
+            if stat.S_ISDIR(os.fstat(fd).st_mode):
+                raise OSError('synthetic sensitive diagnostic')
+            real_fsync(fd)
+        with mock.patch.object(artifact.os, 'fsync', side_effect=fail_directory):
+            with self.assertRaises(artifact.PublicationUncertainError) as error:
+                artifact.seal_file(source, self.pub, output)
+        self.assertEqual(str(error.exception), 'artifact publication uncertain; reconcile existing output')
+        self.assertTrue(output.is_file())
+        published = output.read_bytes()
+        with self.assertRaises(FileExistsError):
+            artifact.seal_file(source, self.pub, output)
+        self.assertEqual(output.read_bytes(), published)
+        self.assertFalse(list(self.root.glob('.artifact-*')))
+
     @unittest.skipUnless(os.name == 'posix', 'POSIX mode and symlink checks')
     def test_symlink_and_private_mode(self):
         source, link = self.root/'source', self.root/'link'

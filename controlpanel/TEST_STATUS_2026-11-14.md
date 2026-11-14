@@ -195,3 +195,12 @@ W6 3/4/G6 OPEN, W7 3/4/G7 OPEN. Earlier “not deployed” entries are historica
 Дальше — basealpha13/optionalalpha13, RU/domain/IP и реальный Download Manager. Предложена внешняя проверенная Cloudflare20MiB ссылка (HTTP200/application/octet-stream/Content-Length20971520); она проверяет не-OpenAI DM/direct. Загрузку ChatGPT/OpenAI черезVPN требуется подтвердить отдельно, локальный файл/переход по ссылке не доказывает это. W6 3/4/G6 OPEN, W7 3/4/G7 OPEN; недостающие телефонные измерения не закрыты.
 Уточнение запроса тестового файла: владелец требует20MB пустышку, размещённую во внутреннем хранилище ChatGPT с HTTPS attachment link. В данном сеансе доступен Windows workspace, но tool для произвольного file attachment/upload в ChatGPT не предоставлен. Проверенная внешняя Cloudflare-ссылка и локальный file link не заменяют OpenAI download; эта часть проверки не выполнена. Никакая локальная ссылка не объявлялась OpenAI attachment. Инструменты publication/production для обхода этого ограничения не использовались.
 14.11.2026 — владелец подтвердил: «все3 профиля проверил, подключаются работают». Записан PASS подключения и базовой работы на телефоне для base1144, basealpha13 и optionalalpha13. Ранее отдельно подтверждены owner login/создание daria/download/подключение её профиля. Это не самостоятельное доказательство маршрута Download Manager/RU, DNS/IPv6 leak, Per-App или работы Wi-Fi+mobile; Android/точная строка сборки/сеть/длительность пока не сообщены. Production изменений агент не выполнял. Первое следующее действие — уточнить фактически проверенные сеть/панельalpha13/RU-DM маршруты. G6/G7 не объявлять полностью принятыми по одному факту подключения.
+## Inventory checkpoint — parallelisation proposal, 2026-11-14
+
+[Inventory/plan](PARALLEL_PLAN_2026-11-14.md) prepared from source/evidence.
+No tests rerun, no agents/worktrees started, no production access/changes in
+this checkpoint. W7 alpha13 owner/panel Wi-Fi confirmed by owner.
+ChatGPT download failures are explicitly deferred by owner; do not investigate
+or classify them as passing. Backlog remains outside the current work.
+Aggregate RAM≤500MB and separate disk≤500000000bytes both apply; complete
+resource/restore gates remain unverified. Await first organisational approval.

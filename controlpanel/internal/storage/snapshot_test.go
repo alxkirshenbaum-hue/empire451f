@@ -69,3 +69,12 @@ func TestSnapshotInspectionPreparedRotate(t *testing.T) {
  if err != nil { t.Fatal(err) }
  if _, err = r.InspectSnapshot(ctx, ""); !errors.Is(err, ErrSnapshotState) { t.Fatalf("prepared rotation accepted: %v", err) }
 }
+func TestSnapshotInspectionEmptyOperationIDIsNotExclusion(t *testing.T) {
+ for _, status := range []string{"running", "queued"} {
+  t.Run(status, func(t *testing.T) {
+   _, r, rec := mutationFixture(t)
+   if _, err := r.db.Exec("UPDATE operations SET id='', status=? WHERE id=?", status, rec.OperationID); err != nil { t.Fatal(err) }
+   if _, err := r.InspectSnapshot(ctx, ""); !errors.Is(err, ErrSnapshotState) { t.Fatalf("empty operation ID bypassed unfinished guard: %v", err) }
+  })
+ }
+}

@@ -38,62 +38,73 @@ type ownedObservation struct {
 
 func captureInstallationSnapshot(state, config, lockPath, panel, run, directory, ownID string) (InstallationSnapshot, error) {
 	var result InstallationSnapshot
-	_, err := withOwnedInstallation(state, config, lockPath, panel, run, func(ctx context.Context, registry *storage.Registry) (_ storage.Receipt, resultErr error) {
-		var receipt storage.Receipt
-		if err := snapshotIntents(state); err != nil {
-			return receipt, err
-		}
-		before, err := observeOwnedFiles(state, config, run, true)
-		if err != nil {
-			return receipt, err
-		}
-		keyPath := filepath.Join(panel, "vault.key")
-		key, err := before.read(keyPath, 32, true)
-		if err != nil {
-			return receipt, err
-		}
-		v, err := vault.New(key)
-		clear(key)
-		if err != nil {
-			return receipt, err
-		}
-		capture, err := registry.CaptureOwnedSnapshot(ctx, directory, ownID, run, v)
-		if err != nil {
-			return receipt, err
-		}
-		accepted := false
-		defer func() {
-			if !accepted {
-				resultErr = errors.Join(resultErr, os.RemoveAll(filepath.Dir(capture.Path)))
-			}
-		}()
-		after, err := observeOwnedFiles(state, config, run, true)
-		if err != nil {
-			return receipt, err
-		}
-		_, err = after.read(keyPath, 32, false)
-		if err != nil {
-			return receipt, err
-		}
-		if err = snapshotIntents(state); err != nil {
-			return receipt, err
-		}
-		if before.generation != after.generation || !reflect.DeepEqual(before.files, after.files) {
-			return receipt, storage.ErrLegacyDrift
-		}
-		for path, info := range before.info {
-			next := after.info[path]
-			if next == nil || !os.SameFile(info, next) || info.Size() != next.Size() || info.ModTime() != next.ModTime() {
-				return receipt, storage.ErrLegacyDrift
-			}
-		}
-		result = InstallationSnapshot{Capture: capture, OwnerRun: run, Generation: before.generation, Files: before.files}
-		accepted = true
-		return receipt, nil
+	_, err := withOwnedInstallation(state, config, lockPath, panel, run, func(ctx context.Context, registry *storage.Registry) (storage.Receipt, error) {
+		var err error
+		result, err = captureInstallationSnapshotLocked(ctx, registry, state, config, panel, run, directory, ownID, nil)
+		return storage.Receipt{}, err
 	})
 	if err != nil {
 		return InstallationSnapshot{}, err
 	}
+	return result, nil
+}
+
+// Caller owns the installation writer throughout capture AND consume. Never reacquire it here.
+func captureInstallationSnapshotLocked(ctx context.Context, registry *storage.Registry, state, config, panel, run, directory, ownID string, consume func(InstallationSnapshot) error) (result InstallationSnapshot, resultErr error) {
+	if err := snapshotIntents(state); err != nil {
+		return result, err
+	}
+	before, err := observeOwnedFiles(state, config, run, true)
+	if err != nil {
+		return result, err
+	}
+	keyPath := filepath.Join(panel, "vault.key")
+	key, err := before.read(keyPath, 32, true)
+	if err != nil {
+		return result, err
+	}
+	v, err := vault.New(key)
+	clear(key)
+	if err != nil {
+		return result, err
+	}
+	capture, err := registry.CaptureOwnedSnapshot(ctx, directory, ownID, run, v)
+	if err != nil {
+		return result, err
+	}
+	accepted := false
+	defer func() {
+		if !accepted {
+			resultErr = errors.Join(resultErr, os.RemoveAll(filepath.Dir(capture.Path)))
+		}
+	}()
+	after, err := observeOwnedFiles(state, config, run, true)
+	if err != nil {
+		return result, err
+	}
+	_, err = after.read(keyPath, 32, false)
+	if err != nil {
+		return result, err
+	}
+	if err = snapshotIntents(state); err != nil {
+		return result, err
+	}
+	if before.generation != after.generation || !reflect.DeepEqual(before.files, after.files) {
+		return result, storage.ErrLegacyDrift
+	}
+	for path, info := range before.info {
+		next := after.info[path]
+		if next == nil || !os.SameFile(info, next) || info.Size() != next.Size() || info.ModTime() != next.ModTime() {
+			return result, storage.ErrLegacyDrift
+		}
+	}
+	result = InstallationSnapshot{Capture: capture, OwnerRun: run, Generation: before.generation, Files: before.files}
+	if consume != nil {
+		if err := consume(result); err != nil {
+			return InstallationSnapshot{}, err
+		}
+	}
+	accepted = true
 	return result, nil
 }
 

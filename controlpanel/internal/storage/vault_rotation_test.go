@@ -75,7 +75,7 @@ func TestVaultRotationSequentialVersionsAndReadonlyInspector(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	if _, e = r.db.Exec("INSERT INTO credentials(id,user_id,secret_version,cipher_alg,nonce,ciphertext,key_version,created_at,revoked_at) VALUES(?,?,7,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)", "historical", u.UserID, vault.Algorithm, nonce, ciphertext, 1); e != nil {
+	if _, e = r.db.Exec("INSERT INTO credentials(id,user_id,secret_version,cipher_alg,nonce,ciphertext,key_version,created_at,revoked_at) VALUES(?,?,7,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)", "", u.UserID, vault.Algorithm, nonce, ciphertext, 1); e != nil {
 		t.Fatal(e)
 	}
 	if _, e := r.db.Exec("PRAGMA wal_checkpoint(TRUNCATE)"); e != nil {
@@ -117,7 +117,7 @@ func TestVaultRotationSequentialVersionsAndReadonlyInspector(t *testing.T) {
 		var hnonce, hcipher []byte
 		var keyVersion int64
 		var revoked string
-		if e = newer.db.QueryRow("SELECT nonce,ciphertext,key_version,revoked_at FROM credentials WHERE id='historical'").Scan(&hnonce, &hcipher, &keyVersion, &revoked); e != nil {
+		if e = newer.db.QueryRow("SELECT nonce,ciphertext,key_version,revoked_at FROM credentials WHERE id=''").Scan(&hnonce, &hcipher, &keyVersion, &revoked); e != nil {
 			t.Fatal(e)
 		}
 		plain, e := next.Decrypt(vault.Binding{UserID: u.UserID, SecretVersion: 7, KeyVersion: uint64(version)}, hnonce, hcipher)

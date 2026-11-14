@@ -64,11 +64,12 @@ func (r *Registry) RotateVaultCopy(ctx context.Context, directory, ownID string,
 		// QueryRow closes its cursor before each UPDATE. Never mutate a table while
 		// iterating an open SQLite SELECT cursor over that table.
 		last := ""
+		first := true
 		for {
 			var credentialID, user string
 			var secretVersion, keyVersion uint64
 			var nonce, ciphertext []byte
-			err = tx.QueryRowContext(ctx, "SELECT id,user_id,secret_version,key_version,nonce,ciphertext FROM credentials WHERE id>? ORDER BY id LIMIT 1", last).Scan(&credentialID, &user, &secretVersion, &keyVersion, &nonce, &ciphertext)
+			err = tx.QueryRowContext(ctx, "SELECT id,user_id,secret_version,key_version,nonce,ciphertext FROM credentials WHERE (? OR id>?) ORDER BY id LIMIT 1", first, last).Scan(&credentialID, &user, &secretVersion, &keyVersion, &nonce, &ciphertext)
 			if errors.Is(err, sql.ErrNoRows) {
 				break
 			}
@@ -92,6 +93,7 @@ func (r *Registry) RotateVaultCopy(ctx context.Context, directory, ownID string,
 				return err
 			}
 			last = credentialID
+			first = false
 		}
 		nonce, ciphertext, err := next.Encrypt(vault.Binding{UserID: "!registry-key-check", SecretVersion: 1, KeyVersion: uint64(r.keyVersion + 1)}, vault.PlainSecret("vpn-control registry key v1"))
 		if err != nil {

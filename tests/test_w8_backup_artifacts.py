@@ -33,6 +33,42 @@ class ArtifactTests(unittest.TestCase):
             path.write_bytes(data)
             return module.inspect_archive(path, kwargs.pop("digest", hashlib.sha256(data).hexdigest()), 3, **kwargs)
 
+    def test_existing_envelope(self):
+        recovery_spec = importlib.util.spec_from_file_location("recovery", Path(__file__).resolve().parents[1] / "pilot/recovery_rehearsal.py")
+        recovery = importlib.util.module_from_spec(recovery_spec)
+        recovery_spec.loader.exec_module(recovery)
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.exceptions import InvalidTag
+        key = recovery.rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        wrong = recovery.rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        public = key.public_key().public_bytes(serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo)
+        envelope = recovery.seal(public, b"synthetic")
+        self.assertEqual(recovery.decrypt(key, envelope), b"synthetic")
+        with self.assertRaises(ValueError):
+            recovery.decrypt(wrong, envelope)
+        parts = envelope.decode().split(".")
+        body = bytearray(recovery.unb64(parts[3]))
+        body[0] ^= 1
+        parts[3] = recovery.b64(bytes(body))
+        with self.assertRaises(InvalidTag):
+            recovery.decrypt(key, ".".join(parts).encode())
+
+    def test_bounded_archive_reads(self):
+        from unittest.mock import patch
+        original = Path.open
+        class Guard:
+            def __init__(self, file): self.file = file
+            def __enter__(self): return self
+            def __exit__(self, *args): self.file.close()
+            def read(self, size=-1):
+                if not 0 <= size <= 65536:
+                    raise AssertionError("unbounded read")
+                return self.file.read(size)
+            def __getattr__(self, name): return getattr(self.file, name)
+        def guarded(path, *args, **kwargs):
+            return Guard(original(path, *args, **kwargs))
+        with patch.object(Path, "open", guarded):
+            self.check(self.archive())
     def test_plan_only(self):
         self.assertEqual(self.check(self.archive())["status"], "artifact_check_passed")
 

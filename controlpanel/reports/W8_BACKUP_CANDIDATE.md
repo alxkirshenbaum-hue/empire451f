@@ -23,3 +23,4 @@ copy harness. No extraction into staging implemented before those gates. No
 owner login/fresh profile/live stack proof, ENOSPC rehearsal, allocated blocks,
 RAM/cgroup peak or retention measured. Plan result never means verified/restored.
 No status promotion is available in this candidate.
+Review revision: chunked SHA256 and member hashing (64KiB), descriptor-only inventory; only G3 JSON retained (1MiB cap). Whole-archive buffering removed. Same opened FD used for hash and tar; parent symlink/hostile concurrent mutation hardening pending. Targeted Python: Ran 5 tests OK (0.748s), 12 parameterized artifact refusals plus existing envelope positive/wrong-key/tamper and bounded-read guard. No failed fixes. Initial claim of streaming in handoff was inaccurate; this revision implements it.

@@ -94,6 +94,36 @@ class ArtifactTests(unittest.TestCase):
                 self.skipTest("hardlinks unavailable")
             with self.assertRaises(ValueError):
                 module.inspect_archive(path, hashlib.sha256(data).hexdigest(), 3)
+    def test_raw_admission_before_parser(self):
+        from unittest.mock import patch
+        def header(kind=b"0", size=b"00000000011\0"):
+            block = bytearray(self.archive()[:512])
+            block[156:157] = kind
+            block[124:136] = size
+            block[148:156] = b"        "
+            block[148:156] = ("%06o\0 " % sum(block)).encode()
+            return bytes(block)
+        cases = [header(kind) + bytes(1024) for kind in (b"x", b"g", b"L", b"K", b"S")]
+        cases += [header(size=b"77777777777\0") + bytes(1024),
+                  header(size=b"\xff" * 12) + bytes(1024),
+                  header(size=b"00000000009\0") + bytes(1024),
+                  header() + b"synthetic" + bytes(20),
+                  header() + b"synthetic" + b"X" + bytes(502) + bytes(1024),
+                  header(b"x", b"00004000000\0") + bytes(1024)]
+        bad_checksum = bytearray(self.archive())
+        bad_checksum[0] ^= 1
+        cases.append(bytes(bad_checksum))
+        with patch.object(module.tarfile, "open", side_effect=AssertionError("parser reached")):
+            for index, data in enumerate(cases):
+                with self.subTest(index=index), self.assertRaises(ValueError):
+                    self.check(data)
+
+    def test_raw_base256_nonnegative(self):
+        data = bytearray(self.archive())
+        data[124:136] = bytes([128]) + (9).to_bytes(11, "big")
+        data[148:156] = b"        "
+        data[148:156] = ("%06o\0 " % sum(data[:512])).encode()
+        self.assertEqual(self.check(bytes(data))["status"], "artifact_check_passed")
     def test_plan_only(self):
         self.assertEqual(self.check(self.archive())["status"], "artifact_check_passed")
 

@@ -70,3 +70,19 @@ artifact_check_passed cannot promote persisted backup status to verified.
 
 Steps: 1 producer/inspector gap analysis done; 2 bounded allowlist/test/binding
 proposal done. No tests run for this report-only package; failed-fix count0.
+## Implemented limited raw admission revision
+
+Before tarfile, same opened FD now undergoes bounded physical-header scan:
+512-byte records, unsigned checksum, octal/nonnegative base256 sizes, logical/
+physical bounds, zero padding, mandatory two end records and zero trailing data.
+Only regular/directory types admitted; x/g/L/K/sparse and all other types rejected
+before parser extension allocation. This does not add PAX/xattr compatibility.
+Private immutable caller staging remains mandatory; no TOCTOU completion claim.
+
+Portable verification: Python3.12.14 Ran10 tests OK (0.933s), no skips. New cases:
+12 raw negatives with tarfile.open mocked to fail if reached (five extension
+kinds, huge octal, negative base256, invalid octal, truncated padding, nonzero
+padding, large PAX and checksum tamper), plus nonnegative base256 positive.
+Existing actual bounded-read guard still passes. GNU producer compatibility,
+registry binding and Linux stack/resource gates remain pending. Failed-fix0.
+Steps design/implementation+negatives/portable verification:3/3 complete.

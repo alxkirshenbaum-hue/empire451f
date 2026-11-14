@@ -20,6 +20,48 @@ def require(condition):
         raise ValueError("Backup artifact refused")
 
 
+def admit_raw_tar(source, archive_bytes, max_bytes):
+    """Bound physical records before tarfile can materialize extensions."""
+    source.seek(0)
+    records = 0
+    logical = 0
+    def number(field):
+        # Binary base-256 signed encoding: only nonnegative values admitted.
+        if field[0] & 0x80:
+            require(not field[0] & 0x40)
+            return int.from_bytes(bytes([field[0] & 0x7f]) + field[1:], "big")
+        raw = field.rstrip(b"\0 ").lstrip(b" ")
+        require(bool(raw) and all(48 <= byte <= 55 for byte in raw))
+        return int(raw, 8)
+    while source.tell() < archive_bytes:
+        header = source.read(512)
+        require(len(header) == 512)
+        if header == bytes(512):
+            require(source.read(512) == bytes(512))
+            while source.tell() < archive_bytes:
+                chunk = source.read(min(65536, archive_bytes - source.tell()))
+                require(bool(chunk) and not any(chunk))
+            return
+        records += 1
+        require(records <= MAX_MEMBERS)
+        expected = number(header[148:156])
+        require(expected == sum(header[:148]) + 8 * 32 + sum(header[156:]))
+        require(header[156:157] in (b"0", b"\0", b"5"))
+        size = number(header[124:136])
+        require(size <= max_bytes and (header[156:157] != b"5" or size == 0))
+        logical += size
+        require(logical <= max_bytes)
+        padded = ((size + 511) // 512) * 512
+        require(padded <= archive_bytes - source.tell())
+        remaining = size
+        while remaining:
+            chunk = source.read(min(65536, remaining))
+            require(bool(chunk))
+            remaining -= len(chunk)
+        padding = padded - size
+        require(source.read(padding) == bytes(padding))
+    require(False)  # Two end records are mandatory.
+
 def inspect_archive(path, expected_sha256, expected_generation, required_paths=(),
                     max_bytes=LIMIT):
     """Return a plan only; digest must come from the authenticated receipt.
@@ -53,6 +95,7 @@ def inspect_archive(path, expected_sha256, expected_generation, required_paths=(
             require(archive_bytes <= max_bytes)
             digest.update(chunk)
         require(digest.hexdigest() == expected_sha256)
+        admit_raw_tar(source, archive_bytes, max_bytes)
         source.seek(0)
         with tarfile.open(fileobj=source, mode="r:") as archive:
             for count, member in enumerate(archive, 1):

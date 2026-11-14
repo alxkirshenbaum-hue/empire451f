@@ -61,7 +61,8 @@ Go запускался в отдельном Linux-процессе на вхо
 | W6 | Формирование и выдача профилей |
 | W7 | API, CLI и интерфейс владельца. Уже сохранены сессии (`00b6967`) и форма входа (`f52932f`); подключение формы к пилоту и проверка на телефоне предстоят |
 | W8 | Безопасность, резервное копирование и дисковый бюджет |
-| W9 | Проверка и выпуск E1 |
+| W9 | Проверка и приёмка компонентов панели (G9) |
+| W9.1 | Интеграция в общий установщик, публикация и общий E1 (G9.1) |
 
 ### Согласованный порядок реализации W4–W9
 
@@ -339,3 +340,5 @@ Lead3/3; SOL-A inventory3/3+singbox2/2+Caddybuild3/3+rawguard3/3 заверше�
 - [ ] **6. G9.1.** Полная матрица опубликованных команд Windows/настоящий macOS/legacy/existing panel/interrupt/security/reboot/resources.
 
 14.11.2026 — прочитан и сохранён пользовательский985e04a, включая обновлённые Architecture/LLD v1.1 в родительской папке вне Git. Оба SOL-агента уведомлены: W8→W9→W9.1, G9 принимает только компоненты панели, общий E1 дополнительно требует G9.1; нумерация W10+ сохраняется. Единый progress теперь6/11, W9.1 0/6. Текущий кодовый приоритет прежний W8/1, W9.1 не реализуется досрочно. SOL-A продолжил raw-tar boundary fixtures; SOL-B — canonical SQLite/WAL/generation/vault inventory. Production не менялся; ASTRA0. Следующее действие — закончить эти независимые W8-пакеты/проверки и зафиксировать canonical snapshot контракт Lead.
+
+14.11.2026 — продолжены именно W8-задачи после roadmap985e04a: SOL-A raw count/size/end fixtures3/3 sourcefa6c55a→d576dcc, target11testsPASS на bundledPython3.12.14 после интеграции; SOL-B canonical binding inventory2/2 source6d92468→8202ed1, source-backed report-only. Lead уточнил W8_INTEGRATION_CONTRACT: общей scalarDBgeneration нет, manifest/peruser/pernode версии различны, Open мигрирует, auth/session/issuance не считать остановленными одним installationflock; callback/onlinebackup/проверки остаются реализацией W8/1. Новых BKP endpoint/verified/acceptance не заявлять. W9/G9 принимает компоненты, общийE1 требуетG9.1. Первыми по-прежнему W8/1 и связанные проверки, не installerW9.1. W6 3/4 · W7 3/4 · W8 0/4 fullyclosed(partial1–2) · W9 0/4 · W9.1 0/6. ASTRA0/failedfix0, production не менялся. Полный productнабор не повторялся для test/report/contract-only группы; прежние квалификационные результаты774c07a сохранены.

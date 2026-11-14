@@ -84,7 +84,7 @@ A stale snapshot cannot silently overwrite current users/passwords (including
 user-created daria). Restore/rollback must export current active state first and
 make any revoked-account reactivation visible. Preserve unmanaged configuration.
 
-## Runtime and resource proof
+## Runtime and resource proof — initial-round historical prerequisites
 
 Portable Python: app-bundled Python 3.12.14, SQLite 3.53.1, cryptography 50.0.2
 executed on Windows by Lead; no runtime installation. Linux/systemd/CGO/network
@@ -98,3 +98,33 @@ Separate ceilings: additional disk <=500,000,000 bytes total across both nodes
 memory.current/peak + RSS/PSS and allocated filesystem blocks over time; caps,
 logical sizes and synthetic values do not prove these gates. Runtime scenarios
 sharing one copy run sequentially; code/portable fixtures run in parallel.
+
+## 2026-11-14 — canonical binding clarification (schema7, no new counter)
+
+Reviewed source inventory: reports/W8_SNAPSHOT_BINDING_REVIEW.md (source6d92468,
+integrated8202ed1). No universal scalar registry generation exists. Installation
+manifest.panel_generation, per-user row_version, credential versions and per-node
+config_revisions have distinct meanings and MUST NOT be equated. G3's old file
+inventory omits state.db; archive inspection cannot close this gap.
+
+Lead's callback must capture explicit common-writer observations (owner run,
+manifest generation, managed/runtime hashes, pending/prepared intents) and staged
+online SQLite snapshot hash, schema_migrations checksums and canonical vault
+marker/current-credential binding. Use real vault_identity/key version and
+canonical authentication logic; do not add an independent cryptographic verifier.
+Inspect untrusted staged DB read-only before using Registry.Open: Open applies
+migrations. No inferred SQL table/column or field called global generation.
+
+The installation lock serializes managed mutations, not all auth/session/profile
+issuance writes. SQLite's online-backup snapshot defines registry consistency;
+state exactly which writer observations are protected by flock and which are
+captured by SQLite. Reject other unfinished operations and prepared/file intents;
+classify own backup ID rather than rejecting the backup itself. Do not assume
+quiescent auth or persist verified merely from successful tar/decrypt.
+
+Implementation and concurrent/WAL/rotation/wrong-key/stale-restore tests remain
+open; this is a clarified integration contract, not a completed BKP feature.
+W9.1 will reuse the accepted backup/restore interface AFTER W8/W9. G9 certifies
+panel components; overall E1 additionally requires the six-item G9.1 matrix.
+
+Current runtime qualification supersedes the initial unconfirmed-runner note: W8_LAB_QUALIFICATION_2026-11-14.md /774c07a confirms local systemd/RootDirectory/API/frontend/Go/Python proof. Full backup/restore and aggregate resource gates remain OPEN. Canonical-binding clarification independently reviewed SOL-B1/1, no blockers.

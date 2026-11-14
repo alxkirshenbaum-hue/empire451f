@@ -113,7 +113,7 @@ func (r *Registry) InspectSnapshot(ctx context.Context, ownBackupOperationID str
 		return zero, err
 	}
 	if err = r.verifyPriorCredentials(ctx, tx); err != nil {
-		return zero, err
+		return zero, errors.Join(ErrSnapshotState, err)
 	}
 	if ownBackupOperationID != "" {
 		var kind, state string

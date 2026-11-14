@@ -66,6 +66,8 @@ var backupDigest = regexp.MustCompile(`^[0-9a-f]{64}$`)
 // off-node by GCM and the authenticated ciphertext digest. It never opens live
 // installation paths: original absolute paths are metadata mapped below root.
 func verifyManagedArchive(ctx context.Context, archive, staging, expectedManifestSHA, expectedOwnerRun, ownID string, roots RestoreSourceRoots) (out VerifiedManagedArchive, resultErr error) {
+ stage := "policy"
+ defer func(){if resultErr!=nil {resultErr=&archiveStageError{stage,resultErr}}}()
 	if !roots.valid() || !backupDigest.MatchString(expectedManifestSHA) || expectedOwnerRun == "" {
 		return out, storage.ErrSnapshotState
 	}
@@ -110,6 +112,7 @@ func verifyManagedArchive(ctx context.Context, archive, staging, expectedManifes
 	if !ok || !info.Mode().IsRegular() || st.Nlink != 1 || info.Size() > storage.SnapshotMaxBytes {
 		return out, storage.ErrSnapshotState
 	}
+	stage = "tar_records"
 	tr := tar.NewReader(io.LimitReader(f, storage.SnapshotMaxBytes+1))
 	temp := filepath.Join(staging, ".blobs")
 	if err = os.Mkdir(temp, 0700); err != nil {
@@ -186,9 +189,11 @@ func verifyManagedArchive(ctx context.Context, archive, staging, expectedManifes
 			return out, e
 		}
 	}
+	stage = "manifest_digest"
 	if raw == nil || fmt.Sprintf("%x", sha256.Sum256(raw)) != expectedManifestSHA {
 		return out, storage.ErrSnapshotState
 	}
+	stage = "manifest_binding"
 	var manifest ManagedArchiveManifest
 	dec := json.NewDecoder(strings.NewReader(string(raw)))
 	dec.DisallowUnknownFields()
@@ -198,6 +203,7 @@ func verifyManagedArchive(ctx context.Context, archive, staging, expectedManifes
 	if !reflect.DeepEqual(manifest.Excluded, []string{"external:ssh-host-and-authorized-keys", "external:tls-certificates-and-private-keys", "external:acme-account-state"}) {
 		return out, storage.ErrSnapshotState
 	}
+	stage = "member_policy"
 	paths := map[string]ManagedArchiveMember{}
 	blobs := map[string]bool{}
 	for _, m := range manifest.Members {
@@ -211,6 +217,7 @@ func verifyManagedArchive(ctx context.Context, archive, staging, expectedManifes
 		paths[m.Path] = m
 		blobs[m.Blob] = true
 	}
+	stage = "registry_file_binding"
 	if manifest.RegistryPath != filepath.Join(roots.PanelRoot, "state.db") {
 		return out, storage.ErrSnapshotState
 	}
@@ -232,6 +239,7 @@ func verifyManagedArchive(ctx context.Context, archive, staging, expectedManifes
 			return out, storage.ErrSnapshotState
 		}
 	}
+	stage = "coverage"
 	if err = validateBackupCoverage(manifest, paths, temp); err != nil {
 		return out, err
 	}
@@ -244,6 +252,7 @@ func verifyManagedArchive(ctx context.Context, archive, staging, expectedManifes
 	if err != nil {
 		return out, err
 	}
+	stage = "canonical_registry"
 	inspection, err := storage.InspectCapturedSnapshot(ctx, filepath.Join(temp, filepath.Base(db.Blob)), v, expectedOwnerRun, ownID)
 	if err != nil {
 		return out, err
@@ -251,6 +260,7 @@ func verifyManagedArchive(ctx context.Context, archive, staging, expectedManifes
 	if inspection != manifest.Capture.Inspection {
 		return out, storage.ErrSnapshotState
 	}
+	stage = "private_publication"
 	for _, m := range manifest.Members {
 		target := filepath.Join(staging, strings.TrimPrefix(m.Path, "/"))
 		if err = os.MkdirAll(filepath.Dir(target), 0700); err != nil {
@@ -485,3 +495,7 @@ func copyVerifiedMemberMetadata(ctx context.Context, source, target string, m Ma
 	accepted = true
 	return nil
 }
+
+type archiveStageError struct { Stage string; Cause error }
+func(e *archiveStageError)Error() string{return "archive check failed at "+e.Stage}
+func(e *archiveStageError)Unwrap()error{return e.Cause}

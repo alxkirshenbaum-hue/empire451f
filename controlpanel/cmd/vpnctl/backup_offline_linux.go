@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/status"
@@ -61,7 +62,7 @@ func offlineVerify(args []string, out, stderr io.Writer) int {
 	}
 	result, e := verifyManagedArchive(context.Background(), plain, *stage, *manifestHash, *owner, *own, RestoreSourceRoots{*panel, *state, *config})
 	if e != nil {
-		fmt.Fprintln(stderr, "Archive consistency verification failed")
+		var stageError *archiveStageError; if errors.As(e, &stageError) { fmt.Fprintln(stderr, "Archive consistency verification failed:",stageError.Stage) } else { fmt.Fprintln(stderr, "Archive consistency verification failed") }
 		return 4
 	}
 	var prepared string

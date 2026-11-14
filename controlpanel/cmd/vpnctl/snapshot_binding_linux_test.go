@@ -22,7 +22,7 @@ func TestInstallationSnapshotBinding(t *testing.T) {
 	for _, scenario := range []string{"valid", "file-drift", "missing-managed", "prepared", "owner", "cutover", "key", "pending.json", "panel-auth-pending.json", "symlink"} {
 		t.Run(scenario, func(t *testing.T) {
 			root := t.TempDir()
-			state := filepath.Join(root, "state")
+			state := filepath.Join(root, "state", "lab")
 			config := filepath.Join(root, "etc")
 			panel := filepath.Join(root, "panel")
 			dest := filepath.Join(root, "captures")

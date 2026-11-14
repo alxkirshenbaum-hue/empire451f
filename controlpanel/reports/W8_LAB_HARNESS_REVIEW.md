@@ -67,3 +67,68 @@ Lead work, not implied PASS from this review.
 Windows bundled Python AST parse of the changed frontend module PASS. Shell
 change inspected as single executable path substitution; no shell execution or
 heavy WSL tests by SOL-B. Failed corrective attempts0. Package progress3/3.
+## Pinned full-suite environment and safety inventory — 2/2
+
+Read-only source inventory, no new execution or PASS. Lead staging target
+03f627a; baseline e263338 Go ./... -count=1 PASS does not cover opt-ins below.
+
+Exact flags:
+- VPN_TEST_CADDY_ADAPTER=1, internal/caddy/live_linux_test.go:22; requires
+  loopback-only sysfs interfaces and /opt/empire-vpn/bin/caddy (:65) with the
+  forward_proxy plugin. Missing flag explicitly skips installed adapter test.
+- VPN_TEST_NAIVE_PROBE=1, cmd/vpnctl/migration_test.go:281 invokes
+  ../../../pilot/reverse_probe.py and cmd/vpn-control/download_test.go:115
+  invokes ../../../pilot/issue_probe.py. Otherwise probe branches omitted.
+- VPN_TEST_SFA_CHECK_1144 and VPN_TEST_SFA_CHECK_ALPHA13 are executable paths,
+  not booleans. internal/storage/routing_test.go:105–129 requires first version
+  line exactly sing-box version 1.14.4 / 1.15.0-alpha.13, invokes check on stdin.
+  Three cases (base1144/baseAlpha13/optionalAlpha13) skip without checker paths.
+- VPN_TEST_SFA_DNS=1 invokes python3 ../../../pilot/profile_dns_check.py with
+  each exact checker; script:37 requires only lo. Without flag branch omitted.
+- VPN_TEST_SFA_CHECK path additionally activates internal/storage/profile_test.go:74;
+  absence silently omits that extra validation, not an explicit skipped test.
+
+Concrete command template (Lead substitutes verified artifact absolute paths;
+these selected checker paths are staging destinations, not claims they exist):
+
+```sh
+systemd-run --quiet --wait --pipe --unit=vpn-lab-go-03f627a \
+ -p PrivateNetwork=yes -p WorkingDirectory=/opt/vpn-control/src-03f627a/controlpanel \
+ --setenv=GOTOOLCHAIN=local --setenv=GOSUMDB=off \
+ --setenv=GOPROXY=file:///opt/vpn-control/module-proxy \
+ --setenv=VPN_TEST_CADDY_ADAPTER=1 --setenv=VPN_TEST_NAIVE_PROBE=1 \
+ --setenv=VPN_TEST_SFA_CHECK=/opt/vpn-control/checkers/1.14.4/sing-box \
+ --setenv=VPN_TEST_SFA_CHECK_1144=/opt/vpn-control/checkers/1.14.4/sing-box \
+ --setenv=VPN_TEST_SFA_CHECK_ALPHA13=/opt/vpn-control/checkers/1.15.0-alpha.13/sing-box \
+ --setenv=VPN_TEST_SFA_DNS=1 \
+ /opt/vpn-control/go/bin/go test -count=1 ./...
+```
+
+Root manager default identity required by cmd/vpnctl/worker_linux_test.go:17–18;
+nonroot skips root policy proof. Verify actual Go executable/proxy/checker paths,
+run offline go mod verify against repository go.sum first, preserve original
+module sums, pin SHA/version receipts for Caddy, Naive server/client, both SFA
+engines and Go. Network namespace disconnect means all dependencies must already
+be staged. Do not use fake checkers or disable DNS when dependencies are missing.
+Remaining Go skips are subprocess-entry guard tests, not missing acceptance:
+cmd/vpnctl/caddy_create_linux_test.go:49, g5_linux_test.go:128 and
+internal/storage/registry_test.go:140. Their parent tests must execute children.
+
+Python Linux command, within separate sequential PrivateNetwork unit rooted in
+pinned installer source: /usr/bin/python3 -B -m unittest discover -s tests -p
+ 'test_*.py' -v. Read-only inventory found no test suite opt-in to live SSH,
+production units, WG outages or controlled_audit. SSH operations in installer
+unit tests are mocks; Windows native-flow test uses process-level SSH stubs.
+Linux owned-auth tests and migration SIGKILL/crash tests mutate temporary synthetic
+fixtures and subprocesses, not production; run solely in lab. Non-discovered
+helper files (site_http_fixture, handoff_crash_check, return_crash_check) are
+invoked by callers, not general live audit authorization.
+
+Python expected platform skips: Windows-only NativeWindowsProcessTests class at
+ tests/test_launchers.py:171 (three methods), macOS real shell syntax :332.
+Linux owned_auth class :17 and POSIX migration class :98 should run. Conditional
+xattr skips owned_auth:122–124 and hardlink skip w8_backup_artifacts:94 require
+actual reported accounting; missing filesystem capability is not a PASS. The
+Windows syntax methods can silently loop over unavailable shells (:303–315),
+so Linux suite cannot prove Windows PowerShell behavior. No additional live
+runner or no-skip acceptance claim is made from this source mapping.

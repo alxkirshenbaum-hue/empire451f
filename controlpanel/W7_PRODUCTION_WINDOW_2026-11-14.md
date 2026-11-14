@@ -121,3 +121,9 @@ owner login, Wi-Fi/mobile, обе версии; optional RU/domain/IP и реа�
 (OpenAI черезVPN, другойDM direct) только точная1.15.0-alpha.13.
 Доступность обеих сборок и вопрос владельца о логине не являются PASS.
 Следующий шаг — фактические наблюдения владельца. G6/G7 не закрывать.
+
+14.11.2026 — телефонная проверка владельца: первый base-профильSFA1.14.4 импортирован, VPN подключился, вход в новую панель успешен; владелец сам создал daria, скачал её профиль и подключился через него. Это фактическое owner phone create→result→download→connect, не агентский CRUD. Android build/тип сети/точное время стабильности пока не сообщены. Read-only подтверждение сервера: daria active/version2, user.create succeeded, выдача записана; active5, generation3, integrityok.
+
+Снимки окна до daria теперь исторические: полный rollback старого SQLite/auth запрещён без CURRENT active-user export/fresh snapshot. Control-only recover сохраняет текущий registry/credentials при несовпадении baseline. Пользователи/пароли не откатывались.
+
+Дальше — basealpha13/optionalalpha13, RU/domain/IP и реальный Download Manager. Предложена внешняя проверенная Cloudflare20MiB ссылка (HTTP200/application/octet-stream/Content-Length20971520); она проверяет не-OpenAI DM/direct. Загрузку ChatGPT/OpenAI черезVPN требуется подтвердить отдельно, локальный файл/переход по ссылке не доказывает это. W6 3/4/G6 OPEN, W7 3/4/G7 OPEN; недостающие телефонные измерения не закрыты.

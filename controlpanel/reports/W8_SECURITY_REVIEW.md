@@ -61,3 +61,34 @@ stage actual denied open/listdir/proc-root/link traversal operations; reuse
 existing audit under approved launcher; measure complete disk/RAM peaks; verify
 key rotation and real restore. No unit/helper/migration/production changes here.
 Independent SOL-A stable commit review remains pending its availability.
+## Independent SOL-A review (different author)
+
+Reviewed pinned history 4285e73 -> 4d7c1f9 -> 1de0c25, read-only.
+Final targeted execution: test_w8_backup_artifacts.py, 5 tests PASS (0.747s)
+using bundled Python 3.12.14. Review is separate from SOL-B initial stages 3/3.
+
+Initial findings and disposition:
+- P1 whole-archive retention: resolved in 4d7c1f9 with chunked archive/member
+  hashing and descriptor retention; metadata capped at 1MiB. End-to-end M-006
+  remains open because the existing envelope buffers, plus no peak measurements.
+- P2 leaf check/open race: 1de0c25 uses one regular single-link FD and Linux
+  O_NOFOLLOW where available with before/after identity/size/timestamps. Caller
+  MUST enforce private immutable staging including parents. This is not hostile
+  concurrent-writer proof or Windows nofollow proof. It does not double-hash the
+  whole archive after parsing; timestamp checks are supplementary only.
+- P2 ignored inventory ownership/metadata and arbitrary unlisted content:
+  1de0c25 compares uid/gid/mode and digest shape, rejects nonempty xattrs and
+  unlisted files except explicit state.db. Uninventoried DB stays unchecked;
+  registry_consistency=not_run and pending gates correctly prohibit promotion.
+- P2 GNUtar ACL/xattr/PAX compatibility: unresolved and explicitly documented.
+  Conservative rejection is acceptable for a limited fixture candidate; actual
+  producer round-trip is required before BKP integration or G8 acceptance.
+
+Verdict: acceptable to merge as a limited read-only copy candidate under the
+Lead integration contract, not deployable backup/restore or G8 acceptance.
+No new blocking finding within that scope. State.db completeness/consistency,
+private staging enforcement, hostile mutation/parent protection, true producer
+compatibility, envelope/aggregate resource bounds and usable restore remain open.
+Lead W8_INTEGRATION_CONTRACT.md independently reviewed: no blocking semantic
+finding; evidence levels, persisted-state prohibition and production gates clear.
+Failed corrective attempts attributable to this review: 0.

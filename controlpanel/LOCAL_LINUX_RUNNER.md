@@ -86,3 +86,30 @@ skip the feasible local setup or grant agents unrestricted SSH. Lead prepares a
 specific isolated test window, fresh current-user-preserving encrypted verified
 snapshot and reviewed rollback before requesting any production stop/change.
 Subagents still never deploy or modify production. No production fallback used.
+
+## 2026-11-14 — owner approved local setup; features enabled
+
+Owner said to deploy locally on Windows. Lead executed only the reviewed local
+feature-enable script through Windows UAC (no silent elevation). Independent
+SOL-B final review1/1 approved SHA256
+93c3f21477e85158e0053777420b9fc2ddd47b8edab4f8951f5c7f87f9b8e1a7.
+
+Result2026-11-14 13:22MSK: WSL and VirtualMachinePlatform both BeforeDisabled,
+AfterEnabled, ChangedByRun=true, RestartNeeded=true. Separate CIM check confirmed
+InstallState1 for both. Full Hyper-V role not enabled. Elevated helper exited;
+AutomaticRestart=false. No distro/WSL engine downloaded, no Linux tests run,
+no production access or changes. This is feature setup only, not a ready runner.
+
+Local evidence outside Git:
+C:\AllFiles\SoftWare\VPN\Amnezia\CodexVPN\worktrees\wsl-setup-20261114\receipt.json
+and reviewed enable-features.ps1 in the same directory. No secrets in receipt.
+Before any reversal reread actual feature states; only these two were changed.
+Earlier partial-failure receipt issue was fixed before execution and reviewed.
+
+NEXT REQUIRED USER ACTION: save work and manually reboot Windows. Do not have
+Lead auto-restart it. After user confirms reboot, Lead reads latest PLAN/this
+section, verifies feature state and WSL version/distributions, prepares modern
+WSL2 + separate lab distro without overwriting existing instances, then proves
+systemd/private namespace/socket/RootDirectory/CGO before product tests. No
+repeated feature enabling, old deployment scripts, production fallback or G6/G7
+acceptance implied by the reboot. Portable checkpoint9621e88 remains applicable.

@@ -84,7 +84,9 @@ func TestMaintenanceWorkerRealArtifact(t *testing.T) {
 		t.Fatal(e)
 	}
 	helperBytes, e := os.ReadFile(helper)
-	if e != nil { t.Fatal(e) }
+	if e != nil {
+		t.Fatal(e)
+	}
 	helper = filepath.Join(root, "backup_artifact.py")
 	put(helper, helperBytes)
 	recipient := filepath.Join(root, "recipient.pem")

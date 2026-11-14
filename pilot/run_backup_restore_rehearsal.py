@@ -46,38 +46,44 @@ def runtime(project,root,unit):
 
 def main():
     global WORK
-    f=argparse.ArgumentParser();f.add_argument('--project',required=True,type=Path);f.add_argument('--run-id',required=True)
+    f=argparse.ArgumentParser();f.add_argument('--project',required=True,type=Path);f.add_argument('--run-id',required=True);f.add_argument('--resume-source',action='store_true');f.add_argument('--destination-id')
     a=f.parse_args();project=a.project.resolve();ident=a.run_id
     if os.geteuid()!=0 or not ident.isdigit() or len(ident)>12:raise RuntimeError('root and numeric unique run ID required')
-    WORK=project/('backup-drill-'+ident);WORK.mkdir(mode=0o700)
+    WORK=project/('backup-drill-'+ident)
+    if not a.resume_source:WORK.mkdir(mode=0o700)
+    elif not WORK.is_dir() or WORK.is_symlink() or WORK.stat().st_mode&0o077:raise RuntimeError('private preserved source work required')
     os.umask(0o077)
-    key=rsa.generate_private_key(public_exponent=65537,key_size=2048)
     private=WORK/'owner-private.pem';public=WORK/'recipient.pem'
-    private_write(private,key.private_bytes(serialization.Encoding.PEM,serialization.PrivateFormat.PKCS8,serialization.NoEncryption()))
-    private_write(public,key.public_key().public_bytes(serialization.Encoding.PEM,serialization.PublicFormat.SubjectPublicKeyInfo))
-    env=dict(os.environ,VPN_REHEARSAL_PROJECT=str(project),VPN_REHEARSAL_BACKUP='1',VPN_REHEARSAL_BACKUP_PUBLIC=str(public))
-    run(['sh',project/'pilot/run_full_worker_rehearsal.sh','normal',ident],env=env)
+    if not a.resume_source:
+        key=rsa.generate_private_key(public_exponent=65537,key_size=2048)
+        private_write(private,key.private_bytes(serialization.Encoding.PEM,serialization.PrivateFormat.PKCS8,serialization.NoEncryption()))
+        private_write(public,key.public_key().public_bytes(serialization.Encoding.PEM,serialization.PublicFormat.SubjectPublicKeyInfo))
+        env=dict(os.environ,VPN_REHEARSAL_PROJECT=str(project),VPN_REHEARSAL_BACKUP='1',VPN_REHEARSAL_BACKUP_PUBLIC=str(public))
+        run(['sh',project/'pilot/run_full_worker_rehearsal.sh','normal',ident],env=env)
     source=project/('rehearsal-root-'+ident);completed('vpn-full-worker-root-'+ident)
     proof=source/'root/backup-proof';context=json.loads((proof/'context.json').read_bytes())
     cipher=source/context['encrypted_path'].lstrip('/')
     original_cipher=hashlib.sha256(cipher.read_bytes()).hexdigest()
     if original_cipher!=context['sha256']:raise RuntimeError('ciphertext mismatch')
-    prepared_parent=WORK/'prepared';prepared_parent.mkdir(mode=0o700)
-    stage=WORK/'verified';cli=project/'rehearsal-bin/vpnctl';helper=project/'backup_artifact.py'
+    destination=a.destination_id or str(int(ident)+1)
+    if not destination.isdigit() or len(destination)>12:raise RuntimeError('numeric new destination required')
+    recovery=WORK/('recovery-'+destination);recovery.mkdir(mode=0o700)
+    prepared_parent=recovery/'prepared';prepared_parent.mkdir(mode=0o700)
+    stage=recovery/'verified';cli=project/'rehearsal-bin/vpnctl';helper=project/'backup_artifact.py'
     args=[cli,'backup','offline-verify','--envelope',cipher,'--private-key',private,'--cipher-sha256',context['sha256'],
           '--manifest-sha256',context['manifest_sha256'],'--owner-run',context['owner_run'],'--own-operation',context['own_operation'],
           '--backup-id',context['backup_id'],'--prepare-parent',prepared_parent,'--staging',stage,'--helper',helper,
           '--source-panel-root','/var/lib/vpn-control','--source-state-root','/var/lib/empire-vpn/lab','--source-config-root','/etc/empire-vpn']
     checked=json.loads(run(args));candidate=Path(checked['prepared_copy'])
     # Parse only after authenticated/canonical offline verification. No tar extraction.
-    plain=WORK/'authenticated.tar'
+    plain=recovery/'authenticated.tar'
     request=dict(action='decrypt',envelope=str(cipher),private_key_path=str(private),output=str(plain),expected_sha256=context['sha256'])
     run(['python3','-B',helper],input=json.dumps(request).encode())
     with tarfile.open(plain,'r:') as archive:
         entry=archive.getmember('manifest.json')
         if entry.size>1024*1024:raise RuntimeError('manifest limit')
         manifest=json.load(archive.extractfile(entry))
-    recovered=project/('rehearsal-root-'+str(int(ident)+1))
+    recovered=project/('rehearsal-root-'+destination)
     run(['python3','-B',project/'pilot/prepare_rehearsal_root.py',recovered])
     # Excluded TLS/relay/probe and proof are independently trusted synthetic fixtures.
     for name in ['root/backup-proof','var/lib/empire-vpn-acme']:
@@ -99,13 +105,13 @@ def main():
         dest.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
         data=candidate if name=='var/lib/vpn-control/state.db' else stage/name
         shutil.copyfile(data,dest);os.chown(dest,member['uid'],member['gid']);dest.chmod(member['mode'])
-    restored=runtime(project,recovered,'w8-restored-'+ident)
-    rollback=runtime(project,source,'w8-rollback-'+ident)
+    restored=runtime(project,recovered,'w8-restored-'+destination)
+    rollback=runtime(project,source,'w8-rollback-'+destination)
     if hashlib.sha256(cipher.read_bytes()).hexdigest()!=original_cipher:raise RuntimeError('source ciphertext changed')
     report=dict(outcome='restored_runtime_pass',backup_id=context['backup_id'],cipher_sha256=original_cipher,
                 restored=restored.strip(),rollback=rollback.strip(),private_key_off_runtime=True,
                 note='Synthetic local drill; aggregate resource and full-suite gates remain separate')
-    private_write(WORK/'report.json',json.dumps(report,indent=2).encode())
+    private_write(recovery/'report.json',json.dumps(report,indent=2).encode())
     print(json.dumps(report))
 
 

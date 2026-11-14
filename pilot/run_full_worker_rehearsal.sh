@@ -14,7 +14,12 @@ case "$1" in
  cutover_*) option=VPN_REHEARSAL_CUTOVER_FAILURE=${1#cutover_};;
  *) option=VPN_REHEARSAL_FAILURE=none;;
 esac
-systemd-run --quiet --wait --pipe --unit="vpn-full-worker-root-$2" \
+if [ "${VPN_REHEARSAL_UI:-0}" = 1 ]; then
+ run_flags="--quiet"
+else
+ run_flags="--quiet --wait --pipe"
+fi
+systemd-run $run_flags --unit="vpn-full-worker-root-$2" \
  -p "RootDirectory=$root" -p MountAPIVFS=yes -p PrivateNetwork=yes \
  -p PrivateDevices=yes -p NoNewPrivileges=yes -p ProtectSystem=strict \
  -p ReadWritePaths=+/etc -p ReadWritePaths=+/var/lib -p ReadWritePaths=+/run \

@@ -53,3 +53,17 @@ Download Manager behavior or RU routing. The exact alpha release is
 - 1.14.4: option rejection and base absence of DM/RU rules, not an unsupported
   requirement that the optional scenario works on that target.
 - Owner reports both builds available. Phone measurements remain open.
+
+## Exact panel destination — policy revision 2
+
+New immutable variants include a hosts DNS server for exact
+panel.home.arpa → 192.0.2.119 (A; AAAA is an empty successful answer) and
+an exact TCP/443 192.0.2.119/32 Naive route beside the exact domain route.
+This matches the already deployed relay allowlist; it adds no generic private
+route and does not change the relay or an issued profile.
+
+Schema 7 retains all policy-1 variant IDs, bodies and mappings. A new policy-2
+mapping selects new approved immutable revisions at issuance; the existing
+user source/binding and credential remain intact. Real isolated DNS exchanges
+and exact-version checker passed on f482bb6 for base 1.14.4, base alpha13 and
+optional alpha13. Android acceptance is still pending.

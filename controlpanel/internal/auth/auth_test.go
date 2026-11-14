@@ -65,11 +65,15 @@ func TestOwnerSession(t *testing.T) {
 			return w
 		}
 		initial := callForm("/", nil, nil, "", 200)
+		if initial.Header().Get("Referrer-Policy") != "same-origin" {
+			t.Fatal("navigation POST Origin would be suppressed")
+		}
 		if !strings.Contains(initial.Body.String(), `action="/login" method="post"`) {
 			t.Fatal("missing login form")
 		}
 		fields := url.Values{"username": {"owner"}, "password": {"synthetic password"}}
 		callForm("/login", fields, nil, "https://outside.invalid", 403)
+		callForm("/login", fields, nil, "null", 403)
 		login := callForm("/login", fields, nil, Origin, 303)
 		c := login.Result().Cookies()[0]
 		home := callForm("/", nil, c, "", 200)

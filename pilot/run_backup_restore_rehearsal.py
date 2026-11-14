@@ -88,13 +88,13 @@ def main():
     # Excluded TLS/relay/probe and proof are independently trusted synthetic fixtures.
     for name in ['root/backup-proof','var/lib/empire-vpn-acme']:
         shutil.copytree(source/name,recovered/name)
-    for name in ['run/relay/config.json','etc/vpn-control/probe-lab.json','etc/vpn-control/lab-ca.pem']:
+    for name in ['etc/vpn-control/probe-lab.json','etc/vpn-control/lab-ca.pem']:
         dest=recovered/name;dest.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source/name,dest)
     # copytree preserves modes, but not numeric ownership. These identities are
     # explicit independently trusted destination fixture policy, not tar input.
     (recovered/'root').chmod(0o700)
     for p in [recovered/'var/lib/empire-vpn-acme',*(recovered/'var/lib/empire-vpn-acme').rglob('*')]:os.chown(p,982,982)
-    relay=recovered/'run/relay';relay.chmod(0o750);os.chown(relay,0,986)
+    relay=recovered/'run/relay';relay.mkdir(parents=True,exist_ok=True);shutil.copy2(proof/'relay.json',relay/'config.json');relay.chmod(0o750);os.chown(relay,0,986)
     os.chown(relay/'config.json',0,986);(relay/'config.json').chmod(0o640)
     (recovered/'etc/vpn-control').chmod(0o755)
     for name in ['etc/empire-vpn','etc/empire-vpn/lab']:

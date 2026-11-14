@@ -22,8 +22,12 @@ def capture(cli, migration, worker, api_socket, cookie, old_profile, revoked_sec
     worker.update(backup_helper=str(ROOT/'backup_artifact.py'),backup_recipient=str(public),backup_directory=str(directory),backup_work=str(work))
     put('/etc/vpn-control/worker-lab.json',json.dumps(worker))
     run([cli,'backup','configure','--installation','lab','--owner-run',migration])
-    put('/root/backup-session',cookie.split('=',1)[1]+'\n')
-    env=dict(os.environ,VPNCTL_SESSION_FILE='/root/backup-session',VPNCTL_SOCKET=str(api_socket))
+    proof=Path('/root/backup-proof');proof.mkdir(mode=0o700,exist_ok=True)
+    require(proof.stat().st_mode&0o077==0,'private proof parent required')
+    put(proof/'session',cookie.split('=',1)[1]+'\n')
+    put(proof/'old-profile.json',old_profile)
+    put(proof/'relay.json',Path('/run/relay/config.json').read_bytes())
+    env=dict(os.environ,VPNCTL_SESSION_FILE=str(proof/'session'),VPNCTL_SOCKET=str(api_socket))
     result=subprocess.run([str(cli),'backup','create','--label','isolated restore rehearsal','--idempotency-key','00000000-0000-4000-8000-000000008501'],env=env,capture_output=True,timeout=30)
     if result.returncode:
         put('/root/backup-cli-diagnostic.stderr',result.stderr[:4096])
@@ -35,7 +39,6 @@ def capture(cli, migration, worker, api_socket, cookie, old_profile, revoked_sec
     bid,path,digest,manifest,operation=row
     require(hashlib.sha256(Path(path).read_bytes()).hexdigest()==digest,'ciphertext digest mismatch')
     require(not list(work.iterdir()),'plaintext staging leaked')
-    proof=Path('/root/backup-proof');proof.mkdir(mode=0o700)
     put(proof/'old-profile.json',old_profile)
     put(proof/'context.json',json.dumps(dict(owner_run=migration,backup_id=bid,own_operation=operation,encrypted_path=path,sha256=digest,manifest_sha256=manifest,revoked_secret=revoked_secret)))
     put(proof/'ready','synthetic encrypted source complete\n')
@@ -86,7 +89,8 @@ def resume_capture():
     migration=json.loads(Path('/var/lib/empire-vpn/lab/manifest.json').read_bytes())['panel_run_id']
     socket=Path('/run/vpn-control/api/capture-api.sock')
     api=ROOT/'rehearsal-bin/vpn-control'
-    process=subprocess.Popen(['/usr/bin/setpriv','--reuid=981','--regid=981','--clear-groups','--bounding-set=-all',str(api),'--socket',str(socket),'--profile-domain','lab.example','--vault-key-file','/var/lib/vpn-control/vault.key','--owner-run',migration],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    diagnostic=open('/root/capture-api.stderr','wb')
+    process=subprocess.Popen(['/usr/bin/setpriv','--reuid=981','--regid=981','--clear-groups','--bounding-set=-all',str(api),'--socket',str(socket),'--profile-domain','lab.example','--vault-key-file','/var/lib/vpn-control/vault.key','--owner-run',migration],stdout=subprocess.DEVNULL,stderr=diagnostic)
     try:
         for _ in range(100):
             if socket.exists():break

@@ -13,10 +13,9 @@ spec.loader.exec_module(module)
 
 
 class ArtifactTests(unittest.TestCase):
-    def archive(self, extra=None, generation=3, reference="/payload"):
-        payload = b"synthetic"
+    def archive(self, extra=None, generation=3, reference="/payload", attrs=None, payload=b"synthetic"):
         metadata = {"format": "vpn-control-g3-snapshot-v1", "generation": generation,
-                    "files": {reference: [0, 0, 384, hashlib.sha256(payload).hexdigest(), {}]}}
+                    "files": {reference: attrs if attrs is not None else [0, 0, 384, hashlib.sha256(payload).hexdigest(), {}]}}
         output = io.BytesIO()
         with tarfile.open(fileobj=output, mode="w") as tar:
             for name, content in [("payload", payload), ("G3-SNAPSHOT.json", json.dumps(metadata).encode())]:
@@ -70,6 +69,31 @@ class ArtifactTests(unittest.TestCase):
             return Guard(original(path, *args, **kwargs))
         with patch.object(module.os, "fdopen", guarded):
             self.check(self.archive())
+    def test_binary_payload(self):
+        self.assertEqual(self.check(self.archive(payload=b"\r\n\x1a"))["status"], "artifact_check_passed")
+
+    def test_inventory_metadata_and_unlisted(self):
+        digest = hashlib.sha256(b"synthetic").hexdigest()
+        for attrs in ([1, 0, 384, digest, {}], [0, 1, 384, digest, {}],
+                      [0, 0, 420, digest, {}], [0, 0, 384, digest, {"user.test": "0" * 64}],
+                      [0, 0, 384, digest, []]):
+            with self.subTest(attrs=attrs), self.assertRaises(ValueError):
+                self.check(self.archive(attrs=attrs))
+        with self.assertRaises(ValueError):
+            self.check(self.archive(tarfile.TarInfo("unexpected")))
+
+    def test_hardlinked_archive(self):
+        import os
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "artifact.tar"
+            data = self.archive()
+            path.write_bytes(data)
+            try:
+                os.link(path, Path(directory) / "second.tar")
+            except (OSError, NotImplementedError):
+                self.skipTest("hardlinks unavailable")
+            with self.assertRaises(ValueError):
+                module.inspect_archive(path, hashlib.sha256(data).hexdigest(), 3)
     def test_plan_only(self):
         self.assertEqual(self.check(self.archive())["status"], "artifact_check_passed")
 

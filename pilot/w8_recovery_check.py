@@ -38,7 +38,7 @@ def inspect_archive(path, expected_sha256, expected_generation, required_paths=(
     metadata_bytes = None
     # Portable caller boundary: private immutable staging, including parents.
     # O_NOFOLLOW is only a leaf protection; Windows has no equivalent here.
-    descriptor_fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    descriptor_fd = os.open(path, os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0))
     with os.fdopen(descriptor_fd, "rb") as source:
         before = os.fstat(source.fileno())
         require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1)

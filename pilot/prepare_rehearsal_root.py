@@ -14,6 +14,11 @@ def main():
     root.mkdir(mode=0o755)
     for name in ('usr','work','proc','sys','dev','tmp','var/tmp','etc/ssl','opt/empire-vpn/bin','run','var/lib'):
         (root/name).mkdir(parents=True,exist_ok=True)
+        # Host recovery uses umask077; mount targets and traversal ancestors
+        # still need access for the dedicated service UIDs inside this root.
+        for directory in [root/name,*(root/name).parents]:
+            if directory==root:break
+            directory.chmod(0o755)
     (root/'tmp').chmod(0o1777);(root/'var/tmp').chmod(0o1777)
     for name,target in (('bin','usr/bin'),('sbin','usr/sbin'),('lib','usr/lib'),('lib64','usr/lib64')):
         (root/name).symlink_to(target)

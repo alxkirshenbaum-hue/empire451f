@@ -7,10 +7,13 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync/atomic"
 	"testing"
+	"time"
 )
 
 func captureParent(t *testing.T) string {
@@ -192,5 +195,96 @@ func TestCaptureSnapshotOversizeCleansChild(t *testing.T) {
 	content, err := os.ReadFile(sentinel)
 	if err != nil || string(content) != "preserve" {
 		t.Fatal("sentinel changed", err)
+	}
+}
+
+func TestCaptureSnapshotConcurrentExternalWALWriter(t *testing.T) {
+	path, r, _ := snapshotFixture(t)
+	if _, err := r.db.Exec("CREATE TABLE snapshot_padding(payload BLOB); INSERT INTO snapshot_padding VALUES(zeroblob(20971520))"); err != nil {
+		t.Fatal(err)
+	}
+	writer, err := sql.Open("sqlite3", path+"?_journal_mode=WAL&_busy_timeout=5000")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Close()
+	writer.SetMaxOpenConns(1)
+	writeCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	ready := make(chan struct{})
+	done := make(chan error, 1)
+	var commits atomic.Int64
+	go func() {
+		for n := int64(1); ; n++ {
+			_, e := writer.ExecContext(writeCtx, "UPDATE users SET display_name=?", fmt.Sprintf("generation-%d", n))
+			if e != nil {
+				if writeCtx.Err() != nil {
+					done <- nil
+				} else {
+					done <- e
+				}
+				return
+			}
+			commits.Store(n)
+			if n == 1 {
+				close(ready)
+			}
+			select {
+			case <-writeCtx.Done():
+				done <- nil
+				return
+			default:
+			}
+		}
+	}()
+	joined := false
+	defer func() {
+		cancel()
+		if !joined {
+			select {
+			case <-done:
+			case <-time.After(6 * time.Second):
+				t.Error("writer did not terminate")
+			}
+		}
+	}()
+	select {
+	case <-ready:
+	case e := <-done:
+		joined = true
+		t.Fatalf("writer stopped before ready: %v", e)
+	case <-writeCtx.Done():
+		t.Fatal("writer readiness deadline")
+	}
+	initial := commits.Load()
+	captured, captureErr := r.CaptureSnapshot(writeCtx, captureParent(t), "")
+	after := commits.Load()
+	cancel()
+	select {
+	case e := <-done:
+		joined = true
+		if e != nil {
+			t.Fatal(e)
+		}
+	case <-time.After(6 * time.Second):
+		t.Fatal("writer termination deadline")
+	}
+	if captureErr != nil {
+		t.Fatal(captureErr)
+	}
+	if after <= initial {
+		t.Fatalf("no external commit overlapped capture: before=%d after=%d", initial, after)
+	}
+	copied, err := sql.Open("sqlite3", captured.Path+"?mode=ro&immutable=1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer copied.Close()
+	var distinct, count int
+	if err = copied.QueryRow("SELECT count(DISTINCT display_name),count(*) FROM users").Scan(&distinct, &count); err != nil {
+		t.Fatal(err)
+	}
+	if distinct != 1 || count != 2 {
+		t.Fatalf("inconsistent captured generation: distinct=%d users=%d", distinct, count)
 	}
 }

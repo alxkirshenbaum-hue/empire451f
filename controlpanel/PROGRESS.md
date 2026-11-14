@@ -1,4 +1,5 @@
 # Общий прогресс VPN Control
+> **PAUSED 15.11.2026.** Актуальная передача: [HANDOFF_W8_2026-11-15.md](HANDOFF_W8_2026-11-15.md), [промпт продолжения](CONTINUE_W8_PROMPT_2026-11-15.md). Функциональный HEAD fc2ec74; bf6f693 — непроверенный rotation WIP, c99e9b0 — отдельный test WIP. W8 0/4 полностью закрытых пунктов, G8 OPEN. До нового разрешения владельца разработку/тесты/агентов не запускать. Старые записи ниже являются историей.
 
 > Возобновлено14.11.2026. Snapshot inspector c4bf7bb: целевые тесты и Go-потребители PASS. Online SQLite capture 5b01836 также проверен (W8_ONLINE_CAPTURE_2026-11-14.md). Привязка capturedDB/owner/key/file hashes bf04c54 также проверена (W8_BINDING_2026-11-14.md). Это частичный W8/1, не готовый encrypted backup.
 

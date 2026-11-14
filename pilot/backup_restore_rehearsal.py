@@ -84,7 +84,7 @@ def resume_capture():
     require(Path('/.vpn-control-rehearsal').is_file(),'isolated source required')
     import time
     migration=json.loads(Path('/var/lib/empire-vpn/lab/manifest.json').read_bytes())['panel_run_id']
-    socket=Path('/run/vpn-control/capture-api.sock')
+    socket=Path('/run/vpn-control/api/capture-api.sock')
     api=ROOT/'rehearsal-bin/vpn-control'
     process=subprocess.Popen(['/usr/bin/setpriv','--reuid=981','--regid=981','--clear-groups','--bounding-set=-all',str(api),'--socket',str(socket),'--profile-domain','lab.example','--vault-key-file','/var/lib/vpn-control/vault.key','--owner-run',migration],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     try:

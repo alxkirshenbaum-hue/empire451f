@@ -124,6 +124,28 @@ class ArtifactTests(unittest.TestCase):
         data[148:156] = b"        "
         data[148:156] = ("%06o\0 " % sum(data[:512])).encode()
         self.assertEqual(self.check(bytes(data))["status"], "artifact_check_passed")
+    def test_raw_count_logical_and_end_boundaries(self):
+        from unittest.mock import patch
+        def raw(name, payload=b""):
+            item = tarfile.TarInfo(name)
+            item.size = len(payload)
+            return item.tobuf() + payload + bytes((-len(payload)) % 512)
+        valid = raw("first", b"1234") + raw("second", b"5678") + bytes(1024)
+        # Direct admission tests separate physical archive size from logical cap.
+        with patch.object(module, "MAX_MEMBERS", 2):
+            module.admit_raw_tar(io.BytesIO(valid), len(valid), 8)
+        with patch.object(module, "MAX_MEMBERS", 1), self.assertRaises(ValueError):
+            module.admit_raw_tar(io.BytesIO(valid), len(valid), 8)
+        with self.assertRaises(ValueError):
+            module.admit_raw_tar(io.BytesIO(valid), len(valid), 7)
+        # These malformed artifacts must fail before the high-level parser.
+        cases = [raw("first") + bytes(512),
+                 raw("first") + bytes(1024) + b"nonzero",
+                 raw("first") + bytes(512) + b"X" + bytes(511)]
+        with patch.object(module.tarfile, "open", side_effect=AssertionError("parser reached")):
+            for index, data in enumerate(cases):
+                with self.subTest(index=index), self.assertRaises(ValueError):
+                    self.check(data)
     def test_plan_only(self):
         self.assertEqual(self.check(self.archive())["status"], "artifact_check_passed")
 

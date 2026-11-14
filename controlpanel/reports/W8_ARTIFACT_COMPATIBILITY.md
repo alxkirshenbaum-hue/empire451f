@@ -86,3 +86,16 @@ padding, large PAX and checksum tamper), plus nonnegative base256 positive.
 Existing actual bounded-read guard still passes. GNU producer compatibility,
 registry binding and Linux stack/resource gates remain pending. Failed-fix0.
 Steps design/implementation+negatives/portable verification:3/3 complete.
+## Raw boundary fixture follow-up
+
+Read original W9.1 integration/PLAN/PROGRESS and parent spec updates: order
+W8 -> W9 -> W9.1; G9 panel components only, E1 requires G9.1 (0/6).
+No W9.1 implementation in this package.
+
+Test-only additions exercise raw member-count exact/over limit and logical-size
+exact/over limit directly, separating logical from physical archive bounds.
+Three end-record negatives (missing second record, nonzero trailing data,
+nonzero second record) assert high-level parser never reached. Existing bounded
+read fixtures remain active. Windows Python3.12.14 Ran11 tests OK (1.069s), no
+skips. No shared code changed, no Linux heavy workload. Package design/tests/
+verification3/3; separate failed-fix counter0.

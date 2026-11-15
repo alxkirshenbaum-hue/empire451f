@@ -1,5 +1,7 @@
 # W8U portable activation — proposed bounded completion package
 
+**Последнее решение владельца15.11.2026:** [W9.5U-Fresh — установить VPN+панель одной командой](PRIORITY_FRESH_INSTALL.md), 0/4, выполнять сразу. Portable export/import и его тестовые расширения отложены; предыдущие зависимости от W8U/G9 ниже отменены для fresh-install. Будущий минимальный перенос допускает plaintext JSON с паролями; сейчас на него время не тратить. Сохранять существующие PASS и WIP.
+
 Base f75d135; discovery/partial adapter d326bcd, independent fixtures697adc2. These commits are NOT U acceptance. Production and E work are excluded. Existing encrypted owner export/download, offline verifier and runtime proofs remain reused per W8_UE_EVIDENCE.
 
 ## User path

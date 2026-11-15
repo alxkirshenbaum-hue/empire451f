@@ -82,4 +82,20 @@ class BootstrapBundleTests(unittest.TestCase):
     def test_world_readable_local_bundle_refused(self):
         self.assertEqual(self.exercise(['controller.py'],mutate=lambda p:p.chmod(0o644)),1)
 
+class InstallerAllowlistTests(unittest.TestCase):
+    def test_unlisted_template_is_not_packaged(self):
+        import zipfile
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            for name in ('client.py','controller.py','remote.py','render.py','verify.py','versions.json','README.md','GUIDE.md','CLIENT_EXPORT_V1.md','TEST_RESULTS.md','MIGRATION_TEST.md','delivery.py','server_boot.py.in'):
+                shutil.copyfile(ROOT/name,root/name)
+            shutil.copytree(ROOT/'templates',root/'templates')
+            shutil.copytree(ROOT/'bootstrap',root/'bootstrap')
+            (root/'examples/site-handoff').mkdir(parents=True)
+            (root/'templates/private.pem').write_text('not a release component')
+            with mock.patch.object(release,'ROOT',root):release.build()
+            with zipfile.ZipFile(root/'dist/installer.zip') as archive:
+                self.assertNotIn('templates/private.pem',archive.namelist())
+                self.assertIn('templates/vpn-add-user',archive.namelist())
 if __name__=='__main__':unittest.main()

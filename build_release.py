@@ -14,7 +14,11 @@ def build(panel_root=None, panel_source_sha=None, release_url=None):
     if (panel_root is None) != (panel_source_sha is None): raise ValueError('Panel staging and source SHA must be supplied together')
     paths = [ROOT / p for p in ['client.py', 'controller.py', 'remote.py', 'render.py', 'verify.py', 'versions.json', 'README.md', 'GUIDE.md', 'CLIENT_EXPORT_V1.md', 'TEST_RESULTS.md', 'MIGRATION_TEST.md']]
     paths.append(ROOT / 'delivery.py')
-    paths += sorted((ROOT / 'templates').glob('*'))
+    template_names = ('caddy.service','Caddyfile','firewall.service','host-entry.nft',
+                      'host-exit.nft','namespace.nft','network-entry.sh','network-exit.sh',
+                      'network.service','panel-frontend.Caddyfile','relay.service',
+                      'relay.socket','sfa-profile.json','singbox.service','vpn-add-user')
+    paths += [ROOT / 'templates' / name for name in template_names]
     destination = ROOT / 'dist'
     destination.mkdir(exist_ok=True)
     sample = ROOT / 'examples/site-handoff'

@@ -6,7 +6,19 @@ try:
     def expired(*args): raise TimeoutError("Bundle download timed out")
     signal.signal(signal.SIGALRM,expired)
     signal.alarm(65)
-    data=urllib.request.urlopen(__BUNDLE_URL__,timeout=60).read(64*1024*1024+1)
+    local=os.environ.get('LC_EVPN_BUNDLE_FILE','')
+    if local:
+        import stat
+        if local!='/run/empire-vpn-local-installer/installer.zip' or os.path.realpath(local)!=local: raise RuntimeError('Invalid local bundle path')
+        parent=os.lstat(os.path.dirname(local))
+        if not stat.S_ISDIR(parent.st_mode) or parent.st_uid!=0 or parent.st_mode&0o077: raise RuntimeError('Unsafe local bundle directory')
+        fd=os.open(local,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+        with os.fdopen(fd,'rb') as stream:
+            meta=os.fstat(stream.fileno())
+            if not stat.S_ISREG(meta.st_mode) or meta.st_uid!=0 or meta.st_nlink!=1 or meta.st_mode&0o077 or meta.st_size>64*1024*1024: raise RuntimeError('Unsafe local bundle')
+            data=stream.read(64*1024*1024+1)
+    else:
+        data=urllib.request.urlopen(__BUNDLE_URL__,timeout=60).read(64*1024*1024+1)
     if len(data)>64*1024*1024: raise RuntimeError('Bundle compressed limit exceeded')
     signal.alarm(0)
     if hashlib.sha256(data).hexdigest()!='__BUNDLE_SHA256__': raise RuntimeError('Installer SHA256 mismatch')

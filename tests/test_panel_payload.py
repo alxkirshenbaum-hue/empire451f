@@ -27,7 +27,7 @@ class PanelPayloadTests(unittest.TestCase):
         a=release.panel_payload(self.root,self.sha)
         self.assertEqual(a,release.panel_payload(self.root,self.sha))
         payload=json.loads(a);self.assertEqual(payload['source_sha'],self.sha)
-        self.assertEqual({x['path'] for x in payload['files']},set(release.PANEL_PATHS))
+        self.assertEqual({x['path'] for x in payload['files']},{release.panel_destination(x) for x in release.PANEL_PATHS})
         for entry in payload['files']:
             data=base64.b64decode(entry['data'],validate=True)
             self.assertEqual(hashlib.sha256(data).hexdigest(),entry['sha256'])

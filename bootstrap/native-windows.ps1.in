@@ -1,7 +1,7 @@
 # Native Windows launcher: no local Python, module bundle, or server templates.
-param([string]$EntryAlias,[string]$ExitAlias,[string]$DeploymentId)
+param([string]$EntryAlias,[string]$ExitAlias,[string]$DeploymentId,[string]$BundlePath)
 $ErrorActionPreference='Stop'
-$resume = $PSBoundParameters.Count -gt 0
+$resume = $PSBoundParameters.ContainsKey('EntryAlias') -or $PSBoundParameters.ContainsKey('ExitAlias') -or $PSBoundParameters.ContainsKey('DeploymentId')
 if ($resume -and ($EntryAlias -notmatch '^[a-zA-Z0-9][a-zA-Z0-9_.-]*$' -or $ExitAlias -notmatch '^[a-zA-Z0-9][a-zA-Z0-9_.-]*$' -or $EntryAlias -eq $ExitAlias -or $DeploymentId -cnotmatch '^[a-z][a-z0-9]{2,9}$')) { throw 'Supply two distinct SSH aliases and an existing deployment ID.' }
 $entryHost='entry'; $exitHost='exit'; $startOperation='start'
 if ($resume) {$entryHost=$EntryAlias; $exitHost=$ExitAlias; $startOperation='resume-'+$DeploymentId}
@@ -167,9 +167,26 @@ function New-Port{
  $listener=New-Object Net.Sockets.TcpListener([Net.IPAddress]::Loopback,0)
  $listener.Start();$port=$listener.LocalEndpoint.Port;$listener.Stop();return $port
 }
+function Upload-LocalBundle{
+ $env:LC_EVPN_BUNDLE_FILE=''
+ if(!$BundlePath){return}
+ $local=(Resolve-Path -LiteralPath $BundlePath).ProviderPath
+ $info=Get-Item -LiteralPath $local
+ if(!$info.PSIsContainer -and $info.Length -le 67108864 -and (Get-FileHash -LiteralPath $local -Algorithm SHA256).Hash.ToLowerInvariant() -eq '__BUNDLE_SHA256__'){
+  foreach($role in @($entryHost,$exitHost)){
+   & ssh -F $Config $role 'set -eu; test ! -L /run/empire-vpn-local-installer; install -d -m 700 /run/empire-vpn-local-installer; test ! -L /run/empire-vpn-local-installer/installer.zip'
+   if($LASTEXITCODE -ne 0){throw 'Cannot prepare private bundle directory'}
+   & scp -q -F $Config $local ($role+':/run/empire-vpn-local-installer/installer.zip')
+   if($LASTEXITCODE -ne 0){throw 'Local bundle upload failed'}
+   & ssh -F $Config $role 'chmod 600 /run/empire-vpn-local-installer/installer.zip'
+   if($LASTEXITCODE -ne 0){throw 'Cannot protect uploaded bundle'}
+  }
+  $env:LC_EVPN_BUNDLE_FILE='/run/empire-vpn-local-installer/installer.zip'
+ }else{throw 'Local bundle is invalid or differs from this bootstrap SHA256'}
+}
 function Start-Rpc{
  Write-Host 'Opening exit SSH tunnel and loading installer on exit (up to 90 seconds)...'
- $arguments=@('-F',$Config,'-n','-o','SendEnv=LC_EVPN_TOKEN','-L',('127.0.0.1:'+$LocalPort+':127.0.0.1:'+$RpcPort),$exitHost,($Boot+' rpc '+$RpcPort))
+ $arguments=@('-F',$Config,'-n','-o','SendEnv=LC_EVPN_TOKEN','-o','SendEnv=LC_EVPN_BUNDLE_FILE','-L',('127.0.0.1:'+$LocalPort+':127.0.0.1:'+$RpcPort),$exitHost,($Boot+' rpc '+$RpcPort))
  $info=New-Object Diagnostics.ProcessStartInfo
  $info.FileName=(Get-Command ssh.exe).Source
  $info.Arguments=($arguments | ForEach-Object {Quote-WindowsArg $_}) -join ' '
@@ -188,7 +205,7 @@ function Start-Rpc{
 function Run-Wizard([string]$Operation){
  Write-Host ("Opening interactive wizard on entry: "+$Operation+" ...")
  # Keep native console handles: capturing/piping stdout buffers prompts without LF.
- & ssh -F $Config -tt -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -R ('127.0.0.1:'+$RelayPort+':127.0.0.1:'+$LocalPort) $entryHost ($Boot+' wizard '+$RelayPort+' '+$Operation)
+ & ssh -F $Config -tt -o SendEnv=LC_EVPN_BUNDLE_FILE -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -R ('127.0.0.1:'+$RelayPort+':127.0.0.1:'+$LocalPort) $entryHost ($Boot+' wizard '+$RelayPort+' '+$Operation)
  $script:WizardExit=$LASTEXITCODE
 }
 function Finish-Handoff {
@@ -386,6 +403,7 @@ try{
  $random=New-Object byte[] 32;$rng=[Security.Cryptography.RandomNumberGenerator]::Create();$rng.GetBytes($random);$rng.Dispose()
  $env:LC_EVPN_TOKEN=[BitConverter]::ToString($random).Replace('-','').ToLowerInvariant()
  $env:LC_EVPN_SESSION=[guid]::NewGuid().ToString('N')
+ Upload-LocalBundle
  $LocalPort=New-Port;$RpcPort=Get-Random -Minimum 30000 -Maximum 59000;$RelayPort=Get-Random -Minimum 30000 -Maximum 59000
  while(!$RpcProcess){
   try{$RpcProcess=Start-Rpc}catch{

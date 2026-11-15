@@ -18,7 +18,7 @@ class FreshControllerTests(unittest.TestCase):
             session=Path(directory)/'session.json';archive=session.with_suffix('.zip');archive.write_bytes(b'fixture upload')
             state={'committed':True,'config':{'panel_enabled':True}}
             with patch.object(controller.remote,'readjson',return_value=state),patch.object(controller,'session_path',return_value=session),patch.object(controller.delivery,'publish_site') as publish:
-                with contextlib.redirect_stdout(io.StringIO()) as output:
+                with contextlib.redirect_stdout(io.StringIO()) as output, contextlib.redirect_stderr(output):
                     self.assertEqual(controller.finish(Mock(),'session','publish-site'),1)
                 self.assertIn('Site ZIP rejected',output.getvalue())
             publish.assert_not_called();self.assertFalse(archive.exists())

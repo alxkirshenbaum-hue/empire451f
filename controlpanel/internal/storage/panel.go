@@ -150,7 +150,7 @@ type BackupMetadata struct {
 }
 
 func (r *Registry) BackupInventory(ctx context.Context) ([]BackupMetadata, error) {
-	rows, err := r.db.QueryContext(ctx, "SELECT id,created_at,size_bytes,source_generation,verified_at,status FROM backups ORDER BY created_at DESC LIMIT 100")
+	rows, err := r.db.QueryContext(ctx, "SELECT id,created_at,size_bytes,source_generation,verified_at,status FROM backups ORDER BY julianday(created_at) DESC,id DESC LIMIT 100")
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +174,7 @@ type AuditMetadata struct {
 }
 
 func (r *Registry) AuditInventory(ctx context.Context) ([]AuditMetadata, error) {
-	rows, err := r.db.QueryContext(ctx, "SELECT a.id,a.started_at,a.finished_at,(SELECT count(*) FROM audit_checks c WHERE c.audit_id=a.id) FROM audit_runs a ORDER BY a.started_at DESC LIMIT 30")
+	rows, err := r.db.QueryContext(ctx, "SELECT a.id,a.started_at,a.finished_at,(SELECT count(*) FROM audit_checks c WHERE c.audit_id=a.id) FROM audit_runs a ORDER BY julianday(a.started_at) DESC,a.id DESC LIMIT 30")
 	if err != nil {
 		return nil, err
 	}

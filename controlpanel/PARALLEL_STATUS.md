@@ -1,5 +1,19 @@
 # Parallel development journal
 
+## 16.11.2026 — локальная ночная U-очередь
+
+[Итоги и доказательства](U_NIGHT_RESULTS_2026-11-16.md). Независимые bounded-пакеты:
+coder profile_filename — complete `70626a2`, target PASS0.540s;
+lead_coder local_observations — complete `daa33d0`/`fdd0c1d`, API/CLI PASS;
+lead_coder owner_password — AUTH04 complete `4d40278`/`8a25436`/`216c721`,
+full auth4.203s/CLI79.796s, CLI target0.015s PASS; readonly AUTH03 `abc0876`;
+final code/header `8c0309b`, full auth7.251s/identity CLI0.012s PASS, lab free;
+architect security — AUTH04 contract/final review complete, no blockers.
+Main — inventory timestamps/order `f70bd62`, storage0.070s/owner API0.964s PASS.
+Без nested agents и параллельных тяжёлых прогонов. Новых E-gates/production
+изменений нет; опубликованный rc1 не заменялся. Старые строки ниже — история.
+
+
 ## 2026-11-14 — approved round 1, integrated portable checkpoint
 
 Owner approved PARALLEL_PLAN_2026-11-14 and automatic ASTRA escalation.

@@ -227,8 +227,15 @@ func (r *Registry) BindPortableAuthHash(ctx context.Context, operation, hash str
 	if !errors.Is(e, sql.ErrNoRows) {
 		return e
 	}
-	_, e = r.db.ExecContext(ctx, `INSERT INTO operation_steps(operation_id,step_no,step_name,state,after_hash,started_at,finished_at) SELECT id,1,'portable-auth','succeeded',?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP FROM operations WHERE id=? AND kind='portable.import' AND status='running'`, hash, operation)
-	return e
+	result, e := r.db.ExecContext(ctx, `INSERT INTO operation_steps(operation_id,step_no,step_name,state,after_hash,started_at,finished_at) SELECT id,1,'portable-auth','succeeded',?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP FROM operations WHERE id=? AND kind='portable.import' AND status='running'`, hash, operation)
+	if e != nil {
+		return e
+	}
+	n, e := result.RowsAffected()
+	if e != nil || n != 1 {
+		return ErrLegacyConflict
+	}
+	return nil
 }
 func (r *Registry) PortableAuthHash(ctx context.Context, operation string) (string, error) {
 	var hash string

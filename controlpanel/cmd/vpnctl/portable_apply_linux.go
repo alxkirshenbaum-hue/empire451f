@@ -124,6 +124,9 @@ func applyPortableImport(ctx context.Context, installation string, policy worker
 			if e != nil {
 				return receipt, e
 			}
+			if e = probeAll(); e != nil {
+				return receipt, e
+			}
 			return receipt, w.removePrepared(receipt.OperationID)
 		}
 		observed, err := portableInstallationHash(installation)

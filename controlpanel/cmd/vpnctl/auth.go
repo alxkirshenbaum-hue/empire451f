@@ -20,7 +20,7 @@ func authCommand(args []string, stderr io.Writer) int {
 	}
 	login := len(args) == 2 && args[0] == "login"
 	if !login && !(len(args) == 1 && args[0] == "logout") {
-		fmt.Fprintln(stderr, "Usage: vpnctl auth login USERNAME | vpnctl auth logout | vpnctl auth passwd")
+		fmt.Fprintln(stderr, "Usage: vpnctl auth login USERNAME | vpnctl auth logout | vpnctl auth passwd | vpnctl auth whoami")
 		return 2
 	}
 	path := os.Getenv("VPNCTL_SESSION_FILE")

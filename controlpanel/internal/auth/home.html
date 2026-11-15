@@ -30,7 +30,7 @@ dl{display:grid;grid-template-columns:130px 1fr;gap:8px}dt{color:#61766a}dd{marg
 </head>
 <body {{if .CSRF}}class="signed-in"{{end}}><main>
 <header><span class="brand">VPN CONTROL</span>
-{{if .CSRF}}<form class="compact" action="/logout" method="post"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="quiet" type="submit">Sign out</button></form>{{end}}
+{{if .CSRF}}<span id="owner-identity" class="help">Owner session</span><form class="compact" action="/logout" method="post"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="quiet" type="submit">Sign out</button></form>{{end}}
 </header>
 {{if .CSRF}}
 <h1>Personal VPN</h1>

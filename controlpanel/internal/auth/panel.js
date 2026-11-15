@@ -259,7 +259,8 @@
  byId("profile-client").addEventListener("change",updateDownload);byId("profile-optional").addEventListener("change",updateDownload);
  addEventListener("hashchange",navigate);navigate();restorePending();
  (async()=>{
-  const [cap,templates]=await Promise.all([api("/api/v1/capabilities"),api("/api/v1/templates")]);
+  const [cap,templates,identity]=await Promise.all([api("/api/v1/capabilities"),api("/api/v1/templates"),api("/api/v1/auth/me")]);
+  byId("owner-identity").textContent="Owner: "+identity.username+" · Session expires: "+dates(identity.expires_at);
   state.cap=cap;byId("routing-warning").textContent=cap.routing_warning;
   for(const template of templates){const option=node("option",template.name+" · "+template.variant);option.value=template.id;byId("template-select").append(option);}
   if(!cap.mutations_enabled)message("Management is read only for this installation.");

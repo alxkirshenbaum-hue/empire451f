@@ -751,8 +751,8 @@ def install_panel(c, payload, owner_username, owner_password):
     require_installer_writer(manifest,state)
     panel=Path('/var/lib/vpn-control')
     require(not any(os.path.lexists(panel/name) for name in ('state.db','state.db-wal','state.db-shm','vault.key')),'Existing panel registry/key refused; preserve installation and inspect its migration journal')
-    require(not Path('/etc/vpn-control/private-panel').exists(),'Existing private panel TLS refused before initialization')
-    require(not any(Path('/etc/systemd/system',name).exists() for name in ('vpn-control-api.service','vpn-control-panel.service')),'Existing panel units refused before initialization')
+    require(not os.path.lexists('/etc/vpn-control/private-panel'),'Existing private panel TLS refused before initialization')
+    require(not any(os.path.lexists(Path('/etc/systemd/system',name)) for name in ('vpn-control-api.service','vpn-control-panel.service')),'Existing panel units refused before initialization')
     require(payload.get('format')=='vpn-control-panel-v1' and re.fullmatch('[0-9a-f]{40}',payload.get('source_sha','')),'Invalid pinned panel payload')
     entries=payload.get('files');require(isinstance(entries,list) and 0<len(entries)<=256,'Invalid panel file inventory')
     checked=[];seen=set();total=0

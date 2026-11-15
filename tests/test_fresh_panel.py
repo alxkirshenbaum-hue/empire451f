@@ -30,7 +30,7 @@ class FreshPanelTests(unittest.TestCase):
     def test_existing_tls_is_rejected_before_any_mutating_command(self):
         c=config();c.update(panel_enabled=True,tls='ready')
         manifest=dict(role='entry',config=dict(id=c['id']))
-        with patch.object(remote,'readjson',return_value=manifest),patch.object(remote.os.path,'lexists',return_value=False),patch.object(Path,'exists',lambda p:str(p)=='/etc/vpn-control/private-panel'),patch.object(remote,'run') as command,patch.object(remote,'atomic') as write:
+        with patch.object(remote,'readjson',return_value=manifest),patch.object(remote.os.path,'lexists',side_effect=lambda p:str(p)=='/etc/vpn-control/private-panel'),patch.object(Path,'exists',lambda p:str(p)=='/etc/vpn-control/private-panel'),patch.object(remote,'run') as command,patch.object(remote,'atomic') as write:
             with self.assertRaisesRegex(render.Invalid,'Existing private panel TLS'):
                 remote.install_panel(c,{},'owner','Synthetic owner password')
             command.assert_not_called();write.assert_not_called()

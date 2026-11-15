@@ -130,7 +130,13 @@ func portableCommand(action string, args []string, out, stderr io.Writer) int {
 			fmt.Fprintln(stderr, "Portable preview refused: source or destination conflict")
 			return 4
 		}
-		return portableJSON(out, map[string]any{"plan_sha256": plan.Hash, "installation_sha256": observed, "users": plan.Users, "destination_run": *run, "replace_initial_template_catalog": plan.ReplaceInitialCatalog, "activation": "not_started"})
+		return portableJSON(out, map[string]any{"plan_sha256": plan.Hash, "installation_sha256": observed, "users": plan.Users, "users_preview": plan.UsersPreview, "destination_run": *run, "replace_initial_template_catalog": plan.ReplaceInitialCatalog, "activation": "not_started"})
+	}
+	if !*resume {
+		if e = portableSpace(*source); e != nil {
+			fmt.Fprintln(stderr, "Insufficient free space for portable import staging and WAL")
+			return 4
+		}
 	}
 	if !*resume && observed != *baseline {
 		fmt.Fprintln(stderr, "Destination changed since preview")
@@ -148,4 +154,27 @@ func portableJSON(out io.Writer, value any) int {
 		return 9
 	}
 	return 0
+}
+
+// Reserve a conservative bounded DB/WAL working peak on the actual destination
+// filesystem. This is operation safety, not a fixed overall disk/RAM gate.
+func portableSpace(source string) error {
+	i, e := os.Stat(source)
+	if e != nil {
+		return e
+	}
+	if i.Size() < 1 || i.Size() > storage.SnapshotMaxBytes {
+		return storage.ErrSnapshotState
+	}
+	needed := uint64(i.Size())*3 + 16*1024*1024
+	for _, path := range []string{"/var/lib/vpn-control", "/var/lib/empire-vpn", "/etc/empire-vpn"} {
+		var st syscall.Statfs_t
+		if e = syscall.Statfs(path, &st); e != nil {
+			return e
+		}
+		if uint64(st.Bsize) == 0 || st.Bavail < needed/uint64(st.Bsize)+1 {
+			return storage.ErrSnapshotState
+		}
+	}
+	return nil
 }

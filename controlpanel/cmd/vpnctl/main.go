@@ -49,6 +49,9 @@ func execute(args []string, out, stderr io.Writer) int {
 		return executeMigration(args[1], args[2:], out, stderr)
 	}
 	if len(args) >= 1 && args[0] == "auth" {
+		if len(args) == 2 && args[1] == "whoami" {
+			return authWhoami(out, stderr)
+		}
 		return authCommand(args[1:], stderr)
 	}
 	if len(args) < 3 || args[0] != "operation" || args[1] != "show" || !status.ValidID(args[2]) {

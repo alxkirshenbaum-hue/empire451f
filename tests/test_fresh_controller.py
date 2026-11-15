@@ -13,6 +13,13 @@ import controller
 from render import Invalid
 
 class FreshControllerTests(unittest.TestCase):
+    def test_panel_site_change_is_refused_without_mutation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            session=Path(directory)/'session.json';archive=session.with_suffix('.zip');archive.write_bytes(b'fixture upload')
+            state={'committed':True,'config':{'panel_enabled':True}}
+            with patch.object(controller.remote,'readjson',return_value=state),patch.object(controller,'session_path',return_value=session),patch.object(controller.delivery,'publish_site') as publish:
+                with self.assertRaisesRegex(Invalid,'site baseline'):controller.finish(Mock(),'session','publish-site')
+            publish.assert_not_called();self.assertFalse(archive.exists())
     def test_owner_secret_stays_out_of_session_and_output(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);ca=root/'ca.crt';ca.write_bytes(b'public certificate')

@@ -540,6 +540,7 @@ def finish(nodes, session, operation):
         require(state.get('committed'), 'Website upload requires a committed deployment')
         archive = session_path(session).with_suffix('.zip')
         try:
+            require(not c.get('panel_enabled'), 'Website publication is deferred for this panel candidate: preserve the verified worker site baseline')
             if c['entry']['kind'] == 'legacy':
                 base = Path('/var/www/empire-tomorrow')
                 require(str(base / 'current') in Path('/etc/naive/Caddyfile').read_text(), 'Unrecognised legacy site root')

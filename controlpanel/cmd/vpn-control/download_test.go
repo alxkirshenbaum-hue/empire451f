@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -179,6 +180,10 @@ func TestOwnerDownloadsActiveProfile(t *testing.T) {
 	}
 	execSQL("DROP TRIGGER reject_audit")
 	result := fetch("GET", cookie, 200)
+	_, disposition, parseErr := mime.ParseMediaType(result.Header().Get("Content-Disposition"))
+	if parseErr != nil || disposition["filename"] != "vpn-Test-User-sfa-1.14.4.json" {
+		t.Fatal("profile filename lost exact login/client", disposition, parseErr)
+	}
 	if probe != nil {
 		if err := encoder.Encode(json.RawMessage(result.Body.Bytes())); err != nil {
 			t.Fatal(err)

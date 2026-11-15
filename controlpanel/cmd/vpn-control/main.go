@@ -12,6 +12,7 @@ import (
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/storage"
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/vault"
 	"io"
+	"mime"
 	"net"
 	"net/http"
 	"net/url"
@@ -76,7 +77,12 @@ func download(registry *storage.Registry, domain string) http.HandlerFunc {
 		}
 		defer clear(blob)
 		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Content-Disposition", `attachment; filename="vpn-`+r.PathValue("id")+`.json"`)
+		user, err := registry.GetUser(r.Context(), r.PathValue("id"))
+		if err != nil {
+			status.Unavailable(w)
+			return
+		}
+		w.Header().Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": profileFilename(user.Login, r.PathValue("id"), options.Client)}))
 		w.Write(blob)
 	}
 }
@@ -183,4 +189,20 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+func profileFilename(login, id, client string) string {
+	if client == "" {
+		client = storage.Client1144
+	}
+	safe := len(login) > 0 && len(login) <= 64
+	for _, c := range login {
+		if !(c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '_' || c == '-' || c == '.' || c == '@') {
+			safe = false
+		}
+	}
+	if !safe {
+		return "vpn-" + id + ".json"
+	}
+	return "vpn-" + login + "-" + client + ".json"
 }

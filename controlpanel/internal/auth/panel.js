@@ -213,6 +213,8 @@
  byId("owner-password").addEventListener("submit",async event=>{
   event.preventDefault();const form=event.currentTarget,button=form.querySelector("button");
   const values=Object.fromEntries(new FormData(form).entries());
+  const byteLength=new TextEncoder().encode(values.new_password).length;
+  if(byteLength<12||byteLength>1024){form.reset();report(new Error("New password must contain 12 to 1024 bytes."));return;}
   if(values.new_password!==values.confirm_password){form.reset();report(new Error("New passwords do not match."));return;}
   button.disabled=true;
   try{await api("/api/v1/auth/change-password","POST",values);form.reset();location.assign("/");}

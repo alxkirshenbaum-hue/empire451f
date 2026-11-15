@@ -208,6 +208,31 @@ function Run-Wizard([string]$Operation){
  & ssh -F $Config -tt -o SendEnv=LC_EVPN_BUNDLE_FILE -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -R ('127.0.0.1:'+$RelayPort+':127.0.0.1:'+$LocalPort) $entryHost ($Boot+' wizard '+$RelayPort+' '+$Operation)
  $script:WizardExit=$LASTEXITCODE
 }
+function Offer-PanelCA([string]$Prefix){
+ & ssh -F $Config $entryHost ('test -f '+$Prefix+'.panel-ca.crt') 2>$null
+ if($LASTEXITCODE -ne 0){return}
+ $remoteHash=(& ssh -F $Config $entryHost ('sha256sum '+$Prefix+'.panel-ca.crt') | Out-String).Trim().Split(' ')[0]
+ if($LASTEXITCODE -ne 0 -or $remoteHash -cnotmatch '^[a-f0-9]{64}$'){throw 'Cannot verify panel CA fingerprint'}
+ Write-Host ('Panel public CA SHA256: '+$remoteHash)
+ while($true){
+  $target=Ask 'PanelCA' 'Save the public panel CA? Enter a NEW local .crt path, or Enter to skip'
+  if(!$target){return}
+  $tmp=$null
+  try{
+   $dest=[IO.Path]::GetFullPath($target)
+   if([IO.File]::Exists($dest) -or !(Test-Path -LiteralPath ([IO.Path]::GetDirectoryName($dest)) -PathType Container)){throw 'New path required'}
+   $tmp=$dest+'.download-'+[guid]::NewGuid().ToString('N')
+   [IO.File]::Open($tmp,'CreateNew','Write','None').Dispose()
+   & scp -q -F $Config ($entryHost+':'+$Prefix+'.panel-ca.crt') $tmp
+   if($LASTEXITCODE -ne 0 -or (Get-Item -LiteralPath $tmp).Length -gt 65536 -or (Get-FileHash -LiteralPath $tmp -Algorithm SHA256).Hash.ToLowerInvariant() -ne $remoteHash){throw 'CA transfer verification failed'}
+   [IO.File]::Move($tmp,$dest)
+   Write-Host ('Saved PUBLIC CA: '+$dest)
+   Write-Host 'Verify this SHA256 against the trusted SSH output. Review the certificate, then manually configure trust on your device. No certificate store was changed.'
+   return
+  }catch{Write-Host 'Cannot save and verify the CA. Choose a new path or skip.'}
+  finally{if($tmp -and [IO.File]::Exists($tmp)){[IO.File]::Delete($tmp)}}
+ }
+}
 function Finish-Handoff {
  $prefix='/var/lib/empire-vpn-sessions/'+$env:LC_EVPN_SESSION
  while($true){
@@ -228,6 +253,7 @@ function Finish-Handoff {
   }catch{Write-Host 'Could not save the profile. Choose a new path in a private writable folder.'}
   finally{if($tmp -and [IO.File]::Exists($tmp)){[IO.File]::Delete($tmp)}}
  }
+ Offer-PanelCA $prefix
  while($true){
   $zip=Ask Q25 'Publish a static website now? Enter a local handoff ZIP path, or Enter to keep the current site'
   if(!$zip){return}

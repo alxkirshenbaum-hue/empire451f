@@ -215,6 +215,7 @@ def prepare(c, role, versions):
     required = ['wireguard-tools', 'nftables', 'iproute2', 'ca-certificates', 'curl', 'python3']
     if role == 'entry' and not f['legacy']:
         required += ['git', 'build-essential']
+    if role=='entry' and c.get('panel_enabled'):required += ['openssl','util-linux']
     missing = [p for p in required if text(['dpkg-query', '-W', '-f=${db:Status-Status}', p], check=False) != 'installed']
     if missing:
         run(['apt-get', 'update'], timeout=600, env=env)
@@ -231,6 +232,14 @@ def prepare(c, role, versions):
             import pwd
             account = pwd.getpwnam('evpn')
             require(account.pw_uid != 0 and account.pw_shell == '/usr/sbin/nologin' and account.pw_dir == '/var/lib/empire-vpn-acme', 'Unrecognised evpn service account')
+    if role=='entry' and c.get('panel_enabled'):
+        for name,home in [('evpn-caddy','/var/lib/empire-vpn-acme'),('evpn-panel','/nonexistent')]:
+            if run(['id',name],check=False).returncode:
+                run(['useradd','--system','--user-group','--home-dir',home,'--shell','/usr/sbin/nologin',name])
+            else:
+                import pwd
+                account=pwd.getpwnam(name)
+                require(account.pw_uid!=0 and account.pw_shell=='/usr/sbin/nologin' and account.pw_dir==home,'Unrecognised panel service account')
     return {'public_key': public_key(f['key_path'])}
 
 
@@ -723,6 +732,96 @@ def verification(c, request, before_block=None):
         raise Invalid('Acceptance failed: ' + str(error)) from None
 
 
+def install_panel(c, payload, owner_username, owner_password):
+    """Fresh entry only, invoked after VPN commit. Never accepts owner secret in argv."""
+    import grp, pwd, uuid
+    environment=dict(os.environ);environment.pop('PYTHONPATH',None);environment.pop('PYTHONHOME',None);environment['PYTHONNOUSERSITE']='1';environment['PATH']='/usr/sbin:/usr/bin:/sbin:/bin'
+    def panel_run(args, **kwargs):return run(args,env=environment,**kwargs)
+    c=validate(c);n=names(c);state=Path(n['state']);base=Path(n['base'])
+    require(c['mode']=='fresh' and c.get('panel_enabled') and c.get('tls')=='ready','Panel requires a fresh committed TLS-ready installation')
+    require(isinstance(owner_username,str) and re.fullmatch(r'[A-Za-z0-9_.@-]{1,64}',owner_username),'Invalid owner username')
+    require(isinstance(owner_password,str) and 12<=len(owner_password)<=256 and '\n' not in owner_password and '\r' not in owner_password,'Owner password must contain 12-256 characters')
+    manifest=readjson(state/'manifest.json',{})
+    require(manifest.get('role')=='entry' and manifest.get('config',{}).get('id')==c['id'] and not (state/'pending.json').exists(),'Commit VPN before panel installation')
+    require_installer_writer(manifest,state)
+    panel=Path('/var/lib/vpn-control')
+    require(not any(os.path.lexists(panel/name) for name in ('state.db','state.db-wal','state.db-shm','vault.key')),'Existing panel registry/key refused; preserve installation and inspect its migration journal')
+    require(not Path('/etc/vpn-control/private-panel').exists(),'Existing private panel TLS refused before initialization')
+    require(not any(Path('/etc/systemd/system',name).exists() for name in ('vpn-control-api.service','vpn-control-panel.service')),'Existing panel units refused before initialization')
+    require(payload.get('format')=='vpn-control-panel-v1' and re.fullmatch('[0-9a-f]{40}',payload.get('source_sha','')),'Invalid pinned panel payload')
+    entries=payload.get('files');require(isinstance(entries,list) and 0<len(entries)<=256,'Invalid panel file inventory')
+    checked=[];seen=set();total=0
+    for entry in entries:
+        name=entry.get('path','');parts=name.split('/')
+        require(all(re.fullmatch(r'[A-Za-z0-9_.@-]+',p) and p not in ('.','..') for p in parts) and len(parts)>=2 and parts[0] in ('bin','helpers','templates','systemd','ui') and name not in seen,'Unsafe panel payload path')
+        require(type(entry.get('mode')) is int and entry['mode'] in (0o644,0o755),'Invalid panel payload mode')
+        data=base64.b64decode(entry['data'],validate=True);total+=len(data)
+        require(total<=100_000_000 and hashlib.sha256(data).hexdigest()==entry['sha256'],'Panel payload digest/size mismatch')
+        seen.add(name);checked.append((name,data,entry['mode']))
+    required={'bin/vpnctl','bin/vpn-control','templates/sfa-profile.json','templates/panel-frontend.Caddyfile','systemd/vpn-control-api.service','systemd/vpn-control-panel.service','systemd/vpn-control-worker@.service','systemd/vpn-control-worker@.timer','helpers/g3_snapshot.py','helpers/inspect_legacy.py','helpers/handoff_legacy.py','helpers/owned_auth.py','helpers/create_probe.py','helpers/vpn-add-user.template'}
+    require(required<=seen,'Incomplete panel payload')
+    require(shutil.disk_usage('/var/lib').free>total+40_000_000 and shutil.disk_usage('/opt').free>total+20_000_000,'Insufficient free space for panel and protected migration snapshot')
+    service={name:pwd.getpwnam(name) for name in ('evpn','evpn-caddy','evpn-panel')}
+    require(len({p.pw_uid for p in service.values()})==3 and all(p.pw_uid>0 for p in service.values()),'Panel identities must be distinct non-root UIDs')
+    root=Path('/opt/empire-vpn/controlpanel')/payload['source_sha']
+    require(not root.is_symlink(),'Symlink payload destination refused');root.mkdir(mode=0o755,parents=True,exist_ok=True)
+    for name,data,mode in checked:
+        target=root/name
+        require(not target.is_symlink() and not any(p.is_symlink() for p in target.parents),'Symlink panel installation path refused')
+        if target.exists():require(target.is_file() and target.read_bytes()==data,'Pinned panel payload collision')
+        else:atomic(target,data,mode)
+    for name in ('vpnctl','vpn-control'):atomic('/usr/local/bin/'+name,(root/'bin'/name).read_bytes(),0o755)
+    helper=root/'helpers';config=Path('/etc/vpn-control');config.mkdir(mode=0o755,exist_ok=True)
+    scratch=Path('/run/vpn-control/probes');scratch.mkdir(mode=0o700,parents=True,exist_ok=True);scratch.chmod(0o700)
+    Path('/run/lock').mkdir(exist_ok=True);lock=Path('/run/lock/empire-vpn.lock');lock.touch(mode=0o600,exist_ok=True)
+    cli='/usr/local/bin/vpnctl';api='/usr/local/bin/vpn-control'
+    template=root/'templates/sfa-profile.json'
+    panel_run([cli,'registry','init','--installation',c['id'],'--sfa-template',str(template),'--approve-sha256',digest(template)])
+    panel_run([api,'--bootstrap-owner',owner_username,'--owner-password-stdin'],data=(owner_password+'\n').encode())
+    # Snapshot/plan/stage/cutover use the accepted common lock and migration journal.
+    interpreter=str(Path(sys.executable).resolve())
+    captured=json.loads(panel_run([interpreter,'-E','-s',str(helper/'g3_snapshot.py'),c['id'],str(uuid.uuid4()),'pre']).stdout)
+    source=Path(captured['import_snapshot'])
+    report=json.loads(panel_run([interpreter,'-E','-s',str(helper/'inspect_legacy.py'),str(source),'--registry',str(panel/'state.db')]).stdout)
+    owner_run=report['run_id']
+    panel_run([interpreter,'-E','-s',str(helper/'inspect_legacy.py'),str(source),'--registry',str(panel/'state.db'),'--plan',owner_run])
+    panel_run([cli,'migration','execute','--approved-plan',owner_run,'--staging-db',str(panel/'state.db'),'--snapshot',str(source),'--vault-key-file',str(panel/'vault.key')])
+    caddy=service['evpn-caddy'];admin='/run/'+n['prefix']+'-caddy-admin/admin.sock'
+    namespace=['/usr/sbin/ip','netns','exec','naive']
+    # Resolve actual installed tools, never user-supplied executable paths.
+    ip=shutil.which('ip');setpriv=shutil.which('setpriv');python=shutil.which('python3');require(ip and setpriv and python,'Required panel runtime tools missing')
+    namespace=[str(Path(ip).resolve()),'netns','exec','naive']
+    validate_command=namespace+[str(Path(setpriv).resolve()),'--reuid='+str(caddy.pw_uid),'--regid='+str(caddy.pw_gid),'--clear-groups','--bounding-set=-all','/opt/empire-vpn/bin/caddy','validate','--config','-']
+    probe=config/('probe-'+c['id']+'.json')
+    policy=dict(address='127.0.0.1',port=443,domain=c['domain'],site_sha256=digest(base/'site/index.html'),binary='/opt/empire-vpn/bin/sing-box',auth_file=str(base/'auth.caddy'),canary_login='master_user',scratch_dir=str(scratch),tcp_mode='exit_https',expected_exit=c['exit']['address'],udp_mode='dns',udp_host=c['dns'],udp_port=53)
+    atomic(probe,json.dumps(policy))
+    worker=dict(installation=c['id'],owner_run=owner_run,socket=admin,helper=str(helper/'owned_auth.py'),validate_command=validate_command,probe_command=namespace+[str(Path(python).resolve()),'-B',str(helper/'create_probe.py'),'--policy',str(probe)])
+    atomic(config/('worker-'+c['id']+'.json'),json.dumps(worker));atomic(config/('worker-'+c['id']+'.env'),'OWNER_RUN='+owner_run+'\n')
+    panel_run([cli,'migration','cutover','--installation',c['id'],'--approved-plan',owner_run,'--snapshot',str(source),'--legacy-writers-stopped'])
+    # Bootstrap private TLS using a per-installation CA; expose only public CA.
+    tls=config/'private-panel';require(not tls.exists(),'Existing panel TLS material refused');tls.mkdir(mode=0o700)
+    panel_run(['openssl','req','-x509','-newkey','rsa:2048','-nodes','-sha256','-days','3650','-subj','/CN=VPN Control private CA','-addext','basicConstraints=critical,CA:TRUE,pathlen:0','-keyout',str(tls/'ca.key'),'-out',str(tls/'ca.crt')])
+    panel_run(['openssl','req','-new','-newkey','rsa:2048','-nodes','-subj','/CN=panel.home.arpa','-keyout',str(tls/'tls.key'),'-out',str(tls/'leaf.csr')])
+    atomic(tls/'extensions','basicConstraints=critical,CA:FALSE\nsubjectAltName=DNS:panel.home.arpa\nextendedKeyUsage=serverAuth\nkeyUsage=digitalSignature,keyEncipherment\n')
+    panel_run(['openssl','x509','-req','-in',str(tls/'leaf.csr'),'-CA',str(tls/'ca.crt'),'-CAkey',str(tls/'ca.key'),'-set_serial','1','-days','365','-sha256','-extfile',str(tls/'extensions'),'-out',str(tls/'leaf.crt')]);(tls/'ca.key').unlink()
+    for path in tls.iterdir():path.chmod(0o600)
+    ca_path=state/'panel-ca.crt';atomic(ca_path,(tls/'ca.crt').read_bytes(),0o644)
+    frontend=(root/'templates/panel-frontend.Caddyfile').read_text().replace('@API_SOCKET@','/run/vpn-control-api/api.sock');atomic(tls/'Caddyfile',frontend)
+    unitsroot=root/'systemd'
+    apiunit=(unitsroot/'vpn-control-api.service').read_text().replace('--vault-key-file /var/lib/vpn-control/vault.key','--vault-key-file /var/lib/vpn-control/vault.key --owner-run '+owner_run)
+    frontendunit=(unitsroot/'vpn-control-panel.service').read_text().replace('evpn-nh1',n['prefix'])
+    for name,content in [('vpn-control-api.service',apiunit),('vpn-control-panel.service',frontendunit),('vpn-control-worker@.service',(unitsroot/'vpn-control-worker@.service').read_text()),('vpn-control-worker@.timer',(unitsroot/'vpn-control-worker@.timer').read_text())]:atomic('/etc/systemd/system/'+name,content,0o644)
+    atomic(config/'api.env','PROFILE_DOMAIN='+c['domain']+'\n')
+    atomic('/etc/tmpfiles.d/vpn-control.conf','d /run/vpn-control 0700 root root -\nd /run/vpn-control/probes 0700 root root -\nf /run/lock/empire-vpn.lock 0600 root root -\n',0o644)
+    paneluser=service['evpn-panel']
+    for path in [panel,*[panel/name for name in ('state.db','state.db-wal','state.db-shm','vault.key') if (panel/name).exists()]]:
+        require(not path.is_symlink(),'Unsafe panel registry path');os.chown(path,paneluser.pw_uid,paneluser.pw_gid);path.chmod(0o700 if path.is_dir() else 0o600)
+    panel_run(['systemctl','daemon-reload']);panel_run(['systemd-tmpfiles','--create','/etc/tmpfiles.d/vpn-control.conf'])
+    panel_run(['systemctl','enable','--now','vpn-control-api.service','vpn-control-panel.service','vpn-control-worker@'+c['id']+'.timer'])
+    for unit in ('vpn-control-api.service','vpn-control-panel.service','vpn-control-worker@'+c['id']+'.timer'):require(panel_run(['systemctl','is-active','--quiet',unit],check=False).returncode==0,'Panel service failed startup')
+    return dict(panel_url='https://panel.home.arpa/',ca_path=str(ca_path),ca_sha256=digest(ca_path),owner=owner_username,owner_run=owner_run,profile_path=str(state/'master_user.sfa.json'))
+
+
 if __name__ == '__main__':
     try:
         if len(sys.argv) == 3 and sys.argv[1] == 'rollback-local':
@@ -737,3 +836,5 @@ if __name__ == '__main__':
         # Deliberately hide third-party exceptions that may embed request/config data.
         print(json.dumps({'ok': False, 'error': str(exc) if isinstance(exc, Invalid) else type(exc).__name__}))
         sys.exit(1)
+
+

@@ -42,7 +42,7 @@ def main():
     (source/'local/bin/vpn-add-user').write_text(template.replace('@STATE@','/var/lib/empire-vpn/lab').replace('@BASE@','/etc/empire-vpn/lab').replace('@PREFIX@','evpn-lab'))
     (source/'local/bin/vpn-add-user').chmod(0o755)
     (source/'pilot').mkdir(exist_ok=True)
-    for name in ('recovery_probe.py','full_worker_rehearsal.py','backup_restore_rehearsal.py'):
+    for name in ('recovery_probe.py','full_worker_rehearsal.py','backup_restore_rehearsal.py','portable_import_rehearsal.py'):
         shutil.copy2(project/'pilot'/name,source/'pilot'/name)
     # git archive may carry group-write bits. Reproduce secure installation
     # modes explicitly; the worker correctly refuses writable helper scripts.

@@ -94,6 +94,12 @@ def main():
     if os.environ.get('VPN_REHEARSAL_UI')=='1' or os.environ.get('VPN_REHEARSAL_BACKUP')=='1': owner_password='Synthetic W7 owner password'
     cli=ROOT/'rehearsal-bin/vpnctl';api=ROOT/'rehearsal-bin/vpn-control';python=Path(sys.executable).resolve()
     auth=b'basic_auth "master_user" '+json.dumps(canary).encode()+b'\nbasic_auth "Old-User" '+json.dumps(old_password).encode()+b'\n'
+    portable=os.environ.get('VPN_REHEARSAL_PORTABLE')=='1'
+    portable_clients=[]
+    if portable:
+        for login in ('Alex','alex'):
+            password=secrets.token_hex(24);portable_clients.append(dict(username=login,password=password))
+            auth+=b'basic_auth '+json.dumps(login).encode()+b' '+json.dumps(password).encode()+b'\n'
     put(base/'auth.caddy',auth,0o640,986)
     run(['openssl','req','-new','-x509','-nodes','-newkey','rsa:2048','-days','1','-subj','/CN=lab.example',
          '-addext','subjectAltName=DNS:lab.example','-keyout',data_dir/'key','-out',data_dir/'cert'])
@@ -114,7 +120,7 @@ def main():
     for outbound in old_regular['outbounds']:
         if outbound['type']=='naive':outbound.update(username='Old-User',password=old_password)
     old_regular_bytes=json.dumps(old_regular).encode();put(snapshot/'vpn-Old-User.json',old_regular_bytes)
-    put(snapshot/'clients.json',json.dumps(dict(format='empire-vpn-clients',schema_version=1,clients=[dict(username='master_user',password=canary),dict(username='Old-User',password=old_password)])))
+    put(snapshot/'clients.json',json.dumps(dict(format='empire-vpn-clients',schema_version=1,clients=[dict(username='master_user',password=canary),dict(username='Old-User',password=old_password)]+portable_clients)))
     source_caddy=caddyfile.replace('admin unix//run/caddy-admin/admin.sock','admin off')
     put(snapshot/'Caddyfile',source_caddy)
     manifest=dict(transaction='synthetic-baseline',config=dict(id='lab',domain='lab.example'),files={str(base/'auth.caddy'):hashlib.sha256(auth).hexdigest(),str(base/'Caddyfile'):hashlib.sha256(source_caddy.encode()).hexdigest()})
@@ -353,11 +359,16 @@ module.main()
             # needs one genuinely revoked account and the old active profile.
             with sqlite3.connect(db) as connection:
                 version=connection.execute('SELECT row_version FROM users WHERE id=?',(user,)).fetchone()[0]
-            run([cli,'user','delete','--installation','lab','--owner-run',migration,'--user',user,'--expected-version',str(version),'--idempotency-key',str(uuid.uuid4()),'--reason','isolated restore negative','--confirm-delete'])
+            arguments=[cli,'user','disable' if portable else 'delete','--installation','lab','--owner-run',migration,'--user',user,'--expected-version',str(version),'--idempotency-key',str(uuid.uuid4()),'--reason','isolated portable negative']
+            if not portable:arguments.append('--confirm-delete')
+            run(arguments)
             run(worker_args)
             from create_probe import probe
             probe('/etc/vpn-control/probe-lab.json','New-User',outbound['password'],active=False)
-            from backup_restore_rehearsal import capture
+            if portable:
+                from portable_import_rehearsal import capture
+            else:
+                from backup_restore_rehearsal import capture
             capture(cli,migration,worker,api_dir/'api.sock',cookie,old_regular_bytes,outbound['password'])
             print('backup-source: encrypted capture with active old and deleted negative fixture PASS',flush=True)
             return

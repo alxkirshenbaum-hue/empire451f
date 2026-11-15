@@ -8,7 +8,7 @@ func portableSourceFixture(t *testing.T)(string,*Registry,string){
 }
 func portableDestinationFixture(t *testing.T)*Registry{t.Helper();dir:=captureParent(t);v,_:=vault.New(bytes.Repeat([]byte{63},32));r,e:=Open(ctx,filepath.Join(dir,"state.db"),v,1);if e!=nil{t.Fatal(e)};t.Cleanup(func(){r.Close()});if _,e=r.db.Exec("INSERT INTO admin_accounts VALUES('fresh-owner','fresh-owner','retained-hash',0,'now',NULL)");e!=nil{t.Fatal(e)};return r}
 func TestPortableIndependentDestination(t *testing.T){
- path,source,run:=portableSourceFixture(t);before,e:=os.ReadFile(path);if e!=nil{t.Fatal(e)};dest:=portableDestinationFixture(t)
+ path,source,run:=portableSourceFixture(t);source.db.SetMaxOpenConns(2);before,e:=os.ReadFile(path);if e!=nil{t.Fatal(e)};dest:=portableDestinationFixture(t)
  plan,e:=dest.PreviewPortable(ctx,path,source.vault,run,"");if e!=nil{t.Fatal(e)};var count int;dest.db.QueryRow("SELECT count(*) FROM users").Scan(&count);if count!=0{t.Fatal("preview wrote users")}
  if _,e=dest.ImportPortable(ctx,path,source.vault,run,"",plan.Hash,true);e!=nil{t.Fatal(e)}
  rows,e:=source.db.Query("SELECT id,login,status,kind,protected FROM users ORDER BY id");if e!=nil{t.Fatal(e)};defer rows.Close();for rows.Next(){var uid,login,status,kind string;var protected int;if e=rows.Scan(&uid,&login,&status,&kind,&protected);e!=nil{t.Fatal(e)};var dl,ds,dk string;var dp int;if e=dest.db.QueryRow("SELECT login,status,kind,protected FROM users WHERE id=?",uid).Scan(&dl,&ds,&dk,&dp);e!=nil||dl!=login||ds!=status||dk!=kind||dp!=protected{t.Fatal("identity/status mismatch",e)};a,e:=portableSecret(t,source,uid);if e!=nil{t.Fatal(e)};b,e:=portableSecret(t,dest,uid);if e!=nil||!bytes.Equal(a,b){t.Fatal("secret mismatch",e)};clear(a);clear(b)}

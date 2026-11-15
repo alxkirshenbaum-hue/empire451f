@@ -27,7 +27,7 @@ func TestAuthWhoamiUnixTransport(t *testing.T) {
 		cookie, e := r.Cookie("session")
 		valid <- r.Method == "GET" && r.URL.Path == "/api/v1/auth/me" && e == nil && cookie.Value == "identity-private-token"
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"data":{"username":"ExactOwnerCase","role":"owner","expires_at":"2030-01-01 00:00:00"}}`))
+		w.Write([]byte(`{"data":{"id":"owner-exact-id","username":"ExactOwnerCase","role":"owner","expires_at":"2030-01-01 00:00:00"}}`))
 	})}
 	go srv.Serve(listener)
 	defer srv.Close()
@@ -38,7 +38,7 @@ func TestAuthWhoamiUnixTransport(t *testing.T) {
 	if !<-valid {
 		t.Fatal("invalid transport")
 	}
-	if !strings.Contains(out.String(), "ExactOwnerCase") || strings.Contains(out.String()+stderr.String(), "identity-private-token") {
+	if !strings.Contains(out.String(), `"id":"owner-exact-id"`) || !strings.Contains(out.String(), "ExactOwnerCase") || strings.Contains(out.String()+stderr.String(), "identity-private-token") {
 		t.Fatal("unsafe identity output")
 	}
 }

@@ -15,6 +15,10 @@ func TestOwnerIdentity(t *testing.T) {
 	}{{"active", "", 200}, {"missing", "", 401}, {"revoked", "UPDATE admin_sessions SET revoked_at=CURRENT_TIMESTAMP", 401}, {"idle", "UPDATE admin_sessions SET last_seen_at=datetime('now','-31 minutes')", 401}, {"expired", "UPDATE admin_sessions SET expires_at=datetime('now','-1 minute')", 401}, {"disabled", "UPDATE admin_accounts SET disabled=1", 401}} {
 		t.Run(tc.name, func(t *testing.T) {
 			s, h := passwordFixture(t)
+			var ownerID string
+			if e := s.db.QueryRow("SELECT id FROM admin_accounts").Scan(&ownerID); e != nil {
+				t.Fatal(e)
+			}
 			if _, e := s.db.Exec("UPDATE admin_accounts SET username='ExactOwnerCase'"); e != nil {
 				t.Fatal(e)
 			}
@@ -42,10 +46,10 @@ func TestOwnerIdentity(t *testing.T) {
 				if e := json.Unmarshal(out.Body.Bytes(), &result); e != nil {
 					t.Fatal(e)
 				}
-				if len(result.Data) != 3 || result.Data["username"] != "ExactOwnerCase" || result.Data["role"] != "owner" || result.Data["expires_at"] == "" {
+				if len(result.Data) != 4 || result.Data["id"] != ownerID || result.Data["username"] != "ExactOwnerCase" || result.Data["role"] != "owner" || result.Data["expires_at"] == "" {
 					t.Fatal(result)
 				}
-			} else if strings.Contains(out.Body.String(), "ExactOwnerCase") {
+			} else if strings.Contains(out.Body.String(), "ExactOwnerCase") || strings.Contains(out.Body.String(), ownerID) {
 				t.Fatal("identity disclosure")
 			}
 		})

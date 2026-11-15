@@ -36,5 +36,5 @@ func (s *Service) identity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{"data": map[string]string{"username": name, "role": "owner", "expires_at": expiry}})
+	json.NewEncoder(w).Encode(map[string]any{"data": map[string]string{"id": actor, "username": name, "role": "owner", "expires_at": expiry}})
 }

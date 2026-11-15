@@ -136,7 +136,7 @@ func servePanel(dbPath, socket, domain, keyPath string, keyVersion int64, run st
 		}
 		defer registry.Close()
 		sessions.EnableProfileDownloads()
-		panelRoutes(mux, registry, run)
+		panelRoutes(mux, registry, run, filepath.Dir(dbPath))
 		mux.HandleFunc("GET /api/v1/users/{id}/profiles/download", download(registry, domain))
 	}
 	listener, err := net.Listen("unix", socket)

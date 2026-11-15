@@ -59,17 +59,61 @@ func applyPortableImport(ctx context.Context, installation string, policy worker
 			users = append(users, map[string]string{"username": x.Login, "password": string(x.Secret)})
 		}
 	}
-	p, e := caddy.ReadPrepared(directory, receipt.OperationID, 1)
-	if errors.Is(e, os.ErrNotExist) {
+	probeAll := func() error {
+		probe := commandMutationProbe(policy.Probe)
+		for _, x := range credentials {
+			status := "disabled"
+			if x.Status == "active" {
+				status = "active"
+			}
+			if e := probe(ctx, storage.AuthJob{Login: x.Login, AfterStatus: status}, x.Secret, x.Secret); e != nil {
+				return e
+			}
+		}
+		return nil
+	}
+	preparedPath := filepath.Join(directory, "prepared.json")
+	info, statErr := os.Lstat(preparedPath)
+	var p *caddy.Prepared
+	if errors.Is(statErr, os.ErrNotExist) {
 		if phase == "succeeded" {
+			if _, e = verifyOwnedFiles(state, "/etc/empire-vpn", run); e != nil {
+				return receipt, e
+			}
+			hash, e := r.PortableAuthHash(ctx, receipt.OperationID)
+			if e != nil {
+				return receipt, e
+			}
+			if e = caddy.VerifyPortableHash(ctx, rt, hash); e != nil {
+				return receipt, e
+			}
+			return receipt, probeAll()
+		}
+		if e = os.Mkdir(directory, 0700); e != nil && !errors.Is(e, os.ErrExist) {
+			return receipt, e
+		}
+		di, e := os.Lstat(directory)
+		if e != nil || !di.IsDir() || di.Mode().Perm()&0077 != 0 || di.Mode()&os.ModeSymlink != 0 {
 			return receipt, storage.ErrLegacyDrift
 		}
 		p, e = caddy.PreparePortableAuth(ctx, rt, directory, receipt.OperationID, 1, active)
+	} else if statErr != nil {
+		return receipt, statErr
+	} else {
+		if !info.Mode().IsRegular() || info.Mode().Perm()&0077 != 0 {
+			return receipt, storage.ErrLegacyDrift
+		}
+		p, e = caddy.ReadPrepared(directory, receipt.OperationID, 1)
 	}
 	if e != nil {
 		return receipt, e
 	}
 	defer p.Clear()
+	if phase == "running" {
+		if e = r.BindPortableAuthHash(ctx, receipt.OperationID, p.Hash()); e != nil {
+			return receipt, e
+		}
+	}
 	if _, e = os.Lstat(filepath.Join(state, "panel-auth-pending.json")); errors.Is(e, os.ErrNotExist) {
 		if phase == "succeeded" {
 			_, e = verifyOwnedFiles(state, "/etc/empire-vpn", run)
@@ -101,6 +145,11 @@ func applyPortableImport(ctx context.Context, installation string, policy worker
 		}
 		if e != nil {
 			return receipt, e
+		}
+		if os.Getenv("VPN_PORTABLE_TEST_FAULT") == "after_caddy_load" {
+			if _, e := os.Stat("/.vpn-control-rehearsal"); e == nil {
+				return receipt, errors.New("synthetic portable publication fault")
+			}
 		}
 		if e = w.files(ctx, "publish_files", storage.Receipt{OperationID: receipt.OperationID}, 1, nil); e != nil {
 			return receipt, e

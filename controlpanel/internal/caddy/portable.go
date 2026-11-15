@@ -3,8 +3,10 @@ package caddy
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 )
 
 type AuthCredential struct{ Login, Password string }
@@ -53,4 +55,21 @@ func PreparePortableAuth(ctx context.Context, rt Runtime, directory, operation s
 		}
 		return json.Marshal(value)
 	}, nil)
+}
+
+func VerifyPortableHash(ctx context.Context, rt Runtime, expected string) error {
+	raw, e := rt.Read(ctx)
+	if e != nil {
+		return e
+	}
+	defer clear(raw)
+	value, e := canonical(raw)
+	if e != nil {
+		return e
+	}
+	defer clear(value)
+	if fmt.Sprintf("%x", sha256.Sum256(value)) != expected {
+		return ErrDrift
+	}
+	return nil
 }

@@ -13,10 +13,18 @@ import (
 
 // PortablePlan is non-secret metadata; it authorizes only an offline first-start
 // candidate. The caller holds the common installation writer, never a live DB.
+type PortableUserPreview struct {
+	Login        string `json:"login"`
+	Kind         string `json:"kind"`
+	Protected    bool   `json:"protected"`
+	Status       string `json:"status"`
+	ProfileCount int    `json:"profile_count"`
+}
 type PortablePlan struct {
-	Hash                  string `json:"plan_sha256"`
-	Users                 int    `json:"users"`
-	ReplaceInitialCatalog bool   `json:"replace_initial_template_catalog"`
+	UsersPreview          []PortableUserPreview `json:"users_preview"`
+	Hash                  string                `json:"plan_sha256"`
+	Users                 int                   `json:"users"`
+	ReplaceInitialCatalog bool                  `json:"replace_initial_template_catalog"`
 }
 type portableTable struct {
 	name, columns string
@@ -160,6 +168,24 @@ func (r *Registry) portable(ctx context.Context, path string, key *vault.Vault, 
 			out.Users = len(rows)
 		}
 	}
+	// Render only owner-visible account metadata. Never serialize credential rows,
+	// decrypted values, source paths, or destination administrative identity.
+	previewRows, e := source.QueryContext(ctx, "SELECT u.login,u.kind,u.protected,u.status,(SELECT count(*) FROM user_profiles p WHERE p.user_id=u.id) FROM users u ORDER BY u.login COLLATE BINARY")
+	if e != nil {
+		return out, e
+	}
+	out.UsersPreview = []PortableUserPreview{}
+	for previewRows.Next() {
+		var user PortableUserPreview
+		if e = previewRows.Scan(&user.Login, &user.Kind, &user.Protected, &user.Status, &user.ProfileCount); e != nil {
+			break
+		}
+		out.UsersPreview = append(out.UsersPreview, user)
+	}
+	e = errors.Join(e, previewRows.Err(), previewRows.Close())
+	if e != nil {
+		return out, e
+	}
 	after, e := portableRead(path)
 	if e != nil {
 		return out, e
@@ -249,7 +275,15 @@ func (r *Registry) portable(ctx context.Context, path string, key *vault.Vault, 
 	if bad {
 		return out, ErrSnapshotState
 	}
-	_, e = tx.ExecContext(ctx, `INSERT INTO audit_runs(id,script_version,started_at,finished_at,summary,coverage_hash) VALUES(?,'portable-import-v1',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'Offline first-start portable users imported; destination owner/key retained',?)`, id(), out.Hash)
+	postImport, e := portableStateDigest(ctx, tx)
+	if e != nil {
+		return out, e
+	}
+	receipt, e := json.Marshal(map[string]string{"post_import_sha256": postImport})
+	if e != nil {
+		return out, e
+	}
+	_, e = tx.ExecContext(ctx, `INSERT INTO audit_runs(id,script_version,started_at,finished_at,summary,coverage_hash) VALUES(?,'portable-import-v1',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,?,?)`, id(), string(receipt), out.Hash)
 	if e != nil {
 		return out, e
 	}

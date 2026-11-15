@@ -80,6 +80,16 @@ func (r *Registry) BeginPortableCutover(ctx context.Context, run, plan, installa
 	if e != nil {
 		return out, e
 	}
+	var receiptJSON string
+	if e = tx.QueryRowContext(ctx, "SELECT summary FROM audit_runs WHERE script_version='portable-import-v1' AND coverage_hash=?", plan).Scan(&receiptJSON); e != nil {
+		return out, ErrLegacyConflict
+	}
+	var approval struct {
+		PostImport string `json:"post_import_sha256"`
+	}
+	if json.Unmarshal([]byte(receiptJSON), &approval) != nil || approval.PostImport != hash {
+		return out, ErrLegacyDrift
+	}
 	var n int
 	if e = tx.QueryRowContext(ctx, "SELECT count(*) FROM audit_runs WHERE script_version='portable-import-v1' AND coverage_hash=?", plan).Scan(&n); e != nil || n != 1 {
 		return out, ErrLegacyConflict
@@ -200,4 +210,28 @@ func (r *Registry) PortableCutoverState(ctx context.Context, run, plan, installa
 		return out, "", e
 	}
 	return out, phase, nil
+}
+
+func (r *Registry) BindPortableAuthHash(ctx context.Context, operation, hash string) error {
+	if !hashPattern.MatchString(hash) {
+		return ErrInvalidMetadata
+	}
+	var saved string
+	e := r.db.QueryRowContext(ctx, "SELECT after_hash FROM operation_steps WHERE operation_id=? AND step_no=1 AND step_name='portable-auth'", operation).Scan(&saved)
+	if e == nil {
+		if saved != hash {
+			return ErrLegacyDrift
+		}
+		return nil
+	}
+	if !errors.Is(e, sql.ErrNoRows) {
+		return e
+	}
+	_, e = r.db.ExecContext(ctx, `INSERT INTO operation_steps(operation_id,step_no,step_name,state,after_hash,started_at,finished_at) SELECT id,1,'portable-auth','succeeded',?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP FROM operations WHERE id=? AND kind='portable.import' AND status='running'`, hash, operation)
+	return e
+}
+func (r *Registry) PortableAuthHash(ctx context.Context, operation string) (string, error) {
+	var hash string
+	e := r.db.QueryRowContext(ctx, "SELECT after_hash FROM operation_steps WHERE operation_id=? AND step_no=1 AND step_name='portable-auth'", operation).Scan(&hash)
+	return hash, e
 }

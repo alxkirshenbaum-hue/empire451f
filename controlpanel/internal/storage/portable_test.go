@@ -3,9 +3,11 @@ package storage
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/vault"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -187,5 +189,81 @@ func TestPortablePublicCatalogConsentAndDrift(t *testing.T) {
 	}
 	if _, e = dest.PreviewPortable(ctx, path, source.vault, run, ""); e == nil {
 		t.Fatal("custom derived body accepted")
+	}
+}
+
+func TestPortablePreviewSafeMetadata(t *testing.T) {
+	path, source, run := portableSourceFixture(t)
+	dest := portableDestinationFixture(t)
+	plan, e := dest.PreviewPortable(ctx, path, source.vault, run, "")
+	if e != nil {
+		t.Fatal(e)
+	}
+	seen := map[string]PortableUserPreview{}
+	for _, u := range plan.UsersPreview {
+		seen[u.Login] = u
+	}
+	if len(seen) != plan.Users || seen["Alex"].Status != "active" || seen["alex"].Status != "disabled" || seen["master_user"].Kind != "service" || !seen["master_user"].Protected {
+		t.Fatal("preview identity/status missing")
+	}
+	if seen["Alex"].ProfileCount != 1 || seen["alex"].ProfileCount != 1 {
+		t.Fatal("preview links missing")
+	}
+	data, e := json.Marshal(plan)
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, forbidden := range []string{"nonce", "ciphertext", "password", "fresh-owner", "retained-hash", path} {
+		if bytes.Contains(data, []byte(forbidden)) {
+			t.Fatal("preview contains private material")
+		}
+	}
+	rows, e := source.db.Query("SELECT id FROM users")
+	if e != nil {
+		t.Fatal(e)
+	}
+	var users []string
+	for rows.Next() {
+		var uid string
+		if e = rows.Scan(&uid); e != nil {
+			t.Fatal(e)
+		}
+		users = append(users, uid)
+	}
+	if e = rows.Close(); e != nil {
+		t.Fatal(e)
+	}
+	for _, uid := range users {
+		secret, e := portableSecret(t, source, uid)
+		if e != nil {
+			t.Fatal(e)
+		}
+		leaked := bytes.Contains(data, secret)
+		clear(secret)
+		if leaked {
+			t.Fatal("preview contains credential")
+		}
+	}
+}
+
+func TestPortableBeginRejectsPostImportDrift(t *testing.T) {
+	path, source, owner := portableSourceFixture(t)
+	dest := portableDestinationFixture(t)
+	plan, e := dest.PreviewPortable(ctx, path, source.vault, owner, "")
+	if e != nil {
+		t.Fatal(e)
+	}
+	if _, e = dest.ImportPortable(ctx, path, source.vault, owner, "", plan.Hash, true); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = dest.db.Exec("UPDATE users SET status='disabled' WHERE login='Alex'"); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = dest.BeginPortableCutover(ctx, id(), plan.Hash, strings.Repeat("a", 64)); e == nil {
+		t.Fatal("post-import drift accepted")
+	}
+	var n int
+	if e = dest.db.QueryRow("SELECT count(*) FROM operations").Scan(&n); e != nil || n != 0 {
+		t.Fatal("failed begin wrote intent", e)
 	}
 }

@@ -217,6 +217,8 @@ def publish_files(state, operation, run, generation, rollback=False):
         if read(path) != data:
             publish(path,data,preserve=True)
             sync_directory(path.parent)
+            if 'portable_digest' in intent and path == Path(intent['targets'][0]['path']) and os.environ.get('VPN_PORTABLE_TEST_FAULT') == 'after_auth_publish' and Path('/.vpn-control-rehearsal').is_file():
+                os._exit(63)
 
 
 def finish(state, operation, run, generation, registry, rollback=False):

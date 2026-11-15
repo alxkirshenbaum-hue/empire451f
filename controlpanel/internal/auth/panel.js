@@ -85,6 +85,24 @@
   if(!crypto.randomUUID)return Promise.reject(new Error("A secure browser context is required for changes."));
   return change({method,path,body,key:crypto.randomUUID()});
  }
+ function renderResources(data) {
+  const list=byId("local-resources");empty(list);
+  const add=(label,value)=>list.append(node("dt",label),node("dd",value));
+  const bytes=value=>Number.isFinite(value)?new Intl.NumberFormat().format(value)+" bytes":"Unknown";
+  const usable=sample=>sample?.state==="observed" && Number.isFinite(Date.parse(sample.observed_at)) && Date.parse(sample.observed_at)<=Date.now()+5000 && Date.parse(sample.stale_after)>Date.now();
+  for(const [label,key] of [["OS memory","memory"],["Load average (1 minute, not CPU %)","load"],["Registry filesystem","storage"]]) {
+   const sample=data?.[key];
+   if(!usable(sample)){add(label,sample?.state==="observed"?"Stale — refresh required":"Unknown");continue;}
+   if(key==="memory")add(label,bytes(sample.values?.available_bytes)+" available / "+bytes(sample.values?.total_bytes)+" total");
+   if(key==="load")add(label,Number.isFinite(sample.load_average_1m)?sample.load_average_1m:"Unknown");
+   if(key==="storage"){add(label,bytes(sample.values?.filesystem_available_bytes)+" available / "+bytes(sample.values?.filesystem_total_bytes)+" total");add("Registry DB/WAL/SHM allocated (not whole panel)",bytes(sample.values?.registry_allocated_bytes));}
+   add(label+" source",sample.source+" · "+dates(sample.observed_at));
+  }
+  byId("resource-time").textContent="Local ingress OS only. No VPN, exit health, CPU percent or total panel footprint is inferred.";
+ }
+ let resourceSnapshot=null;
+ async function loadResources(){resourceSnapshot=await api("/api/v1/system/resources");renderResources(resourceSnapshot);}
+ setInterval(()=>{if(resourceSnapshot)renderResources(resourceSnapshot);},10000);
  async function loadCounts() {
   const data=await api("/api/v1/dashboard");
   byId("regular-count").textContent=data.counts.regular+" / 100";
@@ -200,6 +218,7 @@
   submitChange("PATCH","/api/v1/users/"+state.user.id,{display_name:event.currentTarget.elements.display_name.value,expected_version:state.user.row_version}).catch(report);
  });
  byId("retry-request").addEventListener("click",()=>change(state.unknown).catch(report));
+ byId("refresh-resources").addEventListener("click",()=>loadResources().catch(report));
  byId("refresh-users").addEventListener("click",()=>loadUsers().catch(report));
  byId("refresh-operations").addEventListener("click",()=>loadOperations().catch(report));
  byId("next-users").addEventListener("click",()=>{state.previous.push(state.cursor);state.cursor=state.next;loadUsers().catch(report);});
@@ -213,6 +232,6 @@
   state.cap=cap;byId("routing-warning").textContent=cap.routing_warning;
   for(const template of templates){const option=node("option",template.name+" · "+template.variant);option.value=template.id;byId("template-select").append(option);}
   if(!cap.mutations_enabled)message("Management is read only for this installation.");
-  applyAvailability();await Promise.all([loadUsers(),loadOperations(),loadInventories()]);
+  applyAvailability();await Promise.all([loadUsers(),loadOperations(),loadInventories(),loadResources()]);
  })().catch(report);
 })();

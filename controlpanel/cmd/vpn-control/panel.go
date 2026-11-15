@@ -9,6 +9,7 @@ import (
 	"mime"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/auth"
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/caddy"
@@ -77,7 +78,7 @@ func panelBody(w http.ResponseWriter, r *http.Request, value any) bool {
 	}
 	return true
 }
-func panelRoutes(mux *http.ServeMux, registry *storage.Registry, run string) {
+func panelRoutes(mux *http.ServeMux, registry *storage.Registry, run string, observationDir ...string) {
 	owner := func(mutate bool, handler func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			cookie, err := r.Cookie("session")
@@ -120,7 +121,10 @@ func panelRoutes(mux *http.ServeMux, registry *storage.Registry, run string) {
 			panelError(w, err)
 			return
 		}
-		panelJSON(w, 200, map[string]any{"counts": data, "live_observed_state": "unknown", "exit_local_audit_state": "unknown"})
+		panelJSON(w, 200, map[string]any{"counts": data, "live_observed_state": "unknown", "exit_local_audit_state": "unknown", "resources": observeResources(observationDirectory(observationDir), time.Now())})
+	}))
+	mux.HandleFunc("GET /api/v1/system/resources", owner(false, func(w http.ResponseWriter, r *http.Request, _ string) {
+		panelJSON(w, 200, observeResources(observationDirectory(observationDir), time.Now()))
 	}))
 	mux.HandleFunc("GET /api/v1/templates", owner(false, func(w http.ResponseWriter, r *http.Request, _ string) {
 		data, err := registry.ApprovedTemplates(r.Context())
@@ -137,7 +141,10 @@ func panelRoutes(mux *http.ServeMux, registry *storage.Registry, run string) {
 			return
 		}
 		backupReady, err := registry.BackupConfigured(r.Context())
-		if err != nil { panelError(w,err); return }
+		if err != nil {
+			panelError(w, err)
+			return
+		}
 		panelJSON(w, 200, map[string]any{"clients": []string{storage.Client1144, storage.ClientAlpha13}, "routing_warning": storage.RoutingWarning, "apply_notice": caddy.ApplyNotice, "mutations_enabled": ready, "capacity": 100, "live_observed_state": "unknown", "backup_creation_available": backupReady})
 	}))
 	mux.HandleFunc("GET /api/v1/users", owner(false, func(w http.ResponseWriter, r *http.Request, _ string) {
@@ -271,5 +278,12 @@ func panelRoutes(mux *http.ServeMux, registry *storage.Registry, run string) {
 		}
 		panelJSON(w, 200, data)
 	}))
-	maintenanceRoutes(mux,registry,run,owner)
+	maintenanceRoutes(mux, registry, run, owner)
+}
+
+func observationDirectory(paths []string) string {
+	if len(paths) == 1 {
+		return paths[0]
+	}
+	return ""
 }

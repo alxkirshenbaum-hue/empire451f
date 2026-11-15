@@ -37,12 +37,13 @@ func authWhoami(out, stderr io.Writer) int {
 	}
 	var envelope struct {
 		Data struct {
+			ID        string `json:"id"`
 			Username  string `json:"username"`
 			Role      string `json:"role"`
 			ExpiresAt string `json:"expires_at"`
 		} `json:"data"`
 	}
-	if e = json.NewDecoder(io.LimitReader(resp.Body, 8192)).Decode(&envelope); e != nil || envelope.Data.Username == "" || envelope.Data.Role != "owner" || envelope.Data.ExpiresAt == "" {
+	if e = json.NewDecoder(io.LimitReader(resp.Body, 8192)).Decode(&envelope); e != nil || envelope.Data.ID == "" || envelope.Data.Username == "" || envelope.Data.Role != "owner" || envelope.Data.ExpiresAt == "" {
 		fmt.Fprintln(stderr, "Invalid owner identity response")
 		return 5
 	}

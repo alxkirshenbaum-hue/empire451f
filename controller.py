@@ -395,7 +395,8 @@ def start(nodes, session, imported, resume_id=None):
             c = validate(saved)
     if action in ('new', 'preview') and c['mode'] == 'fresh':
         require('panel/payload.json' in BUNDLE, 'Use the VPN + panel release candidate: panel payload missing')
-        require(c.get('tls') == 'ready', 'Fresh VPN + panel requires DNS ready for trusted HTTPS; select ready at Q16')
+        if action != 'preview':
+            require(c.get('tls') == 'ready', 'Fresh VPN + panel requires DNS ready for trusted HTTPS; select ready at Q16')
         c = dict(c, panel_enabled=True)
     users = clients(c, imported)
     state = {'config': c, 'changed': [], 'action': action}

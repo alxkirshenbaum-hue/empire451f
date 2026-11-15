@@ -1,5 +1,7 @@
 # W8 continuation checkpoint — 2026-11-15
 
+Priority updated15.11.2026: [UE_STRATEGY](UE_STRATEGY.md), [UE_BACKLOG](UE_BACKLOG.md), [ledger](W8_UE_EVIDENCE.md). Rollback8708435 rerun851591 reached restored PASS then failed on existing restore-api. Prune WIP preserved as wip-w8-prune-audit-20261115. Expanded DR/prune no longer prerequisite for W8U unless a specific safety dependency is proven. Historical evidence below retained.
+
 User authorized LOCAL development through W9.1; production excluded. Work interrupted by agents usage limit, not four failed corrections. Latest code HEAD8708435. This is an additional checkpoint; read original HANDOFF_W8_2026-11-15.md for environment/constraints. No push/production changes; BACKLOG untouched.
 
 Progress unchanged: E1 6/11, W6 3/4, W7 3/4, W8 0/4 fullyclosed, W9 0/4, W9.1 0/6. All later gates open. Source backup and restored runtime are now actual partial proof; full rollback not yet PASS.

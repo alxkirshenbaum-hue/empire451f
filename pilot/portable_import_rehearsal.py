@@ -1,4 +1,5 @@
 """Portable acceptance helpers. Only runs in marked synthetic RootDirectory."""
+from contextlib import closing
 import hashlib
 import json
 import os
@@ -12,7 +13,7 @@ from full_worker_rehearsal import require, run, put
 def semantic_snapshot(db_path, key_path):
     """Private equality evidence; never emit credential values or digests."""
     cipher=AESGCM(Path(key_path).read_bytes())
-    with sqlite3.connect(db_path) as db:
+    with closing(sqlite3.connect(db_path)) as db:
         users=db.execute('SELECT id,login,kind,protected,display_name,status,deleted_at,row_version FROM users ORDER BY id').fetchall()
         credentials=[]
         for cid,uid,sv,kv,nonce,sealed,revoked in db.execute('SELECT id,user_id,secret_version,key_version,nonce,ciphertext,revoked_at FROM credentials ORDER BY id'):
@@ -28,6 +29,9 @@ def semantic_snapshot(db_path, key_path):
 def capture(cli,migration,worker,api_socket,cookie,old_profile,disabled_secret):
     require(Path('/.vpn-control-rehearsal').is_file(),'isolated portable fixture required')
     from backup_restore_rehearsal import capture as backup_capture
+    for login in ('Alex','alex'):
+        run([cli,'user','create','--installation','lab','--owner-run',migration,'--login',login])
+        run([cli,'worker','once','--installation','lab','--owner-run',migration])
     backup_capture(cli,migration,worker,api_socket,cookie,old_profile,disabled_secret)
     proof=Path('/root/backup-proof')
     context=json.loads((proof/'context.json').read_bytes())
@@ -67,7 +71,7 @@ def receive():
     owner_password='Independent portable destination owner'
     run([api,'--bootstrap-owner','destination-owner','--owner-password-stdin'],input=(owner_password+'\n').encode())
     own_key=(panel/'vault.key').read_bytes();require(hashlib.sha256(own_key).hexdigest()!=context['source_key_sha256'],'destination key not independent')
-    with sqlite3.connect(panel/'state.db') as db:
+    with closing(sqlite3.connect(panel/'state.db')) as db:
         require(db.execute('SELECT count(*) FROM users').fetchone()[0]==0,'destination not clean');owner_before=db.execute('SELECT * FROM admin_accounts').fetchall()
     def unpriv(uid):return ['/usr/bin/setpriv','--reuid='+str(uid),'--regid='+str(986 if uid==999 else uid),'--clear-groups','--bounding-set=-all']
     put('/run/relay/config.json',(inputs/'relay.json').read_bytes(),0o640,986)
@@ -89,11 +93,11 @@ def receive():
         preview=json.loads(run([cli,'portable','preview',*common]));approved=['--plan-sha256',preview['plan_sha256'],'--expected-installation-sha256',preview['installation_sha256'],'--replace-initial-catalog']
         source_before=(inputs/'source.db').read_bytes()
         # Deliberately occupied master is a visible conflict, never an overwrite.
-        with sqlite3.connect(panel/'state.db') as db:
+        with closing(sqlite3.connect(panel/'state.db')) as db:
             db.execute("INSERT INTO users(id,login,kind,protected,source,display_name,status,created_at,updated_at) VALUES('conflict','master_user','service',1,'installer','bootstrap','active','now','now')")
         blocked=subprocess.run([str(x) for x in [cli,'portable','preview',*common]],capture_output=True,timeout=30)
         require(blocked.returncode!=0,'occupied master destination accepted')
-        with sqlite3.connect(panel/'state.db') as db:
+        with closing(sqlite3.connect(panel/'state.db')) as db:
             require(db.execute("SELECT display_name FROM users WHERE id='conflict'").fetchone()==('bootstrap',),'conflict silently overwritten')
             db.execute("DELETE FROM users WHERE id='conflict'")
         wrong_source=inputs/'wrong-source.key';put(wrong_source,secrets.token_bytes(32))
@@ -110,11 +114,11 @@ def receive():
         require(journal['run']==context['destination_run'],'wrong partial journal')
         require((base/'auth.caddy').read_bytes()==base64.b64decode(journal['targets'][0]['after']) and (base/'auth.caddy').read_bytes()!=before_auth,'auth partial publication not reached')
         require((state/'manifest.json').read_bytes()==before_manifest==base64.b64decode(journal['targets'][1]['before']),'manifest advanced before injected fault')
-        with sqlite3.connect(panel/'state.db') as db:
+        with closing(sqlite3.connect(panel/'state.db')) as db:
             require(db.execute("SELECT o.status,m.status FROM operations o JOIN legacy_migration_runs m ON m.id=o.target_id WHERE o.id=?",(journal['operation'],)).fetchone()==('running','portable_staged'),'partial operation not durably gated')
         gated=subprocess.run([str(cli),'worker','once','--installation','lab','--owner-run',context['destination_run']],capture_output=True,timeout=30)
         require(gated.returncode!=0,'ordinary worker bypassed portable gate')
-        with sqlite3.connect(panel/'state.db') as db:
+        with closing(sqlite3.connect(panel/'state.db')) as db:
             require(db.execute("SELECT count(*) FROM legacy_migration_runs WHERE id=? AND phase='verified_cutover'",(context['destination_run'],)).fetchone()[0]==0,'partial import falsely verified')
         unapproved=subprocess.run([str(x) for x in [cli,'portable','import',*common,*approved]],capture_output=True,timeout=60)
         require(unapproved.returncode!=0,'implicit partial import retry accepted')
@@ -126,7 +130,7 @@ def receive():
         expected=json.loads((inputs/'portable-expected.json').read_bytes());actual=semantic_snapshot(panel/'state.db',panel/'vault.key')
         require(json.dumps(actual,sort_keys=True)==json.dumps(expected,sort_keys=True),'portable account semantics changed')
         require((panel/'vault.key').read_bytes()==own_key,'destination vault key replaced')
-        with sqlite3.connect(panel/'state.db') as db:require(db.execute('SELECT * FROM admin_accounts').fetchall()==owner_before,'destination admin replaced')
+        with closing(sqlite3.connect(panel/'state.db')) as db:require(db.execute('SELECT * FROM admin_accounts').fetchall()==owner_before,'destination admin replaced')
         profile=json.loads((inputs/'old-profile.json').read_bytes());profile_client(stack,profile,19088,cert)
         from create_probe import probe
         probe('/etc/vpn-control/probe-lab.json','New-User',context['revoked_secret'],active=False)

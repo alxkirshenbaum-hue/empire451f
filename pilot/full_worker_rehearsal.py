@@ -96,10 +96,6 @@ def main():
     auth=b'basic_auth "master_user" '+json.dumps(canary).encode()+b'\nbasic_auth "Old-User" '+json.dumps(old_password).encode()+b'\n'
     portable=os.environ.get('VPN_REHEARSAL_PORTABLE')=='1'
     portable_clients=[]
-    if portable:
-        for login in ('Alex','alex'):
-            password=secrets.token_hex(24);portable_clients.append(dict(username=login,password=password))
-            auth+=b'basic_auth '+json.dumps(login).encode()+b' '+json.dumps(password).encode()+b'\n'
     put(base/'auth.caddy',auth,0o640,986)
     run(['openssl','req','-new','-x509','-nodes','-newkey','rsa:2048','-days','1','-subj','/CN=lab.example',
          '-addext','subjectAltName=DNS:lab.example','-keyout',data_dir/'key','-out',data_dir/'cert'])

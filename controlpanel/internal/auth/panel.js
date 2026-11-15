@@ -14,7 +14,13 @@
  const message = text => {byId("message").textContent=text;};
  const report = error => {const n=byId("failure");n.hidden=false;n.textContent=error.message||"Request unavailable.";};
  const clearError = () => {byId("failure").hidden=true;};
- const dates = value => value ? new Date(value).toLocaleString() : "Not recorded";
+ const dates = value => {
+  if(!value)return "Not recorded";
+  // SQLite CURRENT_TIMESTAMP is UTC even though it has no timezone suffix.
+  const utc=/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(value)?value.replace(" ","T")+"Z":value;
+  const date=new Date(utc);
+  return Number.isFinite(date.getTime())?date.toLocaleString():"Unknown timestamp";
+ };
  function savePending(record) {
   if(record){
    try{sessionStorage.setItem(pendingKey,JSON.stringify(record));}catch(_){throw new Error("Session storage is required for safe request recovery.");}
@@ -198,11 +204,24 @@
   }
  }
  async function loadInventories() {
+  const summary=byId("evidence-summary");
+  empty(summary);summary.append(node("dt","Registry records"),node("dd","Refreshing — previous timestamps are not current"));
   const [audits,backups]=await Promise.all([api("/api/v1/audits"),api("/api/v1/backups")]);
   const a=byId("audit-list"),b=byId("backup-list");empty(a);empty(b);
+  empty(summary);
+  const add=(label,value)=>summary.append(node("dt",label),node("dd",value));
+  add("Source","Local panel registry; bounded stored records");
+  const latestAudit=audits[0],latestBackup=backups[0];
+  add("Latest audit activity started",dates(latestAudit?.started_at));
+  add("Latest audit activity finished",dates(latestAudit?.finished_at));
+  add("Checks in that record",latestAudit?latestAudit.checks:"Not recorded");
+  add("Latest backup created",dates(latestBackup?.created_at));
+  add("Latest backup recorded state",latestBackup?.status||"Not recorded");
+  add("That backup last verified",dates(latestBackup?.verified_at));
+  add("Records fetched",new Date().toLocaleString());
   for(const audit of audits){const card=node("div",undefined,"card");card.append(node("h3",audit.id),node("p","Started: "+dates(audit.started_at)),node("p","Finished: "+dates(audit.finished_at)),node("p","Recorded checks: "+audit.checks));a.append(card);}
   if(!audits.length)a.append(node("p","No audit reports recorded.","help"));
-  for(const backup of backups){const card=node("div",undefined,"card");card.append(node("h3",backup.id),node("p",backup.status+" · "+backup.size_bytes+" bytes"),node("p","Generation: "+backup.source_generation),node("p","Stored verification: "+dates(backup.verified_at)));b.append(card);}
+  for(const backup of backups){const card=node("div",undefined,"card");card.append(node("h3",backup.id),node("p",backup.status+" · "+backup.size_bytes+" bytes"),node("p","Created: "+dates(backup.created_at)),node("p","Generation: "+backup.source_generation),node("p","Stored verification: "+dates(backup.verified_at)));b.append(card);}
   if(!backups.length)b.append(node("p","No backup records available.","help"));
  }
  function navigate() {
@@ -230,6 +249,7 @@
  });
  byId("retry-request").addEventListener("click",()=>change(state.unknown).catch(report));
  byId("refresh-resources").addEventListener("click",()=>loadResources().catch(report));
+ byId("refresh-evidence").addEventListener("click",()=>loadInventories().catch(report));
  byId("refresh-users").addEventListener("click",()=>loadUsers().catch(report));
  byId("refresh-operations").addEventListener("click",()=>loadOperations().catch(report));
  byId("next-users").addEventListener("click",()=>{state.previous.push(state.cursor);state.cursor=state.next;loadUsers().catch(report);});

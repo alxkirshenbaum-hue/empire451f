@@ -240,6 +240,10 @@ def prepare(c, role, versions):
                 import pwd
                 account=pwd.getpwnam(name)
                 require(account.pw_uid!=0 and account.pw_shell=='/usr/sbin/nologin' and account.pw_dir==home,'Unrecognised panel service account')
+    if role=='entry' and c.get('panel_enabled'):
+        import pwd
+        identities=[pwd.getpwnam(name) for name in ('evpn','evpn-caddy','evpn-panel')]
+        require(len({p.pw_uid for p in identities})==3 and len({p.pw_gid for p in identities})==3,'Panel service identities/groups must be distinct')
     return {'public_key': public_key(f['key_path'])}
 
 
@@ -737,6 +741,7 @@ def install_panel(c, payload, owner_username, owner_password):
     import grp, pwd, uuid
     environment=dict(os.environ);environment.pop('PYTHONPATH',None);environment.pop('PYTHONHOME',None);environment['PYTHONNOUSERSITE']='1';environment['PATH']='/usr/sbin:/usr/bin:/sbin:/bin'
     def panel_run(args, **kwargs):return run(args,env=environment,**kwargs)
+    require(hasattr(os,'geteuid') and os.geteuid()==0,'Panel installation requires root on the entry')
     c=validate(c);n=names(c);state=Path(n['state']);base=Path(n['base'])
     require(c['mode']=='fresh' and c.get('panel_enabled') and c.get('tls')=='ready','Panel requires a fresh committed TLS-ready installation')
     require(isinstance(owner_username,str) and re.fullmatch(r'[A-Za-z0-9_.@-]{1,64}',owner_username),'Invalid owner username')
@@ -762,7 +767,7 @@ def install_panel(c, payload, owner_username, owner_password):
     require(required<=seen,'Incomplete panel payload')
     require(shutil.disk_usage('/var/lib').free>total+40_000_000 and shutil.disk_usage('/opt').free>total+20_000_000,'Insufficient free space for panel and protected migration snapshot')
     service={name:pwd.getpwnam(name) for name in ('evpn','evpn-caddy','evpn-panel')}
-    require(len({p.pw_uid for p in service.values()})==3 and all(p.pw_uid>0 for p in service.values()),'Panel identities must be distinct non-root UIDs')
+    require(len({p.pw_uid for p in service.values()})==3 and len({p.pw_gid for p in service.values()})==3 and all(p.pw_uid>0 for p in service.values()),'Panel identities must be distinct non-root UIDs')
     root=Path('/opt/empire-vpn/controlpanel')/payload['source_sha']
     require(not root.is_symlink(),'Symlink payload destination refused');root.mkdir(mode=0o755,parents=True,exist_ok=True)
     for name,data,mode in checked:

@@ -35,3 +35,7 @@
 ## 15.11.2026 — local fresh candidate ready, real pair acceptance pending
 
 F1/F2/F4 prepared locally on code08be0c3; exactartifact/commands/proofs in FRESH_INSTALL_CANDIDATE_2026-11-15.md. F3 remainsOPEN (no new authorizedtargetpair supplied). 63targettestsPASS/4platformskips, actualCaddy/singboxconfigvalidationPASS, Windowsloader/upload/CA-mocksPASS, actualmacOSnotrun. No actualinstall_panel services/networkdeployrun. Portable remainsSTOPPED; no W8/G9/E prerequisite added. Owner must supply twoNEWSSHtargets+domain and explicitlyauthorizecandidateinstall/test there before realF3. Production/reserve untouched.
+
+## 15.11.2026 — owner manual acceptance and GitHub publication
+
+Последнее решение: F3 проверяет владелец самостоятельно на обеих текущих нодах после СВОЕЙ очистки. Разрешения агенту очищать/переустанавливать их НЕТ. Не запрашивать отдельную новую пару/не строить дополнительный стенд. Владелец подтвердил наличие актуального проверенного JSON с master_user; перед будущей разрушительной операцией актуальность нужно подтвердить снова. ExistingQ13→panelregistry проверенлокально8a164c9PASS; portableнепродолжать. Краткийчеклист FRESH_OWNER_ACCEPTANCE.md. Релизv0.4.0-rc1 — GitHubbootstrapdefaultHTTPS+SHA, безручногобандла; F3остаётсяOPEN.

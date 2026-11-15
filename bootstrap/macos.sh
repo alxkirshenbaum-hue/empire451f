@@ -2,7 +2,7 @@
 # Bash 3.2 / standard macOS tools; no local Python or downloaded module bundle.
 set +x
 set -eu
-BOOT='python3 -c exec\(__import__\(\'"'"'base64\'"'"'\).b64decode\(\'"'"'aW1wb3J0IHNpZ25hbCxoYXNobGliLGlvLGpzb24sb3Msc3lzLHR5cGVzLHVybGxpYi5yZXF1ZXN0LHppcGZpbGUKdHJ5OgogICAgaWYgb3MuZ2V0ZXVpZCgpIT0wOiByYWlzZSBSdW50aW1lRXJyb3IoJ3Jvb3QgcmVxdWlyZWQnKQogICAgcmVsZWFzZT1kaWN0KGxpbmUuc3BsaXQoJz0nLDEpIGZvciBsaW5lIGluIG9wZW4oJy9ldGMvb3MtcmVsZWFzZScpIGlmICc9JyBpbiBsaW5lKQogICAgaWYgcmVsZWFzZS5nZXQoJ0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0ndWJ1bnR1JyBvciByZWxlYXNlLmdldCgnVkVSU0lPTl9JRCcsJycpLnN0cmlwKCkuc3RyaXAoJyInKSBub3QgaW4gKCcyNC4wNCcsJzI2LjA0Jykgb3Igb3MudW5hbWUoKS5tYWNoaW5lIT0neDg2XzY0JzogcmFpc2UgUnVudGltZUVycm9yKCdVYnVudHUgMjQuMDQgb3IgMjYuMDQgYW1kNjQgcmVxdWlyZWQnKQogICAgZGVmIGV4cGlyZWQoKmFyZ3MpOiByYWlzZSBUaW1lb3V0RXJyb3IoIkJ1bmRsZSBkb3dubG9hZCB0aW1lZCBvdXQiKQogICAgc2lnbmFsLnNpZ25hbChzaWduYWwuU0lHQUxSTSxleHBpcmVkKQogICAgc2lnbmFsLmFsYXJtKDY1KQogICAgZGF0YT11cmxsaWIucmVxdWVzdC51cmxvcGVuKCdodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vYWx4a2lyc2hlbmJhdW0taHVlL2VtcGlyZTQ1MWYvdjAuMy42L2Rpc3QvaW5zdGFsbGVyLnppcCcsdGltZW91dD02MCkucmVhZCgyKjEwMjQqMTAyNCkKICAgIHNpZ25hbC5hbGFybSgwKQogICAgaWYgaGFzaGxpYi5zaGEyNTYoZGF0YSkuaGV4ZGlnZXN0KCkhPSdkMzMwNjRjZDZiNzA0NTFjNTFjYzlhMWVlNjdiNTIwMjA1YzUwY2Y2NGEyMzRjZWU1OWFhNTE2ODgxOGRjZDcyJzogcmFpc2UgUnVudGltZUVycm9yKCdJbnN0YWxsZXIgU0hBMjU2IG1pc21hdGNoJykKICAgIGFyY2hpdmU9emlwZmlsZS5aaXBGaWxlKGlvLkJ5dGVzSU8oZGF0YSkpCiAgICBidW5kbGU9e25hbWU6YXJjaGl2ZS5yZWFkKG5hbWUpLmRlY29kZSgndXRmLTgnKSBmb3IgbmFtZSBpbiBhcmNoaXZlLm5hbWVsaXN0KCl9CiAgICBmb3IgbmFtZSBpbiAoJ3JlbmRlcicsJ3JlbW90ZScsJ2NsaWVudCcsJ2RlbGl2ZXJ5JywnY29udHJvbGxlcicpOgogICAgICAgIG1vZHVsZT10eXBlcy5Nb2R1bGVUeXBlKG5hbWUpOyBtb2R1bGUuX19maWxlX189Jy9ydW4vZW1waXJlLXNvdXJjZS8nK25hbWUrJy5weScKICAgICAgICBzeXMubW9kdWxlc1tuYW1lXT1tb2R1bGUKICAgICAgICBpZiBuYW1lPT0nY29udHJvbGxlcic6IG1vZHVsZS5CVU5ETEU9YnVuZGxlCiAgICAgICAgZXhlYyhjb21waWxlKGJ1bmRsZVtuYW1lKycucHknXSxuYW1lKycucHknLCdleGVjJyksbW9kdWxlLl9fZGljdF9fKQogICAgc3lzLmV4aXQoc3lzLm1vZHVsZXNbJ2NvbnRyb2xsZXInXS5tYWluKHN5cy5hcmd2WzE6XSkpCmV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgIHByaW50KCdJbnN0YWxsZXIgYm9vdHN0cmFwIGZhaWxlZDogJyt0eXBlKGUpLl9fbmFtZV9fLGZpbGU9c3lzLnN0ZGVycikKICAgIHN5cy5leGl0KDEpCg==\'"'"'\)\)'
+BOOT='python3 -c exec\(__import__\(\'"'"'base64\'"'"'\).b64decode\(\'"'"'aW1wb3J0IHNpZ25hbCxoYXNobGliLGlvLGpzb24sb3Msc3lzLHR5cGVzLHVybGxpYi5yZXF1ZXN0LHppcGZpbGUKdHJ5OgogICAgaWYgb3MuZ2V0ZXVpZCgpIT0wOiByYWlzZSBSdW50aW1lRXJyb3IoJ3Jvb3QgcmVxdWlyZWQnKQogICAgcmVsZWFzZT1kaWN0KGxpbmUuc3BsaXQoJz0nLDEpIGZvciBsaW5lIGluIG9wZW4oJy9ldGMvb3MtcmVsZWFzZScpIGlmICc9JyBpbiBsaW5lKQogICAgaWYgcmVsZWFzZS5nZXQoJ0lEJywnJykuc3RyaXAoKS5zdHJpcCgnIicpIT0ndWJ1bnR1JyBvciByZWxlYXNlLmdldCgnVkVSU0lPTl9JRCcsJycpLnN0cmlwKCkuc3RyaXAoJyInKSBub3QgaW4gKCcyNC4wNCcsJzI2LjA0Jykgb3Igb3MudW5hbWUoKS5tYWNoaW5lIT0neDg2XzY0JzogcmFpc2UgUnVudGltZUVycm9yKCdVYnVudHUgMjQuMDQgb3IgMjYuMDQgYW1kNjQgcmVxdWlyZWQnKQogICAgZGVmIGV4cGlyZWQoKmFyZ3MpOiByYWlzZSBUaW1lb3V0RXJyb3IoIkJ1bmRsZSBkb3dubG9hZCB0aW1lZCBvdXQiKQogICAgc2lnbmFsLnNpZ25hbChzaWduYWwuU0lHQUxSTSxleHBpcmVkKQogICAgc2lnbmFsLmFsYXJtKDY1KQogICAgbG9jYWw9b3MuZW52aXJvbi5nZXQoJ0xDX0VWUE5fQlVORExFX0ZJTEUnLCcnKQogICAgaWYgbG9jYWw6CiAgICAgICAgaW1wb3J0IHN0YXQKICAgICAgICBpZiBsb2NhbCE9Jy9ydW4vZW1waXJlLXZwbi1sb2NhbC1pbnN0YWxsZXIvaW5zdGFsbGVyLnppcCcgb3Igb3MucGF0aC5yZWFscGF0aChsb2NhbCkhPWxvY2FsOiByYWlzZSBSdW50aW1lRXJyb3IoJ0ludmFsaWQgbG9jYWwgYnVuZGxlIHBhdGgnKQogICAgICAgIHBhcmVudD1vcy5sc3RhdChvcy5wYXRoLmRpcm5hbWUobG9jYWwpKQogICAgICAgIGlmIG5vdCBzdGF0LlNfSVNESVIocGFyZW50LnN0X21vZGUpIG9yIHBhcmVudC5zdF91aWQhPTAgb3IgcGFyZW50LnN0X21vZGUmMG8wNzc6IHJhaXNlIFJ1bnRpbWVFcnJvcignVW5zYWZlIGxvY2FsIGJ1bmRsZSBkaXJlY3RvcnknKQogICAgICAgIGZkPW9zLm9wZW4obG9jYWwsb3MuT19SRE9OTFl8b3MuT19OT0ZPTExPV3xvcy5PX05PTkJMT0NLKQogICAgICAgIHdpdGggb3MuZmRvcGVuKGZkLCdyYicpIGFzIHN0cmVhbToKICAgICAgICAgICAgbWV0YT1vcy5mc3RhdChzdHJlYW0uZmlsZW5vKCkpCiAgICAgICAgICAgIGlmIG5vdCBzdGF0LlNfSVNSRUcobWV0YS5zdF9tb2RlKSBvciBtZXRhLnN0X3VpZCE9MCBvciBtZXRhLnN0X25saW5rIT0xIG9yIG1ldGEuc3RfbW9kZSYwbzA3NyBvciBtZXRhLnN0X3NpemU+NjQqMTAyNCoxMDI0OiByYWlzZSBSdW50aW1lRXJyb3IoJ1Vuc2FmZSBsb2NhbCBidW5kbGUnKQogICAgICAgICAgICBkYXRhPXN0cmVhbS5yZWFkKDY0KjEwMjQqMTAyNCsxKQogICAgZWxzZToKICAgICAgICBkYXRhPXVybGxpYi5yZXF1ZXN0LnVybG9wZW4oJ2h0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9hbHhraXJzaGVuYmF1bS1odWUvZW1waXJlNDUxZi92MC40LjAtcmMxL2Rpc3QvaW5zdGFsbGVyLnppcCcsdGltZW91dD02MCkucmVhZCg2NCoxMDI0KjEwMjQrMSkKICAgIGlmIGxlbihkYXRhKT42NCoxMDI0KjEwMjQ6IHJhaXNlIFJ1bnRpbWVFcnJvcignQnVuZGxlIGNvbXByZXNzZWQgbGltaXQgZXhjZWVkZWQnKQogICAgc2lnbmFsLmFsYXJtKDApCiAgICBpZiBoYXNobGliLnNoYTI1NihkYXRhKS5oZXhkaWdlc3QoKSE9J2Y1ZThiNzM0NDk0NWUwNjdlMWE4NTYzNWE3YTVjMDdhOThlNThlNTMwYjcwOTY3MDFhNGY2ZjBjZTg1YTFlNmInOiByYWlzZSBSdW50aW1lRXJyb3IoJ0luc3RhbGxlciBTSEEyNTYgbWlzbWF0Y2gnKQogICAgYXJjaGl2ZT16aXBmaWxlLlppcEZpbGUoaW8uQnl0ZXNJTyhkYXRhKSkKICAgIGVudHJpZXM9YXJjaGl2ZS5pbmZvbGlzdCgpCiAgICBpZiBsZW4oZW50cmllcyk+NDA5NiBvciBsZW4oe3guZmlsZW5hbWUgZm9yIHggaW4gZW50cmllc30pIT1sZW4oZW50cmllcykgb3Igc3VtKHguZmlsZV9zaXplIGZvciB4IGluIGVudHJpZXMpPjEyOCoxMDI0KjEwMjQ6IHJhaXNlIFJ1bnRpbWVFcnJvcignQnVuZGxlIGV4cGFuZGVkIGxpbWl0IGV4Y2VlZGVkJykKICAgIGlmIGFueSh4LmZpbGVuYW1lLnN0YXJ0c3dpdGgoJy8nKSBvciAnXFwnIGluIHguZmlsZW5hbWUgb3IgYW55KHAgaW4gKCcnLCAnLicsICcuLicpIGZvciBwIGluIHguZmlsZW5hbWUuc3BsaXQoJy8nKSkgb3IgKHguZXh0ZXJuYWxfYXR0cj4+MTYpJjBvMTcwMDAwPT0wbzEyMDAwMCBmb3IgeCBpbiBlbnRyaWVzKTogcmFpc2UgUnVudGltZUVycm9yKCdVbnNhZmUgYnVuZGxlIG1lbWJlcicpCiAgICBidW5kbGU9e3guZmlsZW5hbWU6YXJjaGl2ZS5yZWFkKHgpLmRlY29kZSgndXRmLTgnKSBmb3IgeCBpbiBlbnRyaWVzfQogICAgZm9yIG5hbWUgaW4gKCdyZW5kZXInLCdyZW1vdGUnLCdjbGllbnQnLCdkZWxpdmVyeScsJ2NvbnRyb2xsZXInKToKICAgICAgICBtb2R1bGU9dHlwZXMuTW9kdWxlVHlwZShuYW1lKTsgbW9kdWxlLl9fZmlsZV9fPScvcnVuL2VtcGlyZS1zb3VyY2UvJytuYW1lKycucHknCiAgICAgICAgc3lzLm1vZHVsZXNbbmFtZV09bW9kdWxlCiAgICAgICAgaWYgbmFtZT09J2NvbnRyb2xsZXInOiBtb2R1bGUuQlVORExFPWJ1bmRsZQogICAgICAgIGV4ZWMoY29tcGlsZShidW5kbGVbbmFtZSsnLnB5J10sbmFtZSsnLnB5JywnZXhlYycpLG1vZHVsZS5fX2RpY3RfXykKICAgIHN5cy5leGl0KHN5cy5tb2R1bGVzWydjb250cm9sbGVyJ10ubWFpbihzeXMuYXJndlsxOl0pKQpleGNlcHQgRXhjZXB0aW9uIGFzIGU6CiAgICBwcmludCgnSW5zdGFsbGVyIGJvb3RzdHJhcCBmYWlsZWQ6ICcrdHlwZShlKS5fX25hbWVfXyxmaWxlPXN5cy5zdGRlcnIpCiAgICBzeXMuZXhpdCgxKQo=\'"'"'\)\)'
 ask() {
  printf '[%s] %s [%s]: ' "$1" "$2" "${3:-}" >&2
  IFS= read -r answer || exit 130
@@ -20,6 +20,11 @@ resolve_target() {
   printf -v "${prefix}_${key}" '%s' "$value"
  done
 }
+bundle_path=''
+if [ "${1:-}" = --bundle ]; then
+ [ "$#" -ge 2 ] && [ -f "$2" ] || die 'Expected --bundle LOCAL_INSTALLER_ZIP'
+ bundle_path=$(cd "$(dirname "$2")" && pwd)/$(basename "$2"); shift 2
+fi
 entry_host=entry; exit_host=exit; start_operation=start; resume=0
 if [ "$#" -gt 0 ]; then
  [ "$#" -eq 4 ] && [ "$1" = --resume ] && [[ "$2" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] && [[ "$3" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] && [ "$2" != "$3" ] && [[ "$4" =~ ^[a-z][a-z0-9]{2,9}$ ]] || die 'Expected --resume ENTRY_ALIAS EXIT_ALIAS ID'
@@ -274,6 +279,17 @@ break
 done
 }
 if [ "$resume" = 1 ]; then LC_EVPN_CLIENTS=''; else read_client_export; fi
+export LC_EVPN_BUNDLE_FILE=''
+if [ -n "$bundle_path" ]; then
+ [ "$(wc -c < "$bundle_path" | tr -d ' ')" -le 67108864 ] || die 'Local bundle exceeds limit'
+ [ "$(shasum -a 256 "$bundle_path" | awk '{print $1}')" = 'f5e8b7344945e067e1a85635a7a5c07a98e58e530b7096701a4f6f0ce85a1e6b' ] || die 'Local bundle differs from this bootstrap SHA256'
+ for role in "$entry_host" "$exit_host"; do
+  ssh -F "$CONFIG" "$role" 'set -eu; test ! -L /run/empire-vpn-local-installer; install -d -m 700 /run/empire-vpn-local-installer; test ! -L /run/empire-vpn-local-installer/installer.zip' || die 'Cannot prepare private bundle directory'
+  scp -q -F "$CONFIG" "$bundle_path" "$role:/run/empire-vpn-local-installer/installer.zip" || die 'Local bundle upload failed'
+  ssh -F "$CONFIG" "$role" 'chmod 600 /run/empire-vpn-local-installer/installer.zip' || die 'Cannot protect local bundle'
+ done
+ export LC_EVPN_BUNDLE_FILE='/run/empire-vpn-local-installer/installer.zip'
+fi
 TOKEN=$(openssl rand -hex 32)
 export LC_EVPN_TOKEN="$TOKEN" LC_EVPN_SESSION="$(openssl rand -hex 16)" LC_EVPN_CLIENTS
 random_port() { local hex; hex=$(openssl rand -hex 2); printf '%s' "$((30000 + 16#$hex % 29000))"; }
@@ -281,14 +297,14 @@ LOCAL_PORT=$(random_port); RPC_PORT=$(random_port); RELAY_PORT=$(random_port)
 start_rpc() {
  printf '%s\n' 'Opening exit SSH tunnel and loading installer on exit (up to 90 seconds)...' >&2
  rm -f "$WORK/ready"; mkfifo "$WORK/ready"
- (unset LC_EVPN_CLIENTS; exec ssh -n -F "$CONFIG" -o SendEnv=LC_EVPN_TOKEN -L "127.0.0.1:$LOCAL_PORT:127.0.0.1:$RPC_PORT" "$exit_host" "$BOOT rpc $RPC_PORT") > "$WORK/ready" 2> "$WORK/rpc.err" &
+ (unset LC_EVPN_CLIENTS; exec ssh -n -F "$CONFIG" -o SendEnv=LC_EVPN_BUNDLE_FILE -o SendEnv=LC_EVPN_TOKEN -L "127.0.0.1:$LOCAL_PORT:127.0.0.1:$RPC_PORT" "$exit_host" "$BOOT rpc $RPC_PORT") > "$WORK/ready" 2> "$WORK/rpc.err" &
  RPC_PID=$!
  IFS= read -r -t 90 ready < "$WORK/ready" || die 'Exit RPC bootstrap failed: check VPS Git HTTPS access and AcceptEnv LC_*'
  [ "$ready" = EVPN_RPC_READY ] || die 'Unexpected RPC handshake'
 }
 run_wizard() {
  printf 'Opening interactive wizard on entry: %s ...\n' "$1" >&2
- ssh -F "$CONFIG" -tt -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -R "127.0.0.1:$RELAY_PORT:127.0.0.1:$LOCAL_PORT" "$entry_host" "$BOOT wizard $RELAY_PORT $1"
+ ssh -F "$CONFIG" -tt -o SendEnv=LC_EVPN_BUNDLE_FILE -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -R "127.0.0.1:$RELAY_PORT:127.0.0.1:$LOCAL_PORT" "$entry_host" "$BOOT wizard $RELAY_PORT $1"
 }
 fresh_sessions() { [ "$(probe entry)" = ok ] && [ "$(probe exit)" = ok ]; }
 finish_handoff() {
@@ -304,6 +320,26 @@ finish_handoff() {
   fi
   rm -f "$tmp"; printf '%s\n' 'Profile transfer failed; retry or skip.' >&2
  done
+ local panel_ca_available=0
+ if ssh -F "$CONFIG" "$entry_host" "test -f $prefix.panel-ca.crt" 2>/dev/null; then
+  panel_ca_available=1
+  local ca_hash ca_target ca_tmp
+  ca_hash=$(ssh -F "$CONFIG" "$entry_host" "sha256sum $prefix.panel-ca.crt" | awk '{print $1}')
+  [[ "$ca_hash" =~ ^[a-f0-9]{64}$ ]] || die 'Cannot verify panel CA fingerprint'
+  printf 'Panel public CA SHA256: %s\n' "$ca_hash"
+  while :; do
+   ca_target=$(ask PanelCA 'Save public panel CA? Enter a NEW local .crt path, or Enter to skip')
+   [ -n "$ca_target" ] || break
+   case "$ca_target" in '~/'*) ca_target="$HOME/${ca_target#\~/}";; /*) ;; *) ca_target="$PWD/$ca_target";; esac
+   if [ -e "$ca_target" ] || [ -L "$ca_target" ] || [ ! -d "$(dirname "$ca_target")" ]; then printf '%s\n' 'Choose a new path.' >&2; continue; fi
+   ca_tmp=$(mktemp "$(dirname "$ca_target")/.panel-ca.XXXXXX") || continue
+   if scp -q -F "$CONFIG" "${entry_host}:$prefix.panel-ca.crt" "$ca_tmp" && [ "$(wc -c < "$ca_tmp")" -le 65536 ] && [ "$(shasum -a 256 "$ca_tmp" | awk '{print $1}')" = "$ca_hash" ] && chmod 644 "$ca_tmp" && ln "$ca_tmp" "$ca_target"; then
+    rm -f "$ca_tmp"; printf '%s\n' 'Saved PUBLIC CA. Verify SHA256 against trusted SSH output, review the certificate, then manually configure device trust. No trust store changed.'; break
+   fi
+   rm -f "$ca_tmp"; printf '%s\n' 'CA transfer failed; retry or skip.' >&2
+  done
+ fi
+ if [ "$panel_ca_available" = 1 ]; then printf '%s\\n' 'Website publishing is deferred for this panel candidate to preserve its verified health baseline.'; return 0; fi
  while :; do
   archive=$(ask Q25 'Publish a static website now? Enter a local handoff ZIP path, or Enter to keep the current site')
   [ -n "$archive" ] || return 0

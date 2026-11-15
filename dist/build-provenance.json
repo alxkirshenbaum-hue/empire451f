@@ -1,0 +1,38 @@
+{
+  "format": "vpn-control-fresh-build-v1",
+  "installer_source_sha": "b86591dc0dbd76d1f223b6dd5c71cdd5a1e7e00f",
+  "panel_source_sha": "0c05a6174e254192939227668f9d4947904984d4",
+  "go_version": "go1.27.3",
+  "go_sum_sha256": "d21703d26da01b776d242a173790ac72e660d96a0347678923243d0f3ba8c825",
+  "binary_build_commands": [
+    "GOPROXY=file:///opt/vpn-control/proxy GOSUMDB=off GOTOOLCHAIN=local GOFLAGS=\"-p=1 -mod=readonly\" /opt/vpn-control/toolchain/go/bin/go build -trimpath -buildvcs=false -o bin/vpn-control ./cmd/vpn-control",
+    "same env /opt/vpn-control/toolchain/go/bin/go build -trimpath -buildvcs=false -o bin/vpnctl ./cmd/vpnctl"
+  ],
+  "core_stage": "/opt/vpn-control/panel-core-0c05a61-20261115130710",
+  "binaries": {
+    "vpn-control": {
+      "sha256": "34ce33ecfaea722a300b01b0507e21ff8449a9eb033d4c62472e65369ed5c497",
+      "size_bytes": 17818304
+    },
+    "vpnctl": {
+      "sha256": "5ee106d875cd13852fde0d4182acf1ff575c08ec612577f58422c7d806b368f6",
+      "size_bytes": 15886064
+    }
+  },
+  "bundle_sha256": "f5e8b7344945e067e1a85635a7a5c07a98e58e530b7096701a4f6f0ce85a1e6b",
+  "bundle_size_bytes": 22761364,
+  "release_url": "https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc1/dist/installer.zip",
+  "publication": "prepared_for_v0.4.0-rc1_not_pushed_by_builder",
+  "platform": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "validation": {
+    "regression_tests": 63,
+    "skipped_platform_tests": 4,
+    "default_https_loader": "actual ZIP fetched through mock URL, SHA and all embedded module imports PASS; deployment call intercepted",
+    "tampered_https_bundle": "SHA refusal PASS",
+    "macOS_shell": "bash -n PASS; no real macOS execution",
+    "live_nodes": "NOT ACCESSED",
+    "generated_checked_loader": "Both generated launchers embed exactly the HTTPS loader tested with actual ZIP",
+    "windows": "PS7 and PS5.1 AST PASS; public CA SSH-mock test PASS; native behavior unchanged except checked URL/hash"
+  },
+  "target_unit": "w95-publish-b86591d"
+}

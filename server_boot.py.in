@@ -6,11 +6,15 @@ try:
     def expired(*args): raise TimeoutError("Bundle download timed out")
     signal.signal(signal.SIGALRM,expired)
     signal.alarm(65)
-    data=urllib.request.urlopen('https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.3.6/dist/installer.zip',timeout=60).read(2*1024*1024)
+    data=urllib.request.urlopen(__BUNDLE_URL__,timeout=60).read(64*1024*1024+1)
+    if len(data)>64*1024*1024: raise RuntimeError('Bundle compressed limit exceeded')
     signal.alarm(0)
     if hashlib.sha256(data).hexdigest()!='__BUNDLE_SHA256__': raise RuntimeError('Installer SHA256 mismatch')
     archive=zipfile.ZipFile(io.BytesIO(data))
-    bundle={name:archive.read(name).decode('utf-8') for name in archive.namelist()}
+    entries=archive.infolist()
+    if len(entries)>4096 or len({x.filename for x in entries})!=len(entries) or sum(x.file_size for x in entries)>128*1024*1024: raise RuntimeError('Bundle expanded limit exceeded')
+    if any(x.filename.startswith('/') or '\\' in x.filename or any(p in ('', '.', '..') for p in x.filename.split('/')) or (x.external_attr>>16)&0o170000==0o120000 for x in entries): raise RuntimeError('Unsafe bundle member')
+    bundle={x.filename:archive.read(x).decode('utf-8') for x in entries}
     for name in ('render','remote','client','delivery','controller'):
         module=types.ModuleType(name); module.__file__='/run/empire-source/'+name+'.py'
         sys.modules[name]=module

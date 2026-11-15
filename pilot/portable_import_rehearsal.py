@@ -37,7 +37,9 @@ def capture(cli,migration,worker,api_socket,cookie,old_profile,disabled_secret):
     context=json.loads((proof/'context.json').read_bytes())
     env=dict(os.environ,VPNCTL_SESSION_FILE=str(proof/'session'),VPNCTL_SOCKET=str(api_socket))
     download=proof/'portable-export.jwe'
-    run([cli,'backup','download',context['backup_id'],'--output',download,'--sha256',context['sha256']],env=env)
+    result=__import__('subprocess').run([str(x) for x in [cli,'backup','download',context['backup_id'],'--output',download,'--sha256',context['sha256']]],env=env,capture_output=True,timeout=60)
+    if result.returncode:
+        put(proof/'download-diagnostic.stderr',result.stderr[:4096]);raise RuntimeError('owner download refused; private diagnostic retained')
     require(hashlib.sha256(download.read_bytes()).hexdigest()==context['sha256'],'owner download digest mismatch')
     expected=semantic_snapshot('/var/lib/vpn-control/state.db','/var/lib/vpn-control/vault.key')
     require({'Alex','alex','master_user','Old-User','New-User'} <= {row[1] for row in expected['users']},'exact-case fixture missing')
@@ -46,6 +48,7 @@ def capture(cli,migration,worker,api_socket,cookie,old_profile,disabled_secret):
     context['downloaded_path']=str(download)
     context['source_key_sha256']=hashlib.sha256(Path('/var/lib/vpn-control/vault.key').read_bytes()).hexdigest()
     put(proof/'context.json',json.dumps(context))
+    put(proof/'portable-ready','owner download and semantic snapshot complete\n')
     print('portable-source: owner encrypted export/download and private semantic fixture PASS',flush=True)
 
 
@@ -146,4 +149,31 @@ def receive():
         print('portable-import: independent destination/key/admin exact-case/status/master/profile links old TCP-UoT disabled rejection PASS',flush=True)
 
 
-if __name__=='__main__':receive()
+def finalize_source():
+    import subprocess,time,urllib.parse
+    from full_worker_rehearsal import ROOT,request
+    proof=Path('/root/backup-proof');context=json.loads((proof/'context.json').read_bytes())
+    directory=Path('/run/vpn-control')/('finalize-'+__import__('uuid').uuid4().hex);directory.mkdir(parents=True,mode=0o700);Path('/run/vpn-control').chmod(0o755);os.chown(directory,981,981)
+    socket=directory/'api.sock';api=ROOT/'rehearsal-bin/vpn-control';cli=ROOT/'rehearsal-bin/vpnctl'
+    diagnostic=open(proof/'finalize-api.stderr','wb')
+    process=subprocess.Popen(['/usr/bin/setpriv','--reuid=981','--regid=981','--clear-groups','--bounding-set=-all',str(api),'--socket',str(socket),'--profile-domain','lab.example','--vault-key-file','/var/lib/vpn-control/vault.key','--owner-run',context['owner_run']],stdout=subprocess.DEVNULL,stderr=diagnostic)
+    try:
+        for _ in range(100):
+            if socket.exists():break
+            require(process.poll() is None,'source finalize API exited');time.sleep(.05)
+        status,headers,_=request(socket,'POST','/login',urllib.parse.urlencode(dict(username='owner',password='Synthetic W7 owner password')),{'Origin':'https://panel.home.arpa','Content-Type':'application/x-www-form-urlencoded'})
+        require(status==303,'source finalize login failed');put(proof/'session',headers['Set-Cookie'].split(';',1)[0].split('=',1)[1]+'\n')
+        env=dict(os.environ,VPNCTL_SESSION_FILE=str(proof/'session'),VPNCTL_SOCKET=str(socket))
+        output=proof/'portable-export.jwe'
+        result=subprocess.run([str(x) for x in [cli,'backup','download',context['backup_id'],'--output',output,'--sha256',context['sha256']]],env=env,capture_output=True,timeout=60)
+        if result.returncode:
+            put(proof/'download-diagnostic.stderr',result.stderr[:4096]);raise RuntimeError('source owner download refused')
+        expected=semantic_snapshot('/var/lib/vpn-control/state.db','/var/lib/vpn-control/vault.key');put(proof/'portable-expected.json',json.dumps(expected))
+        context.update(downloaded_path=str(output),source_key_sha256=hashlib.sha256(Path('/var/lib/vpn-control/vault.key').read_bytes()).hexdigest());put(proof/'context.json',json.dumps(context));put(proof/'portable-ready','complete\n')
+        print('portable-source: preserved encrypted owner download PASS',flush=True)
+    finally:process.terminate();process.wait(timeout=5);diagnostic.close()
+
+if __name__=='__main__':
+    import sys
+    if '--finalize-source' in sys.argv:finalize_source()
+    else:receive()

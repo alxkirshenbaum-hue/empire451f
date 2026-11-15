@@ -25,7 +25,7 @@ class FreshControllerTests(unittest.TestCase):
             self.assertTrue(state['panel_ready']);self.assertNotIn(secret,json.dumps(state));self.assertNotIn(secret,output.getvalue())
             self.assertEqual((root/'session.panel-ca.crt').read_bytes(),ca.read_bytes());store.assert_called_once()
     def test_panel_failure_does_not_abort_committed_vpn(self):
-        state={'config':{'mode':'fresh','panel_enabled':True,'tls':'ready'},'changed':['entry','exit']}
+        state={'config':{'mode':'fresh','panel_enabled':True,'tls':'ready'},'changed':['entry','exit'],'transaction':'fixture-transaction'}
         nodes=Mock();nodes.call.return_value={'status':'committed'}
         with patch.object(controller.remote,'readjson',return_value=state),patch.object(controller,'session_path',return_value=Path('/unused')),patch.object(controller,'clients',return_value={}),patch.object(controller,'verify'),patch.object(controller,'store_session'),patch.object(controller,'handoff_profile'),patch.object(controller,'setup_fresh_panel',side_effect=Invalid('panel startup incomplete')),patch.object(controller,'abort') as abort,contextlib.redirect_stdout(io.StringIO()):
             with self.assertRaises(Invalid):controller.finish(nodes,'session','finish')

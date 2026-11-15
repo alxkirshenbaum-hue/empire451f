@@ -6,5 +6,8 @@
   "xcaddy": "v0.4.7",
   "forwardproxy": "v0.0.0-20261022172731-e747854e7874",
   "sing_box": "1.14.4",
-  "sing_box_sha256": "699a1b510aa4396b2176d32d1181920399ebf1e267835da6f3b598d0f7c24968"
+  "sing_box_sha256": "699a1b510aa4396b2176d32d1181920399ebf1e267835da6f3b598d0f7c24968",
+  "installer_release": "0.4.0-rc1",
+  "panel_core_revision": "0c05a6174e254192939227668f9d4947904984d4",
+  "panel_schema_version": 8
 }

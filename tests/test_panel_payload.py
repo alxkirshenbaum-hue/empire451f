@@ -47,4 +47,39 @@ class PanelPayloadTests(unittest.TestCase):
         (self.root/'bin/vpnctl').write_bytes(b'private material'*200)
         with self.assertRaises(ValueError):release.panel_payload(self.root,self.sha)
 
+
+
+class BootstrapBundleTests(unittest.TestCase):
+    def exercise(self,names,*,mutate=None):
+        import io
+        import zipfile
+        from unittest import mock
+        output=io.BytesIO()
+        with zipfile.ZipFile(output,'w') as archive:
+            for name in names:
+                archive.writestr(name,'def main(args): return 0\n' if name=='controller.py' else '')
+        data=output.getvalue()
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'installer.zip';path.write_bytes(data);path.chmod(0o600)
+            if mutate:mutate(path)
+            source=(ROOT/'server_boot.py.in').read_text().replace('__BUNDLE_SHA256__',hashlib.sha256(data).hexdigest()).replace('__BUNDLE_URL__',repr('https://example.invalid/never-fetch'))
+            source=source.replace('/run/empire-vpn-local-installer/installer.zip',str(path))
+            with mock.patch.dict(os.environ,LC_EVPN_BUNDLE_FILE=str(path)),mock.patch('urllib.request.urlopen',side_effect=AssertionError('local path fetched network')),mock.patch.dict('sys.modules',{}),mock.patch('sys.stderr',io.StringIO()):
+                with self.assertRaises(SystemExit) as stopped:
+                    exec(compile(source,'server_boot.py','exec'),{'__name__':'__main__'})
+                return stopped.exception.code
+    def test_valid_local_bundle_never_fetches_network(self):
+        self.assertEqual(self.exercise(['render.py','remote.py','client.py','delivery.py','controller.py']),0)
+    def test_local_bundle_hash_mismatch_refused(self):
+        self.assertEqual(self.exercise(['controller.py'],mutate=lambda p:p.write_bytes(b'changed')),1)
+    def test_unsafe_member_refused(self):
+        self.assertEqual(self.exercise(['../outside.py']),1)
+    def test_duplicate_members_refused(self):
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            self.assertEqual(self.exercise(['controller.py','controller.py']),1)
+    def test_world_readable_local_bundle_refused(self):
+        self.assertEqual(self.exercise(['controller.py'],mutate=lambda p:p.chmod(0o644)),1)
+
 if __name__=='__main__':unittest.main()

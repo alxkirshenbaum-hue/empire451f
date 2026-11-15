@@ -69,13 +69,62 @@ func portableClean(ctx context.Context, tx *sql.Tx) error {
 			return ErrLegacyConflict
 		}
 	}
-	// Only the untouched bootstrap catalog can be explicitly replaced. No custom
-	// revisions or variants are silently discarded.
-	if e := tx.QueryRowContext(ctx, `SELECT (SELECT count(*) FROM profile_templates WHERE id<>'sfa' OR slug<>'sfa' OR name<>'SFA' OR enabled<>1 OR transport<>'naive_https')+(SELECT count(*) FROM template_revisions WHERE template_id<>'sfa' OR semver<>'1.0.0' OR client_family<>'sfa' OR min_version<>'1.14.4' OR status<>'approved')+(SELECT count(*) FROM profile_routing_variants)`).Scan(&count); e != nil {
+	// Recognize only the canonical bootstrap catalog, including variants produced
+	// by public InstallInitialSFA. Regenerate bodies rather than trusting labels.
+	var templates, revisions, variants int
+	if e := tx.QueryRowContext(ctx, "SELECT (SELECT count(*) FROM profile_templates),(SELECT count(*) FROM template_revisions),(SELECT count(*) FROM profile_routing_variants)").Scan(&templates, &revisions, &variants); e != nil {
 		return e
 	}
-	if count != 0 {
+	if templates == 0 {
+		if revisions != 0 || variants != 0 {
+			return ErrLegacyConflict
+		}
+		return nil
+	}
+	if templates != 1 || (variants != 0 && variants != 2) || revisions != 1+variants {
 		return ErrLegacyConflict
+	}
+	var valid int
+	if e := tx.QueryRowContext(ctx, "SELECT count(*) FROM profile_templates WHERE id='sfa' AND slug='sfa' AND name='SFA' AND enabled=1 AND transport='naive_https'").Scan(&valid); e != nil {
+		return e
+	}
+	if valid != 1 {
+		return ErrLegacyConflict
+	}
+	var root, body, hash string
+	if e := tx.QueryRowContext(ctx, "SELECT id,body_json,sha256 FROM template_revisions WHERE template_id='sfa' AND semver='1.0.0' AND client_family='sfa' AND min_version='1.14.4' AND max_version IS NULL AND status='approved'").Scan(&root, &body, &hash); e != nil {
+		return ErrLegacyConflict
+	}
+	if digest([]byte(body)) != hash {
+		return ErrLegacyConflict
+	}
+	if variants == 0 {
+		return nil
+	}
+	prepared, e := WithPanelDestination([]byte(body))
+	if e != nil {
+		return ErrLegacyConflict
+	}
+	base, e := DeriveBaseRouting(prepared)
+	if e != nil {
+		return ErrLegacyConflict
+	}
+	for _, variant := range []string{"base", "ru_download_manager"} {
+		candidate := prepared
+		minimum := "1.15.0-alpha.13"
+		maximum := sql.NullString{String: minimum, Valid: true}
+		if variant == "base" {
+			candidate = base
+			minimum = "1.14.4"
+			maximum = sql.NullString{}
+		}
+		checksum := digest(candidate)
+		var stored, sha, semver, min string
+		var max sql.NullString
+		e = tx.QueryRowContext(ctx, "SELECT v.body_json,v.sha256,v.semver,v.min_version,v.max_version FROM profile_routing_variants m JOIN template_revisions v ON v.id=m.revision_id WHERE m.source_revision_id=? AND m.variant=? AND m.policy_version=? AND v.template_id='sfa' AND v.client_family='sfa' AND v.status='approved'", root, variant, RoutingPolicyVersion).Scan(&stored, &sha, &semver, &min, &max)
+		if e != nil || stored != string(candidate) || sha != checksum || semver != "w6-p2-"+variant+"-"+checksum[:16] || min != minimum || max != maximum {
+			return ErrLegacyConflict
+		}
 	}
 	return nil
 }
@@ -131,7 +180,7 @@ func (r *Registry) portable(ctx context.Context, path string, key *vault.Vault, 
 		return out, e
 	}
 	baseline := []any{digest(before), owner, own}
-	for _, spec := range []struct{ name, columns string }{{"profile_templates", "id,slug,name,transport,enabled"}, {"template_revisions", "id,template_id,semver,client_family,min_version,max_version,body_json,sha256,status,created_at,approved_at"}, {"admin_accounts", "id,username,password_hash,disabled,created_at,last_login_at"}, {"nodes", "id,alias,role,hostname_ref,last_seen_at,observed_source,checked_at,stale_after,health,row_version"}, {"vault_identity", "singleton,key_version,nonce,ciphertext"}} {
+	for _, spec := range []struct{ name, columns string }{{"profile_templates", "id,slug,name,transport,enabled"}, {"template_revisions", "id,template_id,semver,client_family,min_version,max_version,body_json,sha256,status,created_at,approved_at"}, {"profile_routing_variants", "source_revision_id,variant,policy_version,revision_id"}, {"admin_accounts", "id,username,password_hash,disabled,created_at,last_login_at"}, {"nodes", "id,alias,role,hostname_ref,last_seen_at,observed_source,checked_at,stale_after,health,row_version"}, {"vault_identity", "singleton,key_version,nonce,ciphertext"}} {
 		rows, e := portableRows(ctx, tx, spec.name, spec.columns)
 		if e != nil {
 			return out, e

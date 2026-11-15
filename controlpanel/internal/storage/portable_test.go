@@ -161,3 +161,31 @@ func TestPortablePublicInitialization(t *testing.T) {
 		t.Fatal("real clean registry preview rejected", e)
 	}
 }
+
+func TestPortablePublicCatalogConsentAndDrift(t *testing.T) {
+	path, source, run := portableSourceFixture(t)
+	dest := portableDestinationFixture(t)
+	body, e := os.ReadFile("../../../templates/sfa-profile.json")
+	if e != nil {
+		t.Fatal(e)
+	}
+	if _, e = dest.InstallInitialSFA(ctx, body, digest(body)); e != nil {
+		t.Fatal(e)
+	}
+	plan, e := dest.PreviewPortable(ctx, path, source.vault, run, "")
+	if e != nil {
+		t.Fatal(e)
+	}
+	if !plan.ReplaceInitialCatalog {
+		t.Fatal("replacement not disclosed")
+	}
+	if _, e = dest.ImportPortable(ctx, path, source.vault, run, "", plan.Hash, false); e == nil {
+		t.Fatal("missing consent accepted")
+	}
+	if _, e = dest.db.Exec("UPDATE template_revisions SET body_json='{}' WHERE semver LIKE 'w6-%'"); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = dest.PreviewPortable(ctx, path, source.vault, run, ""); e == nil {
+		t.Fatal("custom derived body accepted")
+	}
+}

@@ -20,3 +20,9 @@ F3 остаётся открытой до проверки владельцем.
 Локально8a164c9 TestFreshInstallerJSONPreservesImportedMasterPASS1.006s: реальныйexistingcontrollerJSON→render→inspect/plan→StageLegacy→copyhandoff→MIG05storage, точныеAlice/masterпароли/роль, admin/key/sourceJSONсохранены. LiveCaddycallbackсмоделирован; это НЕ F3.63release regressionPASS/4platformskip, ZIPHTTPSloader/hash/PS/CAmocksPASS. НастоящийmacOSнепроверен. Corepanel0c05a61; portableнеиспользуется. Leafpanel365дней, autoprenewalнет; websitepublishпослеpanelотложен.
 
 Пакетdist/installer.zip SHA256 f5e8b7344945e067e1a85635a7a5c07a98e58e530b7096701a4f6f0ce85a1e6b;22,761,364bytes. Sourceb86591d. Release-tagv0.4.0-rc1 публикуетпроверенныйпакет+bootstrap; coreбинарников0c05a61. НикакихоперацийнаVPSприэтихлокальныхпроверкахнебыло.
+
+## Publication verified
+
+GitHub tag `v0.4.0-rc1` points to commit `713a2ebaee5eb89f7cd1208685fc026d56ddcd2d`. Public Windows bootstrap and the full ZIP were downloaded over HTTPS after publication and matched the local checked files. ZIP SHA256: `f5e8b7344945e067e1a85635a7a5c07a98e58e530b7096701a4f6f0ce85a1e6b`.
+
+Owner confirmed that a current verified export including `master_user` is available. No cleanup/reinstallation by the agent is authorized. F3 stays open for the owner's manual installation and connection check; no new server pair is requested.

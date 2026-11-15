@@ -15,6 +15,9 @@ import (
 )
 
 func execute(args []string, out, stderr io.Writer) int {
+	if len(args) >= 2 && args[0] == "portable" {
+		return portableCommand(args[1], args[2:], out, stderr)
+	}
 	if len(args) >= 2 && args[0] == "backup" && args[1] == "offline-verify" {
 		return offlineVerify(args[2:], out, stderr)
 	}

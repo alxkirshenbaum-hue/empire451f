@@ -200,6 +200,9 @@ func PrepareAuth(ctx context.Context, rt Runtime, directory, operation string, g
 
 // PrepareAuthObserved exposes crash boundaries to the isolated harness.
 func PrepareAuthObserved(ctx context.Context, rt Runtime, directory, operation string, generation int64, change AuthChange, observe func(string)) (*Prepared, error) {
+	return prepareRendered(ctx, rt, directory, operation, generation, func(raw []byte) ([]byte, error) { return PatchAuth(raw, change) }, observe)
+}
+func prepareRendered(ctx context.Context, rt Runtime, directory, operation string, generation int64, render func([]byte) ([]byte, error), observe func(string)) (*Prepared, error) {
 	point := func(name string) {
 		if observe != nil {
 			observe(name)
@@ -216,7 +219,7 @@ func PrepareAuthObserved(ctx context.Context, rt Runtime, directory, operation s
 	defer clear(before)
 	point("after_snapshot")
 	point("after_desired_stage")
-	candidate, err := PatchAuth(before, change)
+	candidate, err := render(before)
 	if err != nil {
 		return nil, err
 	}

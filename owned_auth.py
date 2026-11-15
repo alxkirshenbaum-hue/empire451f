@@ -9,6 +9,7 @@ from contextlib import closing
 import hashlib
 import json
 import os
+import re
 import sqlite3
 import sys
 from pathlib import Path
@@ -149,6 +150,40 @@ def prepare(state, auth, caddyfile, prepared_dir, operation, run, generation, lo
     return intent
 
 
+def prepare_portable(state, auth, caddyfile, prepared_dir, operation, run, generation, registry, users, installation_hash):
+    state,auth,caddyfile,prepared_dir,registry=map(location,(state,auth,caddyfile,prepared_dir,registry))
+    require(state.is_dir() and state.stat().st_mode&0o077==0 and prepared_dir.stat().st_mode&0o077==0 and generation==1)
+    with closing(sqlite3.connect(registry_uri(registry),uri=True)) as db:
+        row=db.execute("SELECT o.request_hash FROM operations o JOIN legacy_migration_runs m ON m.id=o.target_id WHERE o.id=? AND o.kind='portable.import' AND o.status='running' AND m.id=? AND m.phase='importing' AND m.status='portable_staged'",(operation,run)).fetchone()
+        require(row is not None)
+        actual=db.execute("SELECT login FROM users WHERE status='active' ORDER BY login COLLATE BINARY").fetchall()
+        require([x[0] for x in actual]==sorted(u['username'] for u in users))
+    require(re.fullmatch('[0-9a-f]{64}',installation_hash) is not None)
+    journal=state/'panel-auth-pending.json';require(not os.path.lexists(journal))
+    require(not any(os.path.lexists(state/n) for n in ('pending.json','user-rollback.json','return-intent.json')))
+    before_auth,before_manifest=read(auth),read(state/'manifest.json',True)
+    meta=decode(before_manifest);require('transaction' in meta and not any(k.startswith('panel_') for k in meta))
+    require(meta['files'].get(str(auth))==digest(before_auth) and meta['files'].get(str(caddyfile))==digest(read(caddyfile)))
+    users=credentials(dict(format='empire-vpn-clients',schema_version=1,clients=users))['clients']
+    prepared=decode(read(prepared_dir/'prepared.json',True))
+    before_users=[dict(username=n,password=p) for n,p in auth_lines(before_auth)]
+    require(prepared['operation']==operation and prepared['generation']==generation and auth_values(prepared['before'])==encoded_auth(before_users) and auth_values(prepared['candidate'])==encoded_auth(users))
+    candidate=json.loads(json.dumps(prepared['candidate']))
+    def restore(v):
+        if isinstance(v,dict):
+            if v.get('handler')=='forward_proxy':v['auth_credentials']=encoded_auth(before_users)
+            for child in v.values():restore(child)
+        elif isinstance(v,list):
+            for child in v:restore(child)
+    restore(candidate);require(candidate==prepared['before'])
+    after_auth=b''.join(('basic_auth '+json.dumps(u['username'])+' '+json.dumps(u['password'])+'\n').encode() for u in users)
+    meta.update(panel_generation=1,panel_run_id=run,panel_auth_hash=digest(after_auth),panel_previous_transaction=meta.pop('transaction'));meta['files'].pop(str(auth))
+    targets=[]
+    for path,before,after in ((auth,before_auth,after_auth),(state/'manifest.json',before_manifest,json.dumps(meta,sort_keys=True).encode())):
+        i=path.stat();targets.append(dict(path=str(path),before=base64.b64encode(before).decode(),after=base64.b64encode(after).decode(),mode=i.st_mode&0o777,uid=i.st_uid,gid=i.st_gid,xattrs=attributes(path)))
+    intent=dict(operation=operation,run=run,generation=generation,state_identity=identity(state),auth_parent_identity=identity(auth.parent),prepared=str(prepared_dir/'prepared.json'),prepared_hash=digest(read(prepared_dir/'prepared.json',True)),caddyfile=str(caddyfile),caddyfile_hash=digest(read(caddyfile)),targets=targets,portable_digest=row[0],installation_hash=installation_hash)
+    publish(journal,json.dumps(intent,sort_keys=True).encode());sync_directory(state)
+
 def inspect(state, operation, run, generation):
     state = location(state)
     require(state.is_dir() and state.stat().st_mode & 0o077 == 0)
@@ -189,6 +224,11 @@ def finish(state, operation, run, generation, registry, rollback=False):
     state = location(state)
     intent = inspect(state,operation,run,generation)
     with closing(sqlite3.connect(registry_uri(location(registry)),uri=True)) as db:
+        if 'portable_digest' in intent:
+            row=db.execute("SELECT o.status,o.request_hash,m.phase,m.status FROM operations o JOIN legacy_migration_runs m ON m.id=o.target_id WHERE o.id=? AND o.kind='portable.import' AND m.id=?",(operation,run)).fetchone()
+            require(not rollback and row==('succeeded',intent['portable_digest'],'verified_cutover','verified_cutover'))
+            require(all(read(Path(t['path']))==base64.b64decode(t['after'],validate=True) for t in intent['targets']))
+            (state/'panel-auth-pending.json').unlink();sync_directory(state);return
         row = db.execute("""SELECT o.status,u.status,o.kind FROM operations o JOIN users u ON u.id=o.target_id
             WHERE o.id=? AND o.target_type='user'""",(operation,)).fetchone()
         require(row is not None)
@@ -212,7 +252,7 @@ def main():
     try:
         req = decode(sys.stdin.buffer.read(4*1024*1024+1))
         action = req.pop('action')
-        require(action in ('prepare','inspect','publish_files','finish'))
+        require(action in ('prepare','prepare_portable','inspect','publish_files','finish'))
         globals()[action](**req)
     except (OSError,ValueError,KeyError,TypeError,AttributeError,sqlite3.Error):
         print('Owned auth operation refused; inspect protected journals.',file=sys.stderr)

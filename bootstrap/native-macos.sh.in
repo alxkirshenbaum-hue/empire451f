@@ -320,7 +320,9 @@ finish_handoff() {
   fi
   rm -f "$tmp"; printf '%s\n' 'Profile transfer failed; retry or skip.' >&2
  done
+ local panel_ca_available=0
  if ssh -F "$CONFIG" "$entry_host" "test -f $prefix.panel-ca.crt" 2>/dev/null; then
+  panel_ca_available=1
   local ca_hash ca_target ca_tmp
   ca_hash=$(ssh -F "$CONFIG" "$entry_host" "sha256sum $prefix.panel-ca.crt" | awk '{print $1}')
   [[ "$ca_hash" =~ ^[a-f0-9]{64}$ ]] || die 'Cannot verify panel CA fingerprint'
@@ -337,6 +339,7 @@ finish_handoff() {
    rm -f "$ca_tmp"; printf '%s\n' 'CA transfer failed; retry or skip.' >&2
   done
  fi
+ if [ "$panel_ca_available" = 1 ]; then printf '%s\\n' 'Website publishing is deferred for this panel candidate to preserve its verified health baseline.'; return 0; fi
  while :; do
   archive=$(ask Q25 'Publish a static website now? Enter a local handoff ZIP path, or Enter to keep the current site')
   [ -n "$archive" ] || return 0

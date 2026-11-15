@@ -17,14 +17,14 @@ try{
  function scp {$script:copies++;$destination=$args[-1];[IO.File]::WriteAllBytes($destination,$(if($script:tamper){[byte[]]@(0,1,2)}else{$script:certificate}));$global:LASTEXITCODE=0}
  function Ask {$script:asks++;if($script:asks-eq1){return $script:target};return ''}
  Offer-PanelCA '/var/lib/empire-vpn-sessions/synthetic'
- if(!(Test-Path -LiteralPath $script:target) -or $script:copies-ne1){throw 'CA download failed'}
+ if(!$script:PanelCAAvailable -or !(Test-Path -LiteralPath $script:target) -or $script:copies-ne1){throw 'CA download failed'}
  if((Get-FileHash -LiteralPath $script:target).Hash.ToLowerInvariant()-ne$script:hash){throw 'CA changed'}
  $script:target=Join-Path $work 'bad-ca.crt';$script:tamper=$true;$script:asks=0
  Offer-PanelCA '/var/lib/empire-vpn-sessions/synthetic'
  if(Test-Path -LiteralPath $script:target){throw 'Mismatched CA published'}
  $script:present=$false;$script:copies=0;$script:asks=0
  Offer-PanelCA '/var/lib/empire-vpn-sessions/synthetic'
- if($script:copies-ne0 -or $script:asks-ne0){throw 'Missing CA was not skipped'}
+ if($script:PanelCAAvailable -or $script:copies-ne0 -or $script:asks-ne0){throw 'Missing CA was not skipped'}
  if($node.Extent.Text -match 'Import-Certificate|certutil|X509Store'){throw 'CA handoff changes trust'}
  Write-Output 'PASS: PowerShell CA verified/no-overwrite, corrupt refusal, absent skip; SSH mocked, no trust store changes'
 }finally{Get-ChildItem -LiteralPath $work -File|Remove-Item;[IO.Directory]::Delete($work)}

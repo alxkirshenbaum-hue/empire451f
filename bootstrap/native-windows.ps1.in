@@ -209,8 +209,10 @@ function Run-Wizard([string]$Operation){
  $script:WizardExit=$LASTEXITCODE
 }
 function Offer-PanelCA([string]$Prefix){
+ $script:PanelCAAvailable=$false
  & ssh -F $Config $entryHost ('test -f '+$Prefix+'.panel-ca.crt') 2>$null
  if($LASTEXITCODE -ne 0){return}
+ $script:PanelCAAvailable=$true
  $remoteHash=(& ssh -F $Config $entryHost ('sha256sum '+$Prefix+'.panel-ca.crt') | Out-String).Trim().Split(' ')[0]
  if($LASTEXITCODE -ne 0 -or $remoteHash -cnotmatch '^[a-f0-9]{64}$'){throw 'Cannot verify panel CA fingerprint'}
  Write-Host ('Panel public CA SHA256: '+$remoteHash)
@@ -254,6 +256,7 @@ function Finish-Handoff {
   finally{if($tmp -and [IO.File]::Exists($tmp)){[IO.File]::Delete($tmp)}}
  }
  Offer-PanelCA $prefix
+ if($script:PanelCAAvailable){Write-Host 'Website publishing is deferred for this panel candidate to preserve its verified health baseline.';return}
  while($true){
   $zip=Ask Q25 'Publish a static website now? Enter a local handoff ZIP path, or Enter to keep the current site'
   if(!$zip){return}

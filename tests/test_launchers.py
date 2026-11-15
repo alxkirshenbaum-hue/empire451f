@@ -85,6 +85,7 @@ class ServerControllerTests(unittest.TestCase):
         with patch.object(controller.remote, 'readjson', side_effect=read), patch.object(controller, 'installer_lock', contextlib.nullcontext):
             with self.assertRaisesRegex(controller.Invalid, 'import existing credentials'):
                 controller.clients(config(), None, create=True)
+    @patch.dict(controller.BUNDLE, {'panel/payload.json': '{}'})
     def test_first_preview_has_no_saved_state_and_no_mutations(self):
         calls = []
         class Nodes:
@@ -101,8 +102,9 @@ class ServerControllerTests(unittest.TestCase):
                 self.assertEqual(controller.start(Nodes(), 'a' * 32, None), 0)
                 self.assertIn('Choose a listed number', output.getvalue())
             self.assertEqual(calls, ['probe', 'probe', 'plan', 'plan'])
+    @patch.dict(controller.BUNDLE, {'panel/payload.json': '{}'})
     def test_apply_waits_for_fresh_local_ssh_before_commit(self):
-        c = config()
+        c = config(); c['tls'] = 'ready'
         captured = {}
         calls = []
         class Nodes:
@@ -121,9 +123,10 @@ class ServerControllerTests(unittest.TestCase):
             self.assertEqual(controller.start(Nodes(), 'a' * 32, None), 42)
         self.assertNotIn(('entry', 'commit'), calls)
         self.assertNotIn(('exit', 'commit'), calls)
-        with patch.object(controller.remote, 'readjson', return_value=captured), patch.object(controller, 'clients', return_value=users()), patch.object(controller,'store_session'), patch.object(controller,'handoff_profile') as handoff, contextlib.redirect_stdout(io.StringIO()):
+        with patch.object(controller.remote, 'readjson', return_value=captured), patch.object(controller, 'clients', return_value=users()), patch.object(controller,'store_session'), patch.object(controller,'handoff_profile') as handoff, patch.object(controller,'setup_fresh_panel') as panel, contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(controller.finish(Nodes(), 'a' * 32, 'finish'), 0)
             handoff.assert_called_once()
+            panel.assert_called_once()
         self.assertIn(('entry', 'commit'), calls)
         self.assertIn(('exit', 'commit'), calls)
 
@@ -320,7 +323,9 @@ class NativeContractTests(unittest.TestCase):
         for name in ('native-windows.ps1.in', 'native-macos.sh.in'):
             text = (ROOT / 'bootstrap' / name).read_text()
             self.assertNotIn('Expand-Archive', text)
-            self.assertNotIn('installer.zip', text)
+            self.assertIn('__BUNDLE_SHA256__', text)
+            self.assertIn('LC_EVPN_BUNDLE_FILE', text)
+            self.assertNotIn('pip install', text)
             self.assertNotIn('python.exe', text)
             self.assertNotIn('python.org', text)
             self.assertIn('ForwardAgent no', text)

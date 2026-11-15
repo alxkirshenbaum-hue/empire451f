@@ -342,7 +342,7 @@ $Jumps=@{}
 $Config=[IO.Path]::GetTempFileName()
 $RpcProcess=$null
 $SavedEnv=@{}
-foreach($name in @('LC_EVPN_TOKEN','LC_EVPN_SESSION','LC_EVPN_CLIENTS','LC_EVPN_PROBE')){$SavedEnv[$name]=[Environment]::GetEnvironmentVariable($name)}
+foreach($name in @('LC_EVPN_TOKEN','LC_EVPN_SESSION','LC_EVPN_CLIENTS','LC_EVPN_PROBE','LC_EVPN_BUNDLE_FILE')){$SavedEnv[$name]=[Environment]::GetEnvironmentVariable($name)}
 try{
  if ($resume) {
   $sshSettings=@('Host *',' StrictHostKeyChecking yes',' BatchMode yes',' PreferredAuthentications publickey',' ForwardAgent no',' ControlMaster no',' ControlPath none',' ExitOnForwardFailure yes',' ConnectTimeout 12',' ServerAliveInterval 10',' ServerAliveCountMax 2',' Include ~/.ssh/config')

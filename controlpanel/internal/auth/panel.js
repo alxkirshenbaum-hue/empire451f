@@ -42,6 +42,7 @@
    const headers={"Accept":"application/json"};
    if(method!=="GET") {headers["Content-Type"]="application/json";headers["X-CSRF-Token"]=csrf;if(key)headers["Idempotency-Key"]=key;}
    const response=await fetch(path,{method,headers,body:body===undefined?undefined:JSON.stringify(body),credentials:"same-origin",cache:"no-store",signal:controller.signal});
+   if(response.status===204)return null;
    let envelope;
    try {envelope=await response.json();}catch(_){const e=new Error("Invalid API response.");e.status=response.ok?0:response.status;throw e;}
    if(!response.ok) {
@@ -209,6 +210,14 @@
   for(const name of tabs)byId("view-"+name).hidden=name!==tab;
   for(const link of document.querySelectorAll("nav a"))if(link.hash==="#"+tab)link.setAttribute("aria-current","page");else link.removeAttribute("aria-current");
  }
+ byId("owner-password").addEventListener("submit",async event=>{
+  event.preventDefault();const form=event.currentTarget,button=form.querySelector("button");
+  const values=Object.fromEntries(new FormData(form).entries());
+  if(values.new_password!==values.confirm_password){form.reset();report(new Error("New passwords do not match."));return;}
+  button.disabled=true;
+  try{await api("/api/v1/auth/change-password","POST",values);form.reset();location.assign("/");}
+  catch(error){form.reset();report(error);}finally{button.disabled=false;}
+ });
  byId("create-user").addEventListener("submit",event=>{
   event.preventDefault();const form=new FormData(event.currentTarget);
   submitChange("POST","/api/v1/users",Object.fromEntries(form.entries())).catch(report);

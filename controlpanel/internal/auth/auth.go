@@ -122,6 +122,7 @@ func (s *Service) Handler(operations http.Handler) http.Handler {
 	mux.HandleFunc("POST /logout", s.logout)
 	mux.HandleFunc("POST /api/v1/auth/login", s.login)
 	mux.HandleFunc("POST /api/v1/auth/logout", s.logout)
+	mux.HandleFunc("POST /api/v1/auth/change-password", s.changePassword)
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c, err := r.Cookie("session")
 		if err == nil {

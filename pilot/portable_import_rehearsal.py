@@ -81,6 +81,11 @@ def receive():
         relay=start(stack,unpriv(999)+[BIN/'sing-box','run','-c','/run/relay/config.json'],1081);caddy=start(stack,unpriv(982)+[BIN/'caddy','run','--config',base/'Caddyfile','--adapter','caddyfile'],18443)
         service_identity(relay,999);service_identity(caddy,982)
         common=['--installation','lab','--source-db',str(inputs/'source.db'),'--source-key',str(inputs/'source.key'),'--source-owner-run',context['owner_run'],'--source-operation',context['own_operation'],'--destination-run',context['destination_run']]
+        wrong_source=inputs/'wrong-source.key';put(wrong_source,secrets.token_bytes(32))
+        bad_common=list(common);bad_common[bad_common.index('--source-key')+1]=str(wrong_source)
+        before_bad=hashlib.sha256((panel/'state.db').read_bytes()).hexdigest()
+        rejected=subprocess.run([str(x) for x in [cli,'portable','preview',*bad_common]],capture_output=True,timeout=30)
+        require(rejected.returncode!=0 and hashlib.sha256((panel/'state.db').read_bytes()).hexdigest()==before_bad and (panel/'vault.key').read_bytes()==own_key,'wrong source key changed existing clean destination')
         preview=json.loads(run([cli,'portable','preview',*common]));approved=['--plan-sha256',preview['plan_sha256'],'--expected-installation-sha256',preview['installation_sha256'],'--replace-initial-catalog']
         source_before=(inputs/'source.db').read_bytes()
         # Deliberately occupied master is a visible conflict, never an overwrite.
@@ -91,14 +96,32 @@ def receive():
         with sqlite3.connect(panel/'state.db') as db:
             require(db.execute("SELECT display_name FROM users WHERE id='conflict'").fetchone()==('bootstrap',),'conflict silently overwritten')
             db.execute("DELETE FROM users WHERE id='conflict'")
+        wrong_source=inputs/'wrong-source.key';put(wrong_source,secrets.token_bytes(32))
+        bad_common=list(common);bad_common[bad_common.index('--source-key')+1]=str(wrong_source)
+        before_bad=hashlib.sha256((panel/'state.db').read_bytes()).hexdigest()
+        rejected=subprocess.run([str(x) for x in [cli,'portable','preview',*bad_common]],capture_output=True,timeout=30)
+        require(rejected.returncode!=0 and hashlib.sha256((panel/'state.db').read_bytes()).hexdigest()==before_bad and (panel/'vault.key').read_bytes()==own_key,'wrong source key changed existing clean destination')
         preview=json.loads(run([cli,'portable','preview',*common]));approved=['--plan-sha256',preview['plan_sha256'],'--expected-installation-sha256',preview['installation_sha256'],'--replace-initial-catalog']
+        before_auth=(base/'auth.caddy').read_bytes();before_manifest=(state/'manifest.json').read_bytes()
         failed=subprocess.run([str(x) for x in [cli,'portable','import',*common,*approved]],env=dict(os.environ,VPN_PORTABLE_TEST_FAULT='after_auth_publish'),capture_output=True,timeout=300)
         require(failed.returncode!=0,'partial publication fault not reached')
+        import base64
+        journal=json.loads((state/'panel-auth-pending.json').read_bytes())
+        require(journal['run']==context['destination_run'],'wrong partial journal')
+        require((base/'auth.caddy').read_bytes()==base64.b64decode(journal['targets'][0]['after']) and (base/'auth.caddy').read_bytes()!=before_auth,'auth partial publication not reached')
+        require((state/'manifest.json').read_bytes()==before_manifest==base64.b64decode(journal['targets'][1]['before']),'manifest advanced before injected fault')
+        with sqlite3.connect(panel/'state.db') as db:
+            require(db.execute("SELECT o.status,m.status FROM operations o JOIN legacy_migration_runs m ON m.id=o.target_id WHERE o.id=?",(journal['operation'],)).fetchone()==('running','portable_staged'),'partial operation not durably gated')
+        gated=subprocess.run([str(cli),'worker','once','--installation','lab','--owner-run',context['destination_run']],capture_output=True,timeout=30)
+        require(gated.returncode!=0,'ordinary worker bypassed portable gate')
         with sqlite3.connect(panel/'state.db') as db:
             require(db.execute("SELECT count(*) FROM legacy_migration_runs WHERE id=? AND phase='verified_cutover'",(context['destination_run'],)).fetchone()[0]==0,'partial import falsely verified')
         unapproved=subprocess.run([str(x) for x in [cli,'portable','import',*common,*approved]],capture_output=True,timeout=60)
         require(unapproved.returncode!=0,'implicit partial import retry accepted')
-        run([cli,'portable','import',*common,*approved,'--resume'])
+        completed=json.loads(run([cli,'portable','import',*common,*approved,'--resume']))
+        completed_semantics=semantic_snapshot(panel/'state.db',panel/'vault.key')
+        replay=json.loads(run([cli,'portable','import',*common,*approved,'--resume']))
+        require(replay['operation_id']==completed['operation_id'] and semantic_snapshot(panel/'state.db',panel/'vault.key')==completed_semantics,'completed portable replay changed identity or credentials')
         require((inputs/'source.db').read_bytes()==source_before,'source snapshot changed during import/recovery')
         expected=json.loads((inputs/'portable-expected.json').read_bytes());actual=semantic_snapshot(panel/'state.db',panel/'vault.key')
         require(json.dumps(actual,sort_keys=True)==json.dumps(expected,sort_keys=True),'portable account semantics changed')

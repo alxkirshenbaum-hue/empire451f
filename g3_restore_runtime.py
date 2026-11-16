@@ -13,7 +13,7 @@ from pathlib import Path
 import re
 import sqlite3
 import uuid
-from handoff_legacy import open_lock, publish, require
+from handoff_legacy import open_lock, publish, require, checked_caddy_restore
 from inspect_legacy import registry_uri, auth_lines
 from return_legacy import read, sync_directory
 
@@ -41,10 +41,8 @@ def restore(installation, snapshot, run, uid, gid, admin_socket, lock_fd=None):
         digest=lambda data:hashlib.sha256(data).hexdigest()
         require(digest(source)==original['files'][str(base/'Caddyfile')])
         current=read(base/'Caddyfile')
-        # Only the reviewed admin-off -> Unix-socket change is reversible here.
-        candidate,count=re.subn(rb'(?m)^([ \t]*)admin[ \t]+off[ \t]*$',
-                lambda match:match[1]+b'admin unix/'+admin_socket.encode(),source)
-        require(count==1 and current in (source,candidate))
+        # Restore only the exact reviewed before-image or its expected Unix variant.
+        candidate=checked_caddy_restore(source,current,admin_socket)
         require(meta['files'][str(base/'Caddyfile')] in (digest(candidate),digest(source)))
         auth=read(base/'auth.caddy');users=json.loads(read(state/'clients.json'))['clients']
         require(dict(auth_lines(auth))=={u['username']:u['password'] for u in users}

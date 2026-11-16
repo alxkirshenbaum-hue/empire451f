@@ -39,7 +39,6 @@ def main():
     cf=files[str(base/'Caddyfile')]['content']
     require(cf.count('admin unix//run/evpn-lab-caddy-admin/admin.sock')==1 and 'admin off' not in cf,'actual fresh renderer admin required')
     original_hash=hashlib.sha256(cf.encode()).hexdigest()
-    cf=cf.replace(' acme_ca https://acme-v02.api.letsencrypt.org/directory',' auto_https off')
     cf=cf.replace(':443, lab.example {','https://:18443 {\n bind 127.0.0.1\n tls '+str(data/'cert')+' '+str(data/'key'))
     require(cf!=files[str(base/'Caddyfile')]['content'],'local TLS adaptation required');files[str(base/'Caddyfile')]['content']=cf
     for name,item in files.items():
@@ -77,7 +76,6 @@ def main():
     Path('/run/relay').mkdir(mode=0o755);put('/run/relay/config.json',json.dumps(relay),0o644)
     setpriv=str(Path(shutil.which('setpriv')).resolve())
     def unpriv(uid,gid):return [setpriv,'--reuid='+str(uid),'--regid='+str(gid),'--clear-groups','--bounding-set=-all']
-    os.environ.update(XDG_DATA_HOME=str(data),XDG_CONFIG_HOME=str(data))
     with contextlib.ExitStack() as stack:
         for server in (EchoServer(('127.0.0.1',19876),Echo),EchoDatagramServer(('127.0.0.1',19877),EchoDatagram)):
             server.daemon_threads=True;threading.Thread(target=server.serve_forever,daemon=True).start();stack.callback(server.server_close)
@@ -97,4 +95,104 @@ def main():
         print('Actual bundled install_panel reached real service-start boundary; external canonical-unit phase REQUIRED',flush=True)
         while Path('/run/fresh-service-boundary').exists():time.sleep(0.25)
 
-if __name__=='__main__':main()
+def services(project,number):
+    import subprocess,urllib.parse
+    from panel_frontend_rehearsal import canonical_service,canonical_lab_service
+    project=Path(project).resolve();number=int(number);root=project/('rehearsal-root-'+str(number))
+    marker=root/'run/fresh-service-boundary'
+    require(marker.is_file() and (root/'.vpn-control-rehearsal').is_file(),'actual fresh boundary required')
+    pid=int(subprocess.check_output(['systemctl','show','vpn-full-worker-root-'+str(number),'-p','MainPID','--value']))
+    require(pid>1 and Path('/proc/'+str(pid)+'/root').samefile(root),'owned root identity required')
+    ctx=json.loads((root/'root/fresh-gate-context.json').read_bytes());owner_run=ctx['owner_run']
+    front=root/'run/ui-frontend';front.mkdir(mode=0o700)
+    tls=root/'etc/vpn-control/private-panel'
+    for source,target in [('leaf.crt','cert'),('tls.key','key')]:shutil.copyfile(tls/source,front/target);(front/target).chmod(0o600)
+    conf=(tls/'Caddyfile').read_text();require(conf.count('/run/vpn-control-api/api.sock')==1,'generated frontend API socket contract')
+    put(front/'restart-config',conf.replace('/run/vpn-control-api/api.sock','/api/api.sock'))
+    shutil.copyfile(root/'etc/vpn-control/api.env',root/'etc/vpn-control/restart-api.env')
+    created=[];failures=[];stop=threading.Event()
+    api_name='vpn-w9u-api-'+str(number);worker_name='vpn-fresh-worker-'+str(number)
+    def launch(name,properties,executable,wait=False):
+        args=['systemd-run','--quiet','--unit='+name]
+        if wait:args+=['--wait','--pipe']
+        for prop in properties:args+=['-p',prop]
+        result=subprocess.run(args+list(map(str,executable)),capture_output=True,timeout=190)
+        require(result.returncode==0,'generated derived unit failed: '+name)
+    try:
+        for kind,filename in [('api','vpn-control-api.service'),('panel','vpn-control-panel.service')]:
+            entries=canonical_service(root/'etc/systemd/system'/filename)
+            name,props,exe=canonical_lab_service(entries,kind,root,project,number,pid,owner_run)
+            if kind=='api':exe[0]='/usr/local/bin/vpn-control'
+            props+=['BindReadOnlyPaths='+str(root/'usr/local')+':/usr/local']
+            launch(name,props,exe);created.append(name)
+        socket_path=root/('run/'+api_name+'/api.sock')
+        deadline=time.monotonic()+25
+        while not socket_path.is_socket() and time.monotonic()<deadline:time.sleep(.1)
+        require(socket_path.is_socket(),'generated API did not start')
+        for name in created:
+            service_pid=int(subprocess.check_output(['systemctl','show',name,'-p','MainPID','--value']))
+            require(service_pid>1,'derived service inactive')
+            fields=dict(line.split(':',1) for line in Path('/proc/'+str(service_pid)+'/status').read_text().splitlines() if ':' in line)
+            require(fields['Uid'].split()==['981']*4 and int(fields['CapEff'],16)==0,'service UID/caps mismatch')
+        # Real TLS login using generated private panel CA, password only via stdin.
+        login_code="""import http.client,ssl,sys,urllib.parse,json
+from pathlib import Path
+root=Path(sys.argv[1]);password=sys.stdin.read()
+c=http.client.HTTPSConnection('127.0.0.1',18650,context=ssl.create_default_context(cafile=str(root/'etc/vpn-control/private-panel/ca.crt')),timeout=10)
+# Connect by loopback while validating the actual panel.home.arpa certificate.
+s=__import__('socket').create_connection(('127.0.0.1',18650),10)
+c.sock=ssl.create_default_context(cafile=str(root/'etc/vpn-control/private-panel/ca.crt')).wrap_socket(s,server_hostname='panel.home.arpa')
+c.request('POST','/login',urllib.parse.urlencode({'username':'owner','password':password}),{'Origin':'https://panel.home.arpa','Host':'panel.home.arpa','Content-Type':'application/x-www-form-urlencoded'})
+r=c.getresponse();assert r.status==303
+cookie=r.getheader('Set-Cookie').split(';',1)[0].split('=',1)[1]
+print(cookie)
+"""
+        login=subprocess.run(['nsenter','-t',str(pid),'-n','python3','-B','-c',login_code,str(root)],input=(root/'root/fresh-owner-password').read_text(),text=True,capture_output=True,timeout=20)
+        require(login.returncode==0,'generated frontend TLS owner login failed')
+        put(root/'root/ui-owner-session',login.stdout.strip()+'\n')
+        put(root/'run/ui-context.json',json.dumps({'synthetic':True,'api_socket':'/run/'+api_name+'/api.sock','owner_run':owner_run}))
+        put(root/'run/ui-hold',b'');shutil.copyfile(root/'etc/lab-ca.pem',root/'etc/vpn-control/lab-ca.pem')
+        entries=canonical_service(root/'etc/systemd/system/vpn-control-worker@.service')
+        worker_props=[];worker_exe=None
+        for key,value in entries:
+            value=value.replace('%i','lab')
+            if key=='ExecStart':worker_exe=['/usr/local/bin/vpnctl','worker','once','--installation','lab','--owner-run',owner_run];continue
+            if key=='EnvironmentFile':value=str(root/'etc/vpn-control/worker-lab.env')
+            if key=='ReadWritePaths':value=' '.join('+'+p for p in value.split())
+            worker_props.append(key+'='+value)
+        worker_props+=['RootDirectory='+str(root),'MountAPIVFS=yes','NetworkNamespacePath=/proc/'+str(pid)+'/ns/net','BindReadOnlyPaths=/usr','BindReadOnlyPaths=/opt/empire-vpn/bin','BindReadOnlyPaths='+str(root/'usr/local')+':/usr/local']
+        def worker():
+            while not stop.is_set():
+                try:launch(worker_name,worker_props,worker_exe,True)
+                except BaseException as e:failures.append(type(e).__name__);stop.set();return
+                stop.wait(.5)
+        thread=threading.Thread(target=worker);thread.start()
+        try:
+            result=subprocess.run(['python3','-B',str(project/'pilot/owner_cli_rehearsal.py'),str(project),str(number)],capture_output=True,timeout=190)
+            require(result.returncode==0 and not failures,'actual owner create/download/worker/profile check failed')
+        finally:stop.set();thread.join(190)
+        old_profile=root/'var/lib/empire-vpn/lab/master_user.sfa.json'
+        old_hash=hashlib.sha256(old_profile.read_bytes()).hexdigest()
+        old_code="""import contextlib,json,sys
+from pathlib import Path
+project,root=map(Path,sys.argv[1:]);sys.path[:0]=[str(project),str(project/'pilot')]
+from full_worker_rehearsal import profile_client
+with contextlib.ExitStack() as stack:profile_client(stack,json.loads((root/'var/lib/empire-vpn/lab/master_user.sfa.json').read_bytes()),19107,root/'etc/lab-ca.pem')
+"""
+        old=subprocess.run(['nsenter','-t',str(pid),'-n','python3','-B','-c',old_code,str(project),str(root)],capture_output=True,timeout=35)
+        require(old.returncode==0 and hashlib.sha256(old_profile.read_bytes()).hexdigest()==old_hash,'old master profile TCP/UoT/preservation failed')
+        receipt=json.loads((root/'root/fresh-gate-receipt.json').read_bytes())
+        receipt.update(services_started=True,generated_api_frontend_uid_caps=True,owner_tls_login=True,owner_create_download_new_profile_tcp_uot=True,old_master_profile_tcp_uot=True,full_fresh_vpn_install_proven=False)
+        put(root/'root/fresh-gate-receipt.json',json.dumps(receipt))
+        print('Actual generated API/frontend/worker, TLS owner login and new profile TCP/UoT PASS',flush=True)
+    finally:
+        stop.set()
+        for name in [worker_name,*reversed(created)]:subprocess.run(['systemctl','stop',name],capture_output=True,timeout=30)
+        for name in created:
+            state=subprocess.check_output(['systemctl','show',name,'-p','MainPID','--value'],text=True).strip();require(state=='0','owned service not stopped')
+        if (root/'run/ui-hold').exists():(root/'run/ui-hold').unlink()
+        if marker.exists():marker.unlink()
+
+if __name__=='__main__':
+    if len(sys.argv)==4 and sys.argv[1]=='--services':services(sys.argv[2],sys.argv[3])
+    else:main()

@@ -98,7 +98,12 @@ with contextlib.ExitStack() as stack:
         nonce=secrets.token_bytes(24)
         assert udp(19095,'192.0.2.119',19877,nonce)==nonce
     else:
-        assert not attempt(19095), 'revoked TCP accepted'
+        # A rejected CONNECT can close after the SOCKS acknowledgement. The
+        # independent control before/after this trial distinguishes rejection
+        # from an outage; EOF is a valid negative outcome, never a positive one.
+        try: accepted=attempt(19095)
+        except (OSError,EOFError,RuntimeError): accepted=False
+        assert not accepted, 'revoked TCP accepted'
         try: udp(19095,'192.0.2.119',19877,secrets.token_bytes(24))
         except (OSError,RuntimeError): pass
         else: raise RuntimeError('revoked UoT accepted')
@@ -106,6 +111,9 @@ print('Issued profile fresh TCP/UoT PASS' if active else 'Revoked profile fresh 
 """
     def check_profile(filename,active=True):
         result=subprocess.run(["nsenter","-t",str(pid),"-n","python3","-B","-c",child_code,str(project),str(root),str(filename),"active" if active else "denied"],capture_output=True,text=True,timeout=35)
+        if result.returncode:
+            diagnostic=private/("probe-failure-"+str(time.time_ns())+".log")
+            diagnostic.write_text(result.stdout+result.stderr);diagnostic.chmod(0o600)
         require(result.returncode==0,"fresh profile/control connection outcome incorrect")
         print(result.stdout.strip(),flush=True)
     check_profile(files[0][0])

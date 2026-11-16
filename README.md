@@ -1,3 +1,5 @@
+**17.11.2026: реальная техническая приёмка fresh rc4 прошла на hh-entry/hh-exit.** Опубликованная команда → VPN+панель → owner login → create → download → TCP/UoT PASS. [Доказательства и границы](https://github.com/alxkirshenbaum-hue/empire451f/blob/feature/controlpanel-pilot/controlpanel/REAL_F3_2026-11-17.md). Прежние пометки F3 OPEN ниже описывают состояние до приёмки.
+
 # VPN + VPN Control — v0.4.0-rc4
 
 **rc4 — исправление fresh writer cutover:** согласованы свежий Unix admin socket, snapshot и откат; окружение Caddy validator совпадает с установленными службами. Границы проверок фиксируются в отчёте выпуска; локальный panel-gate не заменяет полную установку двух VDS. Полная установка двух VDS (F3) остаётся отдельной фактической проверкой.

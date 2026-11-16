@@ -1,5 +1,20 @@
 # Ручная проверка fresh VPN + panel v0.4.0-rc1
 
+## 17.11.2026 — real authorized F3 PASS
+
+**W9.5U-Fresh F1–F4:4/4.** W9U3/5, W10U1/4, W8E3/8 and whole W9.5U/E/E1 unchanged.
+[Actual execution, evidence and limits](REAL_F3_2026-11-17.md).
+Both current nodes software-cleaned by explicit owner instruction, no extra backups;
+published rc4 command UNMODIFIED, JSON6, installerexit0. Real SSH/routes/VPN/TLS/
+cutover/API/frontend/worker PASS. External real VPN→CA-verified owner login→create→
+actualworker→download→new TCP/UoT and master control PASS. All6 passwords/case/master
+protection preserved; whole profilecheck0. Private artifacts outside Git, monitors
+stopped. Last old rc4 nested error remains unproven, not assigned a guessed cause.
+Next: owner device profile/CA import and panel use; no reinstall/new tests needed.
+Historical F3OPEN/PARTIAL below superseded for technical fresh path only. Phone UI
+W9U01 and remaining E matrices not accepted by this result.
+
+
 ## Current owner acceptance candidate: rc4
 
 Use rc4 README command after BOTH OS reinstall tasks are completed. rc4 fixes

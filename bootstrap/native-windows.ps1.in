@@ -128,7 +128,7 @@ function Public-Key{
 function Shell-Quote([string]$Value){return "'"+$Value.Replace("'","'\''")+"'"}
 function Authenticate([string]$Role){
  $status=Probe $Role
- if($status -eq 'changed-key'){throw 'SSH host identity changed. Check provider console; no automatic replacement.'}
+ if($status -eq 'changed-key'){throw 'SSH host identity changed. After a server reinstall, an old key may remain in your local ~/.ssh/known_hosts file (not the system hosts file). First verify the new SSH fingerprint in the provider console. Only after verification, remove the stale entry with: ssh-keygen -R HOST (replace HOST with the server IP or hostname; for a non-default SSH port use: ssh-keygen -R "[HOST]:PORT"). Then run setup again and verify the new fingerprint when prompted. Remove only the affected entry, not the whole known_hosts file. No automatic replacement is performed.'}
  if($status -eq 'identity'){
   Write-Host ('Verify '+$Role+' SSH fingerprint against the provider console.')
   & ssh -F $Config -o BatchMode=no -o StrictHostKeyChecking=ask $Role true

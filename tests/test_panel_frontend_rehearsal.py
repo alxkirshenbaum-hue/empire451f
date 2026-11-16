@@ -126,7 +126,9 @@ class BrowserAdapterTests(unittest.TestCase):
             if kind=='api':
                 self.assertIn('/run/vpn-w9u-api-916041/api.sock',executable)
                 self.assertIn('--owner-run',executable)
-            else:self.assertIn('BindReadOnlyPaths=/run/vpn-w9u-api-916041:/api',props)
+            else:
+                self.assertIn('BindReadOnlyPaths=/run/vpn-w9u-api-916041:/api',props)
+                self.assertIn('InaccessiblePaths=+/proc +/var/lib/vpn-control +/var/lib/empire-vpn +/etc/empire-vpn -+/run/caddy-admin',props)
 
     def test_bootstrap_stopped_rejects_live_only_accepts_gone_or_zombie(self):
         for state,expected in (('S (sleeping)',False),('R (running)',False),('Z (zombie)',True),('D (disk sleep)',False)):

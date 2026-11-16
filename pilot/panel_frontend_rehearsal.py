@@ -282,7 +282,7 @@ def canonical_lab_service(entries,kind,root,project,run,pid,owner_run):
             '--vault-key-file','/var/lib/vpn-control/vault.key','--owner-run',owner_run]
     else:
         substitutions.update(NetworkNamespacePath='/proc/'+str(pid)+'/ns/net',Environment='HOME=/run/'+runtime,
-            InaccessiblePaths='+/proc +/var/lib/vpn-control +/var/lib/empire-vpn +/etc/empire-vpn +/run/caddy-admin')
+            InaccessiblePaths='+/proc +/var/lib/vpn-control +/var/lib/empire-vpn +/etc/empire-vpn -+/run/caddy-admin')
         executable=['/opt/empire-vpn/bin/caddy','run','--adapter','caddyfile','--config','${CREDENTIALS_DIRECTORY}/config']
     properties=[]
     for key,value in entries:
@@ -373,6 +373,34 @@ def restart_check(project,root,run,pid,context):
                 return identity
             except (OSError,RuntimeError,ValueError,KeyError):time.sleep(.1)
         raise RuntimeError('canonical API readiness failed')
+    def boundaries():
+        probe=r"""
+import errno,os,socket
+assert os.geteuid()==981
+for path in ('/proc/1/root','/var/lib/vpn-control/vault.key','/var/lib/empire-vpn/lab/master_user.sfa.json','/etc/empire-vpn/lab/auth.caddy'):
+ try:
+  if path.endswith('/root'):os.stat(path)
+  else:open(path,'rb').close()
+ except OSError as error:assert error.errno in (errno.ENOENT,errno.EACCES)
+ else:raise RuntimeError('frontend protected path readable')
+s=socket.socket(socket.AF_UNIX)
+try:s.connect('/run/caddy-admin/admin.sock')
+except OSError as error:assert error.errno in (errno.ENOENT,errno.EACCES)
+else:raise RuntimeError('frontend admin connect allowed')
+finally:s.close()
+s=socket.socket(socket.AF_UNIX);s.connect('/api/api.sock');s.close()
+"""
+        name=panel_unit+'-denial-'+str(time.time_ns())
+        props=[]
+        for prop in services['panel'][1]:
+            if prop.startswith(('LoadCredential=','Type=','Restart=')):continue
+            if prop.startswith('RuntimeDirectory='):prop='RuntimeDirectory='+name
+            if prop.startswith('Environment=HOME='):prop='Environment=HOME=/run/'+name
+            props.append(prop)
+        args=['systemd-run','--quiet','--wait','--pipe','--unit='+name,'-p','Type=oneshot','-p','Restart=no','-p','TimeoutStartSec=10']
+        for prop in props:args.extend(['-p',prop])
+        started.append(name)
+        command(args+['/usr/bin/python3','-B','-c',probe])
     def tls():
         client=r"""
 import http.client,socket,ssl,sys
@@ -387,7 +415,15 @@ c.close()
         deadline=time.monotonic()+15
         while time.monotonic()<deadline:
             result=subprocess.run(['nsenter','-t',str(pid),'-n','python3','-B','-c',client,str(root/'run/ui-frontend/cert')],input=token.encode(),capture_output=True,timeout=8)
-            if result.returncode==0:return
+            if result.returncode==0:
+                frontend_pid=int(owned_unit_property(panel_unit,'MainPID'))
+                fields=dict(line.split(':',1) for line in Path('/proc/'+str(frontend_pid)+'/status').read_text().splitlines() if ':' in line)
+                require(fields['Uid'].split()==['981']*4 and int(fields['CapEff'],16)==0,'canonical frontend identity/caps')
+                require(Path('/proc/'+str(frontend_pid)+'/root').samefile(root),'canonical frontend root mismatch')
+                require(os.readlink('/proc/'+str(frontend_pid)+'/ns/net')==os.readlink('/proc/'+str(pid)+'/ns/net'),'canonical frontend namespace')
+                for target in ('run/caddy-admin/admin.sock','var/lib/vpn-control/vault.key','var/lib/empire-vpn/lab/master_user.sfa.json','etc/empire-vpn/lab/auth.caddy'):
+                    require(not (Path('/proc')/str(frontend_pid)/'root'/target).exists(),'canonical frontend secret boundary visible')
+                return
             time.sleep(.1)
         raise RuntimeError('canonical private TLS readiness failed')
     def profiles():
@@ -427,11 +463,11 @@ for index,name in enumerate(('master_user.sfa.json','vpn-Old-User.json')):
             time.sleep(.05)
         require(bootstrap_stopped(bootstrap),'bootstrap API did not stop')
         start_service('api');identity=ready();user_metadata=api('/api/v1/users?limit=100&search=&status=')
-        start_service('panel');tls();profiles()
-        previous={name:int(owned_unit_property(name,'MainPID')) for name in started}
+        start_service('panel');tls();boundaries();profiles()
+        previous={name:int(owned_unit_property(name,'MainPID')) for name in (api_unit,panel_unit)}
         command(['systemctl','restart',api_unit]);ready()
         # RootDirectory's readonly directory bind must follow RuntimeDirectory's new inode.
-        command(['systemctl','restart',panel_unit]);tls()
+        command(['systemctl','restart',panel_unit]);tls();boundaries()
         for name,old in previous.items():
             new=int(owned_unit_property(name,'MainPID'))
             require(new>1 and new!=old and not Path('/proc/'+str(old)).exists(),'canonical restart PID transition failed')
@@ -450,7 +486,7 @@ for index,name in enumerate(('master_user.sfa.json','vpn-Old-User.json')):
         else:raise RuntimeError('failed canonical API still accepts owner')
         profiles();require(state()==before,'startup failure changed registry');receipt['failure_isolated']=True
         env.write_bytes(before_env);env.chmod(0o600)
-        command(['systemctl','restart',api_unit]);ready();command(['systemctl','restart',panel_unit]);tls()
+        command(['systemctl','restart',api_unit]);ready();command(['systemctl','restart',panel_unit]);tls();boundaries()
         require(api('/api/v1/auth/me')==identity and api('/api/v1/users?limit=100&search=&status=')==user_metadata and state()==before and env.read_bytes()==before_env,'rollback state mismatch')
         profiles();receipt.update(rollback_recovered=True,state_unchanged=True,private_tls=True,old_control_tcp_uot=True)
         destination=root/'root/W9U04-receipt.json';destination.write_text(json.dumps(receipt,sort_keys=True)+'\n');destination.chmod(0o600)

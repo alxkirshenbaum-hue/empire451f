@@ -80,8 +80,14 @@ def main():
         for server in (EchoServer(('127.0.0.1',19876),Echo),EchoDatagramServer(('127.0.0.1',19877),EchoDatagram)):
             server.daemon_threads=True;threading.Thread(target=server.serve_forever,daemon=True).start();stack.callback(server.server_close)
         relay_process=start(stack,unpriv(999,986)+[BIN/'sing-box','run','-c','/run/relay/config.json'],1081)
-        caddy_process=start(stack,unpriv(982,982)+[BIN/'caddy','run','--config',base/'Caddyfile','--adapter','caddyfile'],18443)
-        service_identity(relay_process,999);service_identity(caddy_process,982)
+        # Match the canonical VPN Caddy unit, without changing installer env.
+        caddy_identity=[setpriv,'--reuid=982','--regid=982','--clear-groups','--bounding-set=-all,+net_bind_service','--inh-caps=+net_bind_service','--ambient-caps=+net_bind_service']
+        caddy_process=start(stack,caddy_identity+['/usr/bin/env','XDG_DATA_HOME='+str(data),'XDG_CONFIG_HOME='+str(data),BIN/'caddy','run','--config',base/'Caddyfile','--adapter','caddyfile'],18443)
+        service_identity(relay_process,999)
+        identity=dict(line.split(':',1) for line in Path('/proc/'+str(caddy_process.pid)+'/status').read_text().splitlines() if ':' in line)
+        require(identity['Uid'].split()==['982']*4 and identity['Gid'].split()==['982']*4 and not identity['Groups'].split() and identity['NoNewPrivs'].strip()=='1','canonical Caddy UID/groups/NNP mismatch')
+        require(all(int(identity[k].strip(),16)==1<<10 for k in ('CapEff','CapPrm','CapInh','CapAmb','CapBnd')),'canonical Caddy must have only NET_BIND_SERVICE')
+        require(os.stat('/proc/'+str(caddy_process.pid)+'/ns/net').st_ino==os.stat('/proc/self/ns/net').st_ino,'Caddy outside isolated namespace')
         remote.atomic,remote.run=atomic,invoke
         reached=False
         try:remote.install_panel(c,payload,'owner',owner_password)

@@ -46,6 +46,13 @@ class PanelPayloadTests(unittest.TestCase):
     def test_non_elf_rejected(self):
         (self.root/'bin/vpnctl').write_bytes(b'private material'*200)
         with self.assertRaises(ValueError):release.panel_payload(self.root,self.sha)
+    def test_changed_elf_binary_rejected(self):
+        if self.sha not in release.PANEL_BINARY_MANIFESTS:
+            self.skipTest('Legacy core has no fixed release binary manifest')
+        path=self.root/'bin/vpnctl';data=bytearray(path.read_bytes())
+        data[-1]^=1;path.write_bytes(data)
+        with self.assertRaisesRegex(ValueError,'verified release build'):
+            release.panel_payload(self.root,self.sha)
 
 
 

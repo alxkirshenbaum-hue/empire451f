@@ -42,7 +42,7 @@ def build(panel_root=None, panel_source_sha=None, release_url=None):
     digest = hashlib.sha256((destination / 'installer.zip').read_bytes()).hexdigest()
     (destination / 'installer.sha256').write_text(digest + '  installer.zip\n', encoding='ascii')
     loader = (ROOT / 'server_boot.py.in').read_text().replace('__BUNDLE_SHA256__', digest)
-    loader = loader.replace('__BUNDLE_URL__', repr(release_url or 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.3.6/dist/installer.zip'))
+    loader = loader.replace('__BUNDLE_URL__', repr(release_url or 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc2/dist/installer.zip'))
     encoded = base64.b64encode(loader.encode()).decode()
     command = "python3 -c exec\\(__import__\\(\\'base64\\'\\).b64decode\\(\\'" + encoded + "\\'\\)\\)"
     for name in ['windows.ps1', 'macos.sh']:
@@ -56,7 +56,7 @@ def build(panel_root=None, panel_source_sha=None, release_url=None):
 
 
 # Panel artifacts come from an independently staged VERIFIED core, not HEAD.
-PANEL_CORE_REVISIONS = ('4dd8956', '0c05a61')
+PANEL_CORE_REVISIONS = ('4dd8956', '0c05a61', '8d9b87c')
 PANEL_PATHS = (
     'bin/vpn-control', 'bin/vpnctl', 'vpn-add-user.template',
     'owned_auth.py', 'create_probe.py', 'g3_snapshot.py', 'g3_restore_runtime.py',
@@ -72,6 +72,18 @@ MAX_PANEL_BYTES = 80 * 1024 * 1024
 
 
 PANEL_CORE_MANIFESTS = json.loads(r'''{"4dd895600e038ecdfd0e70f5383a8e41500d46b7":{"vpn-add-user.template":"0adafe5b445b0b1a3d613e66934531ce945989107e965f1dfc73bf5478f24592","owned_auth.py":"d161f67951f732bf1b671afefb8bf3cf58be16badf7a65514a4f55ba610caadd","create_probe.py":"b6d3f93737e3cf0c950aa46b87515a3b04a0f91a32ce7b196c84c3ecb923c12f","g3_snapshot.py":"85e1c89d2a18cd0612aa351be315e74e7fb06166bb38410bf2ec33d2b57bc4cf","g3_restore_runtime.py":"9c7da6a54b35e14898c09feb26787d3f7aadf9624fd99b64873d5b405895e9ee","inspect_legacy.py":"b3df61e84414b078eccfecf5587166643809556f82cc76b719e465d27fc1d0a9","handoff_legacy.py":"a2ab3f73ccf67fd12db7d9c0144f6abd7d8cae22af356d94bec59a27a569c9e7","return_legacy.py":"dae1d6545f1badf24d6c59ad0ae2d84a52b61c3d9dcf600cca155975da5db434","render.py":"f184ab524304cbc8fe5b892cbc84fb9f61f75bc68ed0f1009d28d7bc2087678e","verify.py":"b57472a4836a59ef2dbc0b01e35f6104193c309f8fa57172a0afaee25965ebe1","backup_artifact.py":"69f3dad25851c8ae5b5b29dcdc327abccb8715a5607f298c834efe09150c582d","templates/sfa-profile.json":"1cea56f365912867563039963cc6fe25c47c1873c10010bcd1916d23c1a9a1b8","templates/panel-frontend.Caddyfile":"aa0d03c304d6d1729b162fa78b0df0c29d63edeb0ec327ea87558044865fc0cb","controlpanel/systemd/vpn-control-api.service":"1a81334cb0a2210cdc991cf67327dffab891d392b310eea3991d30963fdf7b05","controlpanel/systemd/vpn-control-panel.service":"a98db0b1f6bd023b8ea4ecef929bb3ffa5e7fb236ccf15b031d657c5fd0dfa02","controlpanel/systemd/vpn-control-worker@.service":"a885820138213564fe0d271ef5183a921e5bb8c302639fb90b9cd7cf398113ea","controlpanel/systemd/vpn-control-worker@.timer":"e23845370813efd060be6ad9ca5b7a602cb03b993367c108f249b7cdc62f8f02"},"0c05a6174e254192939227668f9d4947904984d4":{"vpn-add-user.template":"0adafe5b445b0b1a3d613e66934531ce945989107e965f1dfc73bf5478f24592","owned_auth.py":"d161f67951f732bf1b671afefb8bf3cf58be16badf7a65514a4f55ba610caadd","create_probe.py":"b6d3f93737e3cf0c950aa46b87515a3b04a0f91a32ce7b196c84c3ecb923c12f","g3_snapshot.py":"85e1c89d2a18cd0612aa351be315e74e7fb06166bb38410bf2ec33d2b57bc4cf","g3_restore_runtime.py":"9c7da6a54b35e14898c09feb26787d3f7aadf9624fd99b64873d5b405895e9ee","inspect_legacy.py":"b3df61e84414b078eccfecf5587166643809556f82cc76b719e465d27fc1d0a9","handoff_legacy.py":"a2ab3f73ccf67fd12db7d9c0144f6abd7d8cae22af356d94bec59a27a569c9e7","return_legacy.py":"dae1d6545f1badf24d6c59ad0ae2d84a52b61c3d9dcf600cca155975da5db434","render.py":"f184ab524304cbc8fe5b892cbc84fb9f61f75bc68ed0f1009d28d7bc2087678e","verify.py":"b57472a4836a59ef2dbc0b01e35f6104193c309f8fa57172a0afaee25965ebe1","backup_artifact.py":"69f3dad25851c8ae5b5b29dcdc327abccb8715a5607f298c834efe09150c582d","templates/sfa-profile.json":"1cea56f365912867563039963cc6fe25c47c1873c10010bcd1916d23c1a9a1b8","templates/panel-frontend.Caddyfile":"aa0d03c304d6d1729b162fa78b0df0c29d63edeb0ec327ea87558044865fc0cb","controlpanel/systemd/vpn-control-api.service":"1a81334cb0a2210cdc991cf67327dffab891d392b310eea3991d30963fdf7b05","controlpanel/systemd/vpn-control-panel.service":"a98db0b1f6bd023b8ea4ecef929bb3ffa5e7fb236ccf15b031d657c5fd0dfa02","controlpanel/systemd/vpn-control-worker@.service":"a885820138213564fe0d271ef5183a921e5bb8c302639fb90b9cd7cf398113ea","controlpanel/systemd/vpn-control-worker@.timer":"e23845370813efd060be6ad9ca5b7a602cb03b993367c108f249b7cdc62f8f02"}}''')
+
+# RC2 retains the exact verified schema8 helpers/units. Only the reviewed Go/UI
+# changes and a corrected v1-upgrade test fixture differ from the published base.
+PANEL_CORE_MANIFESTS['8d9b87c6b4bb9105d21860a2819c372dcc318db2'] = dict(
+    PANEL_CORE_MANIFESTS['0c05a6174e254192939227668f9d4947904984d4'])
+PANEL_BINARY_MANIFESTS = {
+    '8d9b87c6b4bb9105d21860a2819c372dcc318db2': {
+        'bin/vpn-control': '7819dac20300d0f424e26656a1eafb98b8e136e8c5776c7d885b228a9e74836a',
+        'bin/vpnctl': '98251aab125c2ebdd89339804f39fd756933425a654120214dfcb5f053a59cc9',
+    },
+}
+
 
 def panel_destination(name):
     if name.startswith('bin/') or name.startswith('templates/'):
@@ -100,6 +112,9 @@ def panel_payload(staging, source_sha):
         if binary:
             if not data.startswith(b'\x7fELF') or len(data) < 1024:
                 raise ValueError('Linux ELF panel binary required')
+            expected_binary = PANEL_BINARY_MANIFESTS.get(source_sha, {}).get(name)
+            if expected_binary is not None and hashlib.sha256(data).hexdigest() != expected_binary:
+                raise ValueError('Panel binary differs from verified release build')
         elif hashlib.sha256(data).hexdigest() != expected_files[name]:
             raise ValueError('Panel helper differs from pinned core')
         entries.append(dict(path=panel_destination(name), mode=0o755 if binary else 0o644,

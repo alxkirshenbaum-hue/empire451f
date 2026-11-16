@@ -1,12 +1,22 @@
-# VPN + VPN Control — v0.4.0-rc1
+# VPN + VPN Control — v0.4.0-rc2
 
 Одна команда Windows загружает закреплённый GitHub bootstrap и запускает общий SSH-мастер. Оба сервера автоматически загружают пакет; bootstrap проверяет встроенный SHA256. Локальные Python/Git и ручная передача bundle не нужны.
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc1/bootstrap/windows.ps1')"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc2/bootstrap/windows.ps1')"
 ```
 
-**Реальную установку на очищенных нодах проверяет владелец; F3 остаётся открытой.** Агент не имеет разрешения очищать/переустанавливать текущие ноды. Core панели закреплён на `0c05a6174e254192939227668f9d4947904984d4`; portable import панели и его WIP в исполняемый пакет не входят.
+**Реальную установку на очищенных нодах проверяет владелец; F3 остаётся открытой.** Агент не имеет разрешения очищать/переустанавливать текущие ноды. Core панели закреплён на чистой release-ревизии `8d9b87c6b4bb9105d21860a2819c372dcc318db2`, schema8; отложенные portable/prune WIP не включены в runtime.
+
+## Что будет в панели после установки
+
+- Создание, просмотр, изменение display name, отключение/включение и удаление пользователей; защищённый `master_user`, точный регистр логинов.
+- Скачивание персональных профилей с логином и версией клиента в имени файла.
+- Отдельный владелец панели: имя и срок сессии в шапке, смена пароля в **System** с отзывом всех owner-сессий.
+- **System**: измеренные CPU%, RAM, load average, свободное место, объём DB/WAL/SHM и сетевые RX/TX-счётчики с источником и временем. Просроченные данные помечаются stale; есть обновление по кнопке.
+- **Overview**: даты сохранённых аудитов и резервных копий. Отсутствующие сведения показываются как Not recorded/Not measured; exit health не выводится из локальных ресурсов.
+
+Текущий выпуск включает принятые части W9U и W10U03. Live exit health, exit-local audit, история/пики ресурсов и portable migration остаются вне этого выпуска.
 
 ## Перед очисткой
 
@@ -23,11 +33,13 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iex (irm 'https://ra
 - Сохраните VPN-профиль (Q24) и публичный Panel CA. Сверьте fingerprint в проверенном SSH-сеансе и явно доверьте CA на клиенте. Не отключайте TLS verification.
 - Подключитесь прежним VPN-профилем, откройте `https://panel.home.arpa`, войдите владельцем. Убедитесь, что импортированные пользователи видны, создайте тестового пользователя, скачайте и проверьте его профиль.
 
+Если прежний профиль не содержит приватного DNS для `panel.home.arpa`, используйте сохранённый на Q24 профиль: реквизиты импортированного пользователя сохраняются, а доступ к панели включён в его DNS/routing.
+
 Локальные проверки пакета/controller/render/bootstrap не заменяют F3. При ошибке панели уже committed VPN не откатывается: сохраните сообщения и migration/journal, не сбрасывайте ключи и не запускайте повторную очистку.
 
 Ограничения: только fresh, не upgrade/replace/portable; существующие registry/key/TLS/units панели вызывают отказ. Leaf-сертификат private panel действует 365 дней, автоматическое продление пока отсутствует. Публикация сайта после fresh panel отложена для сохранения worker site-baseline.
 
-macOS-вход сохранён: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc1/bootstrap/macos.sh)"`. Настоящая macOS-проверка не выполнена. Локальный `-BundlePath` остаётся дополнительным способом доставки. Ниже сохранена история VPN-only v0.3.6, а не команда нового выпуска.
+macOS-вход сохранён: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc2/bootstrap/macos.sh)"`. Настоящая macOS-проверка не выполнена. Локальный `-BundlePath` остаётся дополнительным способом доставки. Ниже сохранена история VPN-only v0.3.6, а не команда нового выпуска.
 ---
 # Персональная VPN — v0.3.6
 

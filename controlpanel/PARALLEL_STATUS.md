@@ -1,5 +1,21 @@
 # Parallel development journal
 
+## 16.11.2026 — owner stopped gate debugging; publish rc4 for manual fresh
+
+U W9U3/5, W10U1/4; E unchanged, **F3 OPEN**. Installer235e3a4, helper6bfb74b,
+unchanged Go8d9b87c/schema8. Cutover+restore freshUnix preconditions, canonical
+XDG and strict root-page TLS/API/worker startup checks corrected as one package.
+[Exact evidence and limits](RELEASE_RC4_2026-11-16.md).
+Actual bundled install_panel to service boundary PASS; generated API/frontend,
+TLS/root200 and owner login PASS. Latest gate916108 PARTIAL: worker did not run
+because test RootDirectory mount226 failed on /run/lock/empire-vpn.lock. No
+new CRUD/profile end-to-end PASS claimed. Owner explicitly requested no further
+stand debugging/tests and publication for his own clean-install test. All failed
+runs preserved, owned processes stopped. No production mutations.
+Next: publish rc4 and verify public artifact hashes, then owner's manual F3 after
+both OS reinstalls actually complete. Do not resume gate debugging automatically.
+
+
 ## 16.11.2026 — rc3 hotfix validated after owner F3 failure
 
 U W9U3/5, W10U1/4; E unchanged. **F3 rc2 FAIL; rc3 OPEN for owner repeat.**
@@ -242,3 +258,5 @@ FIRST NEXT ACTION после явного возобновления: читат
 15.11.2026 resumed: SOL-A ACL/xattrs3/3 targetPASS3.417s integrated6f89bfb; SOL-B ownerAPI/worker fixtures done, restore preparation+security negatives13PASS1.584s and encryptedCLI preparePASS2.025s done03bb43f; SOL-C rotation5namedPASS0.513s then inner harness fe84121/c73fdae completed, now actual vertical runtime runner; Lead offlineCLI/integration/host runner2df0c9a. ASTRA W8-SEC-002 planned consequential review addressed code findings; exact runtime acceptance pending. No nested agents or production changes. Fixture failures corrected on first targeted corrections; no unresolved four-fix error.
 
 rc3 agent packages: lead_coder fresh_lock_fix — remote/controller/shared lock + regression/stage diagnostics, commit7c7b679, Windows3stage PASS/7Linuxskip; completed. architect fresh_lock_review — independent no-blocker review with required Linux/actual Go checks; completed. Main integrated, ran required Linux/root/actual Go/full worker and Windows release tests; publication next. No nested agents or production changes.
+
+rc4 agents: fresh_cutover_fix (lead) — helper+restore/test6bfb74b,7focusedPASS; completed. fresh_cutover_review (architect) — reviewed strict beforeimages/rollback/XDG/readiness and independent RCA of wrong GET/login; completed, no production actions. fresh_panel_gate (lead) — actual-bundle gate and generated-unit adaptere4c79ef/7142bfe/17424b7, syntax only by agent; Main integration exposed/corrected fixture issues. Main owns recorded PARTIAL916108, publication and acceptance. No agent gate PASS or full fresh claim.

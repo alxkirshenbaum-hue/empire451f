@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "release": "v0.4.0-rc4",
+  "installer_source_sha": "235e3a40586b94c89842001d7010f2beffe1734c",
+  "core_helper_revision": "6bfb74bfa891071a5b8e316b23178026edd7d19e",
+  "go_binary_source_reused": "8d9b87c6b4bb9105d21860a2819c372dcc318db2",
+  "go_subtree_unchanged": true,
+  "panel_schema_version": 8,
+  "zip": {
+    "sha256": "e64d0b6e2583576aea93e910eb49eceaba43c93ed934038a348bc84fda3de813",
+    "bytes": 11692953
+  },
+  "checks": {
+    "all_19_payload_hashes": true,
+    "exact_zip_installer_source": true,
+    "helper_guard_tests": 7,
+    "lock_stage_readiness_tests": 14,
+    "actual_bundled_install_panel_to_service_boundary": true,
+    "actual_fresh_renderer_unix_admin": true,
+    "snapshot_stage_cutover_tls_and_chown": true,
+    "generated_api_frontend_started": true,
+    "api_frontend_uid_caps": true,
+    "frontend_uid_admin_directory_socket_denial": true,
+    "shared_actual_readiness_function_tls_root200": true,
+    "owner_tls_login": true,
+    "worker_unit_started": false,
+    "owner_create_download_in_latest_gate": false,
+    "new_profile_tcp_uot_in_latest_gate": false,
+    "full_fresh_two_vds": false
+  },
+  "gate_run": 916108,
+  "gate_result": "PARTIAL_NOT_PASS",
+  "gate_blocker": "test RootDirectory mount setup: 226/NAMESPACE /run/lock/empire-vpn.lock missing; worker executable not run",
+  "gate_attempts_preserved": [
+    916096,
+    916102,
+    916104,
+    916106,
+    916108
+  ],
+  "cleanup_main_pid": 0,
+  "cleanup_parent_result": "success",
+  "cleanup_is_not_acceptance": true,
+  "publication": "pending",
+  "production_mutations": false,
+  "owner_decision": "stop local gate debugging; publish for owner manual fresh acceptance",
+  "f3": "OPEN_OWNER_MANUAL"
+}

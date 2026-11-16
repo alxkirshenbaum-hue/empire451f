@@ -1,5 +1,21 @@
 # План разработки панели
 
+## 16.11.2026 — owner stopped gate debugging; publish rc4 for manual fresh
+
+U W9U3/5, W10U1/4; E unchanged, **F3 OPEN**. Installer235e3a4, helper6bfb74b,
+unchanged Go8d9b87c/schema8. Cutover+restore freshUnix preconditions, canonical
+XDG and strict root-page TLS/API/worker startup checks corrected as one package.
+[Exact evidence and limits](RELEASE_RC4_2026-11-16.md).
+Actual bundled install_panel to service boundary PASS; generated API/frontend,
+TLS/root200 and owner login PASS. Latest gate916108 PARTIAL: worker did not run
+because test RootDirectory mount226 failed on /run/lock/empire-vpn.lock. No
+new CRUD/profile end-to-end PASS claimed. Owner explicitly requested no further
+stand debugging/tests and publication for his own clean-install test. All failed
+runs preserved, owned processes stopped. No production mutations.
+Next: publish rc4 and verify public artifact hashes, then owner's manual F3 after
+both OS reinstalls actually complete. Do not resume gate debugging automatically.
+
+
 ## 16.11.2026 — rc3 hotfix validated after owner F3 failure
 
 U W9U3/5, W10U1/4; E unchanged. **F3 rc2 FAIL; rc3 OPEN for owner repeat.**

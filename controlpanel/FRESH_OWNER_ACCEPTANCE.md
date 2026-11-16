@@ -1,5 +1,14 @@
 # Ручная проверка fresh VPN + panel v0.4.0-rc1
 
+## Current owner acceptance candidate: rc4
+
+Use rc4 README command after BOTH OS reinstall tasks are completed. rc4 fixes
+fresh cutover/restore admin socket and validator/readiness contracts. Local gate
+is PARTIAL; owner explicitly requested publication for manual full fresh test.
+[Evidence and limits](RELEASE_RC4_2026-11-16.md). F3 remains OPEN. Agent does not
+wipe nodes or change services. Earlier rc3/rc2 candidate notes below are historical.
+
+
 ## Current candidate: rc3 after actual rc2 F3 failure
 
 rc2 failed at panel registry init because installer created lock0644. rc3 fixes

@@ -351,7 +351,8 @@ def restart_check(project,root,run,pid,context):
             (root/'var/lib/vpn-control/vault.key',root/'var/lib/empire-vpn/lab/master_user.sfa.json',root/'var/lib/empire-vpn/lab/vpn-Old-User.json')}
         return tables,files
     def ready():
-        for _ in range(120):
+        deadline=time.monotonic()+20
+        while time.monotonic()<deadline:
             try:
                 identity=api('/api/v1/auth/me');require(identity['role']=='owner','owner role lost')
                 api_pid=int(owned_unit_property(api_unit,'MainPID'))

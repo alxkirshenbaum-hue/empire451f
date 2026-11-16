@@ -13,6 +13,14 @@ import (
 )
 
 func collectLocalResources(out *localResources, directory string, now time.Time) {
+	out.CPU = observeCPU(boundedResourceFile, time.Sleep, now)
+	if b, e := boundedResourceFile("/proc/net/dev"); e == nil {
+		if interfaces, ok := parseNetwork(b); ok {
+			out.Network = observedResource("linux_proc_net_dev", now)
+			out.Network.Namespace = "collector_process_network_namespace"
+			out.Network.Interfaces = interfaces
+		}
+	}
 	if b, e := boundedResourceFile("/proc/meminfo"); e == nil {
 		if values, ok := parseMemory(b); ok {
 			out.Memory = observedResource("linux_proc_meminfo", now)

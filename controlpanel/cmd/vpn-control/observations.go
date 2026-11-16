@@ -9,16 +9,22 @@ import (
 )
 
 type resourceSample struct {
-	State      string            `json:"state"`
-	Source     string            `json:"source"`
-	ObservedAt *time.Time        `json:"observed_at"`
-	StaleAfter *time.Time        `json:"stale_after"`
-	Values     map[string]uint64 `json:"values,omitempty"`
-	Load1      *float64          `json:"load_average_1m,omitempty"`
+	State        string             `json:"state"`
+	Source       string             `json:"source"`
+	ObservedAt   *time.Time         `json:"observed_at"`
+	StaleAfter   *time.Time         `json:"stale_after"`
+	Values       map[string]uint64  `json:"values,omitempty"`
+	Load1        *float64           `json:"load_average_1m,omitempty"`
+	UsagePercent *float64           `json:"usage_percent,omitempty"`
+	IntervalMS   uint64             `json:"interval_ms,omitempty"`
+	Namespace    string             `json:"namespace,omitempty"`
+	Interfaces   []networkInterface `json:"interfaces,omitempty"`
 }
 type localResources struct {
 	Scope   string         `json:"scope"`
 	Memory  resourceSample `json:"memory"`
+	CPU     resourceSample `json:"cpu"`
+	Network resourceSample `json:"network"`
 	Load    resourceSample `json:"load"`
 	Storage resourceSample `json:"storage"`
 	Note    string         `json:"note"`
@@ -42,7 +48,7 @@ func (s resourceSample) freshness(now time.Time) string {
 	return "observed"
 }
 func observeResources(directory string, now time.Time) localResources {
-	out := localResources{Scope: "local_ingress", Memory: unknownResource("linux_proc_meminfo"), Load: unknownResource("linux_proc_loadavg"), Storage: unknownResource("registry_filesystem_statfs"), Note: "Local OS observations only. Load average is not CPU percent; registry files are not total panel footprint. No VPN or exit health is inferred."}
+	out := localResources{Scope: "local_ingress", CPU: unknownResource("linux_proc_stat_interval"), Network: unknownResource("linux_proc_net_dev"), Memory: unknownResource("linux_proc_meminfo"), Load: unknownResource("linux_proc_loadavg"), Storage: unknownResource("registry_filesystem_statfs"), Note: "Local OS observations only. CPU percent is interval busy time excluding idle and iowait; guest time is not counted twice. Network counters belong to the collector process network namespace, include loopback/inactive interfaces, and have no VPN or physical-interface attribution. Load average is not CPU percent; registry files are not total panel footprint. No VPN or exit health is inferred."}
 	collectLocalResources(&out, directory, now)
 	return out
 }

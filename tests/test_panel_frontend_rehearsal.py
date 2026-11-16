@@ -137,4 +137,10 @@ class BrowserAdapterTests(unittest.TestCase):
         with mock.patch.object(Path,'read_text',side_effect=FileNotFoundError):
             self.assertTrue(frontend.bootstrap_stopped(42))
 
+    def test_cache_no_store_accepts_combined_directives_only(self):
+        for values in (['no-store'],['NO-STORE, no-store'],['no-store',' no-store ']):
+            self.assertTrue(frontend.cache_no_store(values))
+        for values in ([],[''],['public'],['no-store, max-age=0'],['no-store,'],['no-store','private']):
+            self.assertFalse(frontend.cache_no_store(values))
+
 if __name__=='__main__':unittest.main()

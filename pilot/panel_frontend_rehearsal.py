@@ -258,6 +258,10 @@ def serve_browser(root, port, lifetime=900):
 
 
 
+def cache_no_store(values):
+    directives=[part.strip().lower() for raw in values for part in raw.split(',')]
+    return bool(directives) and set(directives)=={'no-store'}
+
 def canonical_service(path):
     """Preserve every canonical Service setting; substitutions are explicit below."""
     entries=[];section=None
@@ -407,16 +411,17 @@ import http.client,socket,ssl,sys
 ctx=ssl.create_default_context(cafile=sys.argv[1]);raw=socket.create_connection(('127.0.0.1',18650),timeout=5)
 s=ctx.wrap_socket(raw,server_hostname='panel.home.arpa');c=http.client.HTTPConnection('panel.home.arpa');c.sock=s
 c.request('GET','/api/v1/auth/me',headers={'Cookie':'session='+sys.stdin.read().strip()});r=c.getresponse();body=r.read()
-cache=[part.strip().lower() for raw in r.headers.get_all('Cache-Control',[]) for part in raw.split(',')]
-assert r.status==200 and cache and set(cache)=={'no-store'}
+assert r.status==200
 import json
 assert json.loads(body)['data']['role']=='owner'
+print(json.dumps(r.headers.get_all('Cache-Control',[])))
 c.close()
 """
         deadline=time.monotonic()+15
         while time.monotonic()<deadline:
             result=subprocess.run(['nsenter','-t',str(pid),'-n','python3','-B','-c',client,str(root/'run/ui-frontend/cert')],input=token.encode(),capture_output=True,timeout=8)
             if result.returncode==0:
+                require(cache_no_store(json.loads(result.stdout)), 'canonical TLS no-store policy')
                 frontend_pid=int(owned_unit_property(panel_unit,'MainPID'))
                 fields=dict(line.split(':',1) for line in Path('/proc/'+str(frontend_pid)+'/status').read_text().splitlines() if ':' in line)
                 require(fields['Uid'].split()==['981']*4 and int(fields['CapEff'],16)==0,'canonical frontend identity/caps')

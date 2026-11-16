@@ -8,6 +8,7 @@ def require(value,label):
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument("project",type=Path);parser.add_argument("run",type=int)
+    parser.add_argument("--mutations",action="store_true",help="Accept owner API revoke/enable/delete with fresh control probes")
     args=parser.parse_args();project=args.project.resolve()
     root=project/("rehearsal-root-"+str(args.run))
     require((root/".vpn-control-rehearsal").is_file() and (root/"run/ui-hold").is_file(),"active synthetic copy required")
@@ -78,7 +79,7 @@ def main():
     child_code=r"""
 import contextlib, copy, json, secrets, socket, sys
 from pathlib import Path
-project,root,filename=map(Path,sys.argv[1:])
+project,root,filename=map(Path,sys.argv[1:4]);active=sys.argv[4]=='active'
 sys.path[:0]=[str(project),str(project/'pilot')]
 from recovery_probe import start,attempt
 from verify import udp
@@ -92,15 +93,46 @@ client=dict(log=dict(disabled=True),inbounds=[dict(type='socks',listen='127.0.0.
 path=filename.parent/'fresh-client.json';path.write_text(json.dumps(client));path.chmod(0o600)
 with contextlib.ExitStack() as stack:
     start(stack,['/opt/empire-vpn/bin/sing-box','run','-c',str(path)],19095)
-    assert attempt(19095)
-    nonce=secrets.token_bytes(24)
-    assert udp(19095,'192.0.2.119',19877,nonce)==nonce
-print('Issued profile fresh TCP/UoT PASS')
+    if active:
+        assert attempt(19095)
+        nonce=secrets.token_bytes(24)
+        assert udp(19095,'192.0.2.119',19877,nonce)==nonce
+    else:
+        assert not attempt(19095), 'revoked TCP accepted'
+        try: udp(19095,'192.0.2.119',19877,secrets.token_bytes(24))
+        except (OSError,RuntimeError): pass
+        else: raise RuntimeError('revoked UoT accepted')
+print('Issued profile fresh TCP/UoT PASS' if active else 'Revoked profile fresh TCP/UoT denied PASS')
 """
-    result=subprocess.run(["nsenter","-t",str(pid),"-n","python3","-B","-c",child_code,str(project),str(root),str(files[0][0])],capture_output=True,text=True,timeout=30)
-    require(result.returncode==0,"fresh issued profile connection failed")
-    print(result.stdout.strip())
+    def check_profile(filename,active=True):
+        result=subprocess.run(["nsenter","-t",str(pid),"-n","python3","-B","-c",child_code,str(project),str(root),str(filename),"active" if active else "denied"],capture_output=True,text=True,timeout=35)
+        require(result.returncode==0,"fresh profile/control connection outcome incorrect")
+        print(result.stdout.strip(),flush=True)
+    check_profile(files[0][0])
     for group,action in (("user","history"),("cred","status")):call(group,action,user,"--json")
     for group,action in (("operation","list"),("audit","list"),("backup","list"),("system","show")):call(group,action,"--json")
+    if args.mutations:
+        source=root/"var/lib/empire-vpn/lab/vpn-Old-User.json"
+        control_bytes=source.read_bytes();control=private/"unchanged-control.json"
+        control.write_bytes(control_bytes);control.chmod(0o600)
+        control_secret=next(o["password"] for o in json.loads(control_bytes)["outbounds"] if o["type"]=="naive").encode()
+        secrets.append(control_secret)
+        check_profile(control)
+        for action,expected in (("disable","disabled"),("enable","active"),("delete","deleted")):
+            detail=call("user","show",user,"--json")
+            argv=["user",action,user,"--expected-version",detail["user"]["row_version"],"--idempotency-key",str(uuid.uuid4()),"--reason","synthetic W9U02 acceptance","--json"]
+            if action=="delete":argv.append("--confirm-delete")
+            wait(call(*argv))
+            require(call("user","show",user,"--json")["user"]["status"]==expected,"owner API state mismatch")
+            check_profile(files[0][0],expected=="active")
+            check_profile(control)
+            if expected!="active":
+                refused=private/(action+"-refused.json")
+                call("profile","download",user,"--output",str(refused),"--quiet",code=3)
+                require(not refused.exists(),"revoked profile issued")
+        require(source.read_bytes()==control_bytes,"control profile changed")
+        require(all(secret not in stream for secret in secrets for stream in captured),"secret in CLI output")
+        require(call("user","show",protected["id"],"--json")["user"]["protected"],"master protection lost")
+        print("W9U02 owner API CRUD/exact-case/private profile/disabled-denial/control TCP-UoT PASS",flush=True)
     print("Owner CLI real API/create/replay/rename/CAS/protection/three private profiles/no-overwrite/no output secrets PASS")
 if __name__=="__main__":main()

@@ -149,7 +149,7 @@ probe() {
 authenticate() {
  local role="$1" status choice public cmd
  status=$(probe "$role")
- [ "$status" != changed-key ] || die 'SSH host identity changed. After a server reinstall, an old key may remain in your local ~/.ssh/known_hosts file (not the system hosts file). First verify the new SSH fingerprint in the provider console. Only after verification, remove the stale entry with: ssh-keygen -R HOST (replace HOST with the server IP or hostname; for a non-default SSH port use: ssh-keygen -R "[HOST]:PORT"). Then run setup again and verify the new fingerprint when prompted. Remove only the affected entry, not the whole known_hosts file. No automatic replacement is performed.'
+ [ "$status" != changed-key ] || die "SSH host identity changed. If this server was reinstalled, first verify its new SSH fingerprint in the provider console. Then remove this server's old entry from: $HOME/.ssh/known_hosts . Restart setup and confirm the verified fingerprint. Keep all other known_hosts entries. No automatic replacement is performed."
  if [ "$status" = identity ]; then
   printf 'Compare %s SSH fingerprint with provider console.\n' "$role" >&2
   ssh -F "$CONFIG" -o BatchMode=no -o StrictHostKeyChecking=ask "$role" true >&2 || true

@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "release": "v0.4.0-rc3",
+  "installer_source_sha": "b2336af7ad0f5b05b6f098c3f73e772be44a7754",
+  "lock_fix_sha": "7c7b67947ef68a63d13200b265f29f01ec12fa34",
+  "core_sha": "8d9b87c6b4bb9105d21860a2819c372dcc318db2",
+  "schema_version": 8,
+  "unchanged_core_full_go_evidence": "RC2_RELEASE_2026-11-16.json",
+  "zip": {
+    "sha256": "94952b5117748133dd811b7387224ddd432f1e86ac13b75358ea7f749beae6f7",
+    "bytes": 11691845
+  },
+  "checks": {
+    "linux_installer_tests": 71,
+    "linux_skips": 4,
+    "linux_lock_tests": 10,
+    "windows_launcher_tests": 16,
+    "windows_skips": 1,
+    "public_ca_handoff_mocks": true,
+    "payload_all_19_hashes_match_verified_core": true,
+    "zip_contains_exact_hotfix_remote_controller": true,
+    "actual_controller_umask022_lock0600": true,
+    "actual_go_legacy0644_exit5_reproduced": true,
+    "same_inode_repair0600_actual_go_init_pass": true,
+    "full_worker_mutations": "PASS",
+    "full_worker_normal_cli_mig05_unprivileged_tls_tcp_uot_owner_download_return": "PASS",
+    "runtime_cleanup_main_pid": 0,
+    "runtime_cleanup_result": "success",
+    "macos_bash_syntax": true
+  },
+  "lab_run": 916082,
+  "lab_fixture_sha256": "b44b95cf6334a0143da65f7d41e788d47d4bd3e8d7ffc49192cf1cf2af9ae3c0",
+  "security_review": "fresh_lock_review: no blocker; same-inode fd-based normalization; no weakening Go checks",
+  "publication": "pending",
+  "f3_rc2": "FAIL_PANEL_REGISTRY_INIT_LOCK0644",
+  "f3_rc3": "OPEN_OWNER_MANUAL",
+  "production_mutations": false
+}

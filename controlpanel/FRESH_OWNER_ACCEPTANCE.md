@@ -1,5 +1,14 @@
 # Ручная проверка fresh VPN + panel v0.4.0-rc1
 
+## Current candidate: rc3 after actual rc2 F3 failure
+
+rc2 failed at panel registry init because installer created lock0644. rc3 fixes
+that bug and names failed panel stages. Use the rc3 README command for the next
+fresh run after publication. Actual F3 remains OPEN for owner; agent does not
+wipe/reinstall nodes. Checklist and rc2/rc1 receipts below are historical. No
+manual server permission repair is required. Existing Q13/owner/CA steps apply.
+
+
 rc2 publication PASS: artifactc5f74fc, public bootstrap/fullZIP/hash verified; actual command startup PS5.1/7 PASS before any SSH target. Main README now offers rc2. F3 OPEN, no agent node cleanup.
 
 ## Current release: v0.4.0-rc2

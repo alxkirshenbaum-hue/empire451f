@@ -1,5 +1,22 @@
 # Общий прогресс VPN Control
 
+## 16.11.2026 — rc3 hotfix validated after owner F3 failure
+
+U W9U3/5, W10U1/4; E unchanged. **F3 rc2 FAIL; rc3 OPEN for owner repeat.**
+Root cause: installer-created root lock0644 rejected by protected Go registry
+init before owner bootstrap/DB/key. Fix7c7b679, installer sourceb2336af, unchanged
+accepted runtime8d9b87c/schema8. [Evidence and limits](RELEASE_RC3_2026-11-16.md).
+Linux71 tests PASS/4 platform skips, Windows16 PASS/1 macOS skip; security review
+no blocker. Real isolated controller022→lock0600; legacy0644→actual vpnctl exit5;
+sameinode helper repair→Go init PASS. Full worker916082 mutations/new-old-control
+TCP/UoT/MIG05/CLI/owner download/return PASS; cleanup MainPID0/Resultsuccess.
+Phase-specific safe failures and corrected final shutdown guidance included.
+No node cleanup, chmod or service restart by agent. Phase resume remains BL-010.5,
+not a new rc3 feature. First next action: publish immutable rc3 and verify public
+command/full ZIP, then owner manually repeats fresh using new README command.
+The owner's checked JSON stays required before any node cleanup.
+
+
 ## 16.11.2026 — rc2 published and public command verified
 
 **U: W9U3/5 · W10U1/4. E: W8E3/8 reused, no new gate closures.**

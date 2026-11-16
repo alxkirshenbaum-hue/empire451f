@@ -1,5 +1,22 @@
 # Parallel development journal
 
+## 16.11.2026 — rc3 hotfix validated after owner F3 failure
+
+U W9U3/5, W10U1/4; E unchanged. **F3 rc2 FAIL; rc3 OPEN for owner repeat.**
+Root cause: installer-created root lock0644 rejected by protected Go registry
+init before owner bootstrap/DB/key. Fix7c7b679, installer sourceb2336af, unchanged
+accepted runtime8d9b87c/schema8. [Evidence and limits](RELEASE_RC3_2026-11-16.md).
+Linux71 tests PASS/4 platform skips, Windows16 PASS/1 macOS skip; security review
+no blocker. Real isolated controller022→lock0600; legacy0644→actual vpnctl exit5;
+sameinode helper repair→Go init PASS. Full worker916082 mutations/new-old-control
+TCP/UoT/MIG05/CLI/owner download/return PASS; cleanup MainPID0/Resultsuccess.
+Phase-specific safe failures and corrected final shutdown guidance included.
+No node cleanup, chmod or service restart by agent. Phase resume remains BL-010.5,
+not a new rc3 feature. First next action: publish immutable rc3 and verify public
+command/full ZIP, then owner manually repeats fresh using new README command.
+The owner's checked JSON stays required before any node cleanup.
+
+
 ## 16.11.2026 — rc2 published and public command verified
 
 **U: W9U3/5 · W10U1/4. E: W8E3/8 reused, no new gate closures.**
@@ -222,3 +239,5 @@ Lead integration in progress. SOL-A streaming3/3+archive3/3 done, offline restor
 FIRST NEXT ACTION после явного возобновления: читать состояние собственных тестовых units, review двух WIP testfiles c99e9b0, подготовить новый pinned candidate и выполнить целевые API/worker tests; параллельно независимый ACL/xattr пакет по HANDOFF. Не начинать с повторного исследования/переустановки стенда. Restore preparation/rotation/version handling/prune/audit/full restore/resources/полный G8 остаются открыты.
 
 15.11.2026 resumed: SOL-A ACL/xattrs3/3 targetPASS3.417s integrated6f89bfb; SOL-B ownerAPI/worker fixtures done, restore preparation+security negatives13PASS1.584s and encryptedCLI preparePASS2.025s done03bb43f; SOL-C rotation5namedPASS0.513s then inner harness fe84121/c73fdae completed, now actual vertical runtime runner; Lead offlineCLI/integration/host runner2df0c9a. ASTRA W8-SEC-002 planned consequential review addressed code findings; exact runtime acceptance pending. No nested agents or production changes. Fixture failures corrected on first targeted corrections; no unresolved four-fix error.
+
+rc3 agent packages: lead_coder fresh_lock_fix — remote/controller/shared lock + regression/stage diagnostics, commit7c7b679, Windows3stage PASS/7Linuxskip; completed. architect fresh_lock_review — independent no-blocker review with required Linux/actual Go checks; completed. Main integrated, ran required Linux/root/actual Go/full worker and Windows release tests; publication next. No nested agents or production changes.

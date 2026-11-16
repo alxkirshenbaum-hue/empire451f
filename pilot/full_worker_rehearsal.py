@@ -270,6 +270,7 @@ module.main()
             # Disposable browser/CLI fixture, still entirely in this synthetic root.
             # No production credential is used. The public test password above is
             # valid only in this loopback/root-marker-gated fixture.
+            Path('/root').chmod(0o700)
             put('/root/ui-owner-session',cookie.split('=',1)[1]+'\n')
             frontend=Path('/run/ui-frontend');frontend.mkdir(mode=0o700)
             run(['openssl','req','-new','-x509','-nodes','-newkey','rsa:2048','-days','1','-subj','/CN=panel.home.arpa',

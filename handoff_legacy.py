@@ -20,6 +20,35 @@ def require(condition):
         raise ValueError('Handoff precondition failed')
 
 
+def caddy_cutover_candidate(source, socket):
+    """Accept only the reviewed off->Unix transition or an exact fresh Unix baseline."""
+    require(isinstance(socket, str) and socket.startswith('/') and
+            not any(c.isspace() or ord(c) < 32 for c in socket))
+    directives = re.findall(rb'(?m)^[ \t]*admin\b[^\r\n]*', source)
+    require(len(directives) == 1)
+    directive = directives[0]
+    if re.fullmatch(rb'[ \t]*admin[ \t]+off[ \t]*', directive):
+        patched = re.sub(rb'(?m)^([ \t]*)admin[ \t]+off[ \t]*$',
+                         lambda m: m[1] + b'admin unix/' + socket.encode(), source)
+    else:
+        require(re.fullmatch(rb'[ \t]*admin[ \t]+unix/' + re.escape(socket.encode()) +
+                             rb'[ \t]*', directive) is not None)
+        patched = source
+    return patched
+
+
+def checked_caddy_cutover(source, current, socket):
+    candidate = caddy_cutover_candidate(source, socket)
+    require(current == candidate)
+    return candidate
+
+
+def checked_caddy_restore(source, current, socket):
+    candidate = caddy_cutover_candidate(source, socket)
+    require(current in (source, candidate))
+    return candidate
+
+
 def open_lock(path, inherited=None, create=False):
     if inherited is not None:
         expected=path.stat(follow_symlinks=False);actual=os.fstat(inherited)
@@ -105,9 +134,7 @@ def handoff(snapshot, root, registry, run, rollback=False, config_dir=None, sock
         source_caddy=(snapshot/'Caddyfile').read_bytes()
         caddy_ref=str(config_dir/'Caddyfile')
         require(hashlib.sha256(source_caddy).hexdigest()==meta['files'].get(caddy_ref))
-        patched,count=re.subn(rb'(?m)^([ \t]*)admin[ \t]+off[ \t]*$',
-                             lambda m:m[1]+b'admin unix/'+socket.encode(),source_caddy)
-        require(count==1 and (config_dir/'Caddyfile').read_bytes()==patched)
+        patched=checked_caddy_cutover(source_caddy,(config_dir/'Caddyfile').read_bytes(),socket)
         meta['files'][caddy_ref]=hashlib.sha256(patched).hexdigest()
         meta['files']['/usr/local/bin/vpn-add-user']=wrapper_hash
     meta.update(panel_generation=1, panel_run_id=run, panel_auth_hash=meta['files'].pop(auth),

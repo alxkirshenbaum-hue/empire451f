@@ -123,6 +123,8 @@ def services(project,number):
             entries=canonical_service(root/'etc/systemd/system'/filename)
             name,props,exe=canonical_lab_service(entries,kind,root,project,number,pid,owner_run)
             if kind=='api':exe[0]='/usr/local/bin/vpn-control'
+            else:
+                props=[('InaccessiblePaths=+/proc +/var/lib/vpn-control +/var/lib/empire-vpn +/etc/empire-vpn +/run/evpn-lab-caddy-admin' if prop.startswith('InaccessiblePaths=') else prop) for prop in props]
             props+=['BindReadOnlyPaths='+str(root/'usr/local')+':/usr/local']
             launch(name,props,exe);created.append(name)
         socket_path=root/('run/'+api_name+'/api.sock')

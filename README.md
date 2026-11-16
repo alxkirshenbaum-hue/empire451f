@@ -1,15 +1,17 @@
-## Fresh VPN + VPN Control: v0.4.0-rc2
+## Fresh VPN + VPN Control: v0.4.0-rc3
+
+rc3 исправляет отказ настройки панели после ввода owner в rc2: общий lock теперь создаётся с корректными правами. Ручное исправление сервера не требуется.
 
 Для новой чистой установки **VPN вместе с панелью** используйте этот проверенный
 предварительный выпуск. Старый стабильный VPN-only v0.3.6 сохранён ниже.
 Windows PowerShell5.1/7, одна команда:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc2/bootstrap/windows.ps1')"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc3/bootstrap/windows.ps1')"
 ```
 
-[Полная инструкция rc2: подготовка, JSON-импорт и первый вход](https://github.com/alxkirshenbaum-hue/empire451f/blob/v0.4.0-rc2/README.md).
-[Проверки пакета и ограничения](https://github.com/alxkirshenbaum-hue/empire451f/blob/v0.4.0-rc2/controlpanel/RELEASE_RC2_2026-11-16.md).
+[Полная инструкция rc2: подготовка, JSON-импорт и первый вход](https://github.com/alxkirshenbaum-hue/empire451f/blob/v0.4.0-rc3/README.md).
+[Проверки пакета и ограничения](https://github.com/alxkirshenbaum-hue/empire451f/blob/v0.4.0-rc3/controlpanel/RELEASE_RC3_2026-11-16.md).
 Общий мастер устанавливает VPN, затем приватную панель. В Q13 выберите локальный
 JSONv1 с нужными активными пользователями: регистр логинов и пароли, включая
 master_user, сохраняются. JSONv1 не переносит disabled-статусы. В P01–P03 задайте

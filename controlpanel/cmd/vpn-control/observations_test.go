@@ -35,7 +35,34 @@ func TestObservationUnknownDoesNotExposeErrorsOrPaths(t *testing.T) {
 	if sample.Storage.State != "unknown" || sample.Storage.Values != nil {
 		t.Fatal("missing filesystem reported")
 	}
-	if strings.Contains(string(raw), "private") || strings.Contains(string(raw), "password") || strings.Contains(string(raw), "error") {
-		t.Fatal("private details exposed")
+	var payload any
+	if e = json.Unmarshal(raw, &payload); e != nil {
+		t.Fatal(e)
 	}
+	var check func(any)
+	check = func(value any) {
+		switch value := value.(type) {
+		case map[string]any:
+			for key, child := range value {
+				// Network counters legitimately use numeric "errors". Diagnostic
+				// fields and diagnostic text must still never be returned.
+				switch key {
+				case "error", "error_message", "path", "detail":
+					t.Fatal("diagnostic field exposed")
+				}
+				check(child)
+			}
+		case []any:
+			for _, child := range value {
+				check(child)
+			}
+		case string:
+			for _, forbidden := range []string{"private", "password", "error"} {
+				if strings.Contains(strings.ToLower(value), forbidden) {
+					t.Fatal("private or diagnostic text exposed")
+				}
+			}
+		}
+	}
+	check(payload)
 }

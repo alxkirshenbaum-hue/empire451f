@@ -134,7 +134,7 @@ def services(project,number):
                 props=[('InaccessiblePaths=+/proc +/var/lib/vpn-control +/var/lib/empire-vpn +/etc/empire-vpn -+/run/evpn-lab-caddy-admin' if prop.startswith('InaccessiblePaths=') else prop) for prop in props]
             props+=['BindReadOnlyPaths='+str(root/'usr/local')+':/usr/local']
             created.append(name);launch(name,props,exe)
-        socket_path=root/('run/'+api_name+'/api.sock')
+        socket_path=Path('/run')/api_name/'api.sock'
         deadline=time.monotonic()+25
         while not socket_path.is_socket() and time.monotonic()<deadline:time.sleep(.1)
         require(socket_path.is_socket(),'generated API did not start')
@@ -184,7 +184,7 @@ print(cookie)
         login=subprocess.run(['nsenter','-t',str(pid),'-n','python3','-B','-c',login_code,str(root)],input=(root/'root/fresh-owner-password').read_text(),text=True,capture_output=True,timeout=20)
         require(login.returncode==0,'generated frontend TLS owner login failed')
         put(root/'root/ui-owner-session',login.stdout.strip()+'\n')
-        put(root/'run/ui-context.json',json.dumps({'synthetic':True,'api_socket':'/run/'+api_name+'/api.sock','owner_run':owner_run}))
+        put(root/'run/ui-context.json',json.dumps({'synthetic':True,'api_socket':'/run/'+api_name+'/api.sock','host_api_socket':True,'owner_run':owner_run}))
         put(root/'run/ui-hold',b'');shutil.copyfile(root/'etc/lab-ca.pem',root/'etc/vpn-control/lab-ca.pem')
         entries=canonical_service(root/'etc/systemd/system/vpn-control-worker@.service')
         worker_props=[];worker_exe=None
@@ -195,6 +195,7 @@ print(cookie)
             if key=='ReadWritePaths':value=' '.join('+'+p for p in value.split())
             worker_props.append(key+'='+value)
         worker_props+=['RootDirectory='+str(root),'MountAPIVFS=yes','NetworkNamespacePath=/proc/'+str(pid)+'/ns/net','BindReadOnlyPaths=/usr','BindReadOnlyPaths=/opt/empire-vpn/bin','BindReadOnlyPaths='+str(root/'usr/local')+':/usr/local']
+        launch(worker_name,worker_props,worker_exe,True)
         def worker():
             while not stop.is_set():
                 try:launch(worker_name,worker_props,worker_exe,True)
@@ -213,7 +214,7 @@ project,root=map(Path,sys.argv[1:]);sys.path[:0]=[str(project),str(project/'pilo
 from full_worker_rehearsal import profile_client
 with contextlib.ExitStack() as stack:profile_client(stack,json.loads((root/'var/lib/empire-vpn/lab/master_user.sfa.json').read_bytes()),19107,root/'etc/lab-ca.pem')
 """
-        old=subprocess.run(['nsenter','-t',str(pid),'-n','python3','-B','-c',old_code,str(project),str(root)],capture_output=True,timeout=35)
+        old=subprocess.run(['nsenter','--target',str(pid),'--mount','--net','--root=/proc/'+str(pid)+'/root','--wd=/','--','/usr/bin/python3','-B','-c',old_code,'/work','/'],capture_output=True,timeout=35)
         require(old.returncode==0 and hashlib.sha256(old_profile.read_bytes()).hexdigest()==old_hash,'old master profile TCP/UoT/preservation failed')
         receipt=json.loads((root/'root/fresh-gate-receipt.json').read_bytes())
         receipt.update(services_started=True,generated_api_frontend_uid_caps=True,owner_tls_login=True,owner_create_download_new_profile_tcp_uot=True,old_master_profile_tcp_uot=True,full_fresh_vpn_install_proven=False)

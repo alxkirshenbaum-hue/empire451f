@@ -16,7 +16,18 @@ def main():
     require(context["synthetic"],"synthetic fixture required")
     pid=int(subprocess.check_output(["systemctl","show","vpn-full-worker-root-"+str(args.run),"-p","MainPID","--value"]))
     require(pid>1,"copy unit inactive")
-    env=os.environ.copy();env.update(VPNCTL_SOCKET=str(root/context["api_socket"].lstrip("/")),VPNCTL_SESSION_FILE=str(root/"root/ui-owner-session"))
+    api_socket=root/context["api_socket"].lstrip("/")
+    if context.get("host_api_socket") is True:
+        api_unit="vpn-w9u-api-"+str(args.run)
+        require(context["api_socket"]=="/run/"+api_unit+"/api.sock","unexpected host API socket")
+        require(subprocess.check_output(["systemctl","show",api_unit,"-p","RootDirectory","--value"],text=True).strip()==str(root),"host API belongs to another root")
+        api_pid=int(subprocess.check_output(["systemctl","show",api_unit,"-p","MainPID","--value"]))
+        require(api_pid>1 and Path("/proc/"+str(api_pid)+"/root").samefile(root),"host API root identity mismatch")
+        argv=Path("/proc/"+str(api_pid)+"/cmdline").read_bytes().split(b"\0")
+        require(b"--socket" in argv and argv[argv.index(b"--socket")+1]==context["api_socket"].encode(),"host API socket argv mismatch")
+        api_socket=Path(context["api_socket"])
+    require(api_socket.is_socket(),"synthetic API socket missing")
+    env=os.environ.copy();env.update(VPNCTL_SOCKET=str(api_socket),VPNCTL_SESSION_FILE=str(root/"root/ui-owner-session"))
     cli=project/"rehearsal-bin/vpnctl"
     suffix=uuid.uuid4().hex[:8];login="CLI-ExactCase-"+suffix
     private=root/("root/owner-cli-check-"+suffix);private.mkdir(mode=0o700,exist_ok=True)

@@ -103,7 +103,9 @@ print('Frontend vault/proc-root/admin denied; private API socket allowed PASS')
         print(command(probe_command+["/usr/bin/python3","-B","-c",probe]))
         print(command(["nsenter","-t",pid,"-n","python3","-c",client,root/"run/ui-frontend/cert"]))
         print("Frontend UID981/CapEff0/isolated namespace PASS")
-        if args.browser_port is not None: serve_browser(root,args.browser_port)
+        if args.browser_port is not None:
+            validate_browser_root(root,args.run,pid)
+            serve_browser(root,args.browser_port)
     finally:subprocess.run(["systemctl","stop",unit],check=False,capture_output=True)
 
 # This adapter is disposable test transport, never a deployment listener.
@@ -121,6 +123,22 @@ def browser_request_allowed(method, target, headers, port):
         and headers.get_all('Sec-Fetch-Site', []) in ([], ['none'], ['same-origin'])
         and not headers.get('Upgrade') and not headers.get('Transfer-Encoding')
         and headers.get_all('Content-Length', []) in ([], ['0']))
+
+def require_fixed_socket(root):
+    import stat
+    path = root / 'run/vpn-control/api/api.sock'
+    require(path.resolve(strict=True) == path and stat.S_ISSOCK(path.lstat().st_mode),
+            'fixed synthetic API socket required')
+
+def validate_browser_root(root, run, pid):
+    unit = 'vpn-full-worker-root-' + str(run)
+    require(command(['systemctl','show',unit,'-p','ActiveState','--value']) == 'active'
+        and command(['systemctl','show',unit,'-p','MainPID','--value']) == str(pid)
+        and command(['systemctl','show',unit,'-p','RootDirectory','--value']) == str(root),
+        'active owned synthetic unit required')
+    require((root/'.vpn-control-rehearsal').is_file() and (root/'run/ui-hold').is_file(),
+            'active synthetic root required')
+    require_fixed_socket(root)
 
 def browser_session(root):
     import stat

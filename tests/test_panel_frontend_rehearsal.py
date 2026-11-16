@@ -86,4 +86,25 @@ class BrowserAdapterTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,'invalid browser adapter bounds'):
                 frontend.serve_browser(Path('/synthetic'),port,lifetime)
 
+    def test_fixed_socket_rejects_symlink_and_non_socket(self):
+        root=Path('/synthetic/rehearsal-root-9')
+        path=root/'run/vpn-control/api/api.sock'
+        for resolved,mode in ((Path('/outside/api.sock'),stat.S_IFSOCK|0o600),(path,stat.S_IFREG|0o600)):
+            with mock.patch.object(Path,'resolve',return_value=resolved),mock.patch.object(Path,'lstat',return_value=mock.Mock(st_mode=mode)):
+                with self.assertRaisesRegex(RuntimeError,'fixed synthetic API socket required'):
+                    frontend.require_fixed_socket(root)
+        with mock.patch.object(Path,'resolve',return_value=path),mock.patch.object(Path,'lstat',return_value=mock.Mock(st_mode=stat.S_IFSOCK|0o600)):
+            frontend.require_fixed_socket(root)
+
+    def test_browser_start_revalidates_owned_unit(self):
+        root=Path('/synthetic/rehearsal-root-9')
+        for results in (['inactive'],['active','99'],['active','42','/outside']):
+            with mock.patch.object(frontend,'command',side_effect=results),mock.patch.object(frontend,'require_fixed_socket') as socket_check:
+                with self.assertRaisesRegex(RuntimeError,'active owned synthetic unit required'):
+                    frontend.validate_browser_root(root,9,42)
+                socket_check.assert_not_called()
+        with mock.patch.object(frontend,'command',side_effect=['active','42',str(root)]),mock.patch.object(Path,'is_file',return_value=True),mock.patch.object(frontend,'require_fixed_socket') as socket_check:
+            frontend.validate_browser_root(root,9,42)
+            socket_check.assert_called_once_with(root)
+
 if __name__=='__main__':unittest.main()

@@ -3,8 +3,9 @@
 ## Current candidate: rc3 after actual rc2 F3 failure
 
 rc2 failed at panel registry init because installer created lock0644. rc3 fixes
-that bug and names failed panel stages. Use the rc3 README command for the next
-fresh run after publication. Actual F3 remains OPEN for owner; agent does not
+that bug and names failed panel stages. rc3 is published: artifacta35f31d, main READMEbfbbeca; public fullZIP/hash and
+actual command PS5.1/7 startup verified. Use the rc3 README command for the next
+fresh run. Actual F3 remains OPEN for owner; agent does not
 wipe/reinstall nodes. Checklist and rc2/rc1 receipts below are historical. No
 manual server permission repair is required. Existing Q13/owner/CA steps apply.
 

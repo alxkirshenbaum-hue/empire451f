@@ -31,7 +31,18 @@
   "lab_run": 916082,
   "lab_fixture_sha256": "b44b95cf6334a0143da65f7d41e788d47d4bd3e8d7ffc49192cf1cf2af9ae3c0",
   "security_review": "fresh_lock_review: no blocker; same-inode fd-based normalization; no weakening Go checks",
-  "publication": "pending",
+  "publication": {
+    "status": "PASS",
+    "artifact_commit": "a35f31d0ebf880e51b30f7c84f99e66309a65fba",
+    "main_readme_commit": "bfbbecac3c91afcaf7ac6fa056fd88470cd5a1d9",
+    "public_windows_macos_bootstrap_hashes": true,
+    "public_full_zip_hash": true,
+    "public_checksum": true,
+    "public_decoded_rc3_url_and_sha": true,
+    "actual_public_command_ps51_ps7_first_prompt": true,
+    "stopped_before_ssh_target": true,
+    "public_main_readme_git_blob": true
+  },
   "f3_rc2": "FAIL_PANEL_REGISTRY_INIT_LOCK0644",
   "f3_rc3": "OPEN_OWNER_MANUAL",
   "production_mutations": false

@@ -12,8 +12,9 @@ sameinode helper repair→Go init PASS. Full worker916082 mutations/new-old-cont
 TCP/UoT/MIG05/CLI/owner download/return PASS; cleanup MainPID0/Resultsuccess.
 Phase-specific safe failures and corrected final shutdown guidance included.
 No node cleanup, chmod or service restart by agent. Phase resume remains BL-010.5,
-not a new rc3 feature. First next action: publish immutable rc3 and verify public
-command/full ZIP, then owner manually repeats fresh using new README command.
+not a new rc3 feature. Publication PASS: tagv0.4.0-rc3/artifacta35f31d; main READMEbfbbeca. Public
+bootstrap/full ZIP/hash/loader and actual command PS5.1/7 first prompt verified.
+First next action: owner manually repeats fresh using the new README command.
 The owner's checked JSON stays required before any node cleanup.
 
 

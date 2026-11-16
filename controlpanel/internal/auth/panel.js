@@ -95,17 +95,27 @@
  function renderResources(data) {
   const list=byId("local-resources");empty(list);
   const add=(label,value)=>list.append(node("dt",label),node("dd",value));
-  const bytes=value=>Number.isFinite(value)?new Intl.NumberFormat().format(value)+" bytes":"Unknown";
+  const counter=value=>Number.isSafeInteger(value)&&value>=0?new Intl.NumberFormat().format(value):"Unknown";
+  const bytes=value=>counter(value)+(Number.isSafeInteger(value)&&value>=0?" bytes":"");
   const usable=sample=>sample?.state==="observed" && Number.isFinite(Date.parse(sample.observed_at)) && Date.parse(sample.observed_at)<=Date.now()+5000 && Date.parse(sample.stale_after)>Date.now();
-  for(const [label,key] of [["OS memory","memory"],["Load average (1 minute, not CPU %)","load"],["Registry filesystem","storage"]]) {
+  for(const [label,key] of [["OS CPU busy (interval)","cpu"],["OS memory","memory"],["Load average (1 minute, not CPU %)","load"],["Registry filesystem","storage"],["Namespace network counters","network"]]) {
    const sample=data?.[key];
    if(!usable(sample)){add(label,sample?.state==="observed"?"Stale — refresh required":"Unknown");continue;}
    if(key==="memory")add(label,bytes(sample.values?.available_bytes)+" available / "+bytes(sample.values?.total_bytes)+" total");
+   if(key==="cpu")add(label,Number.isFinite(sample.usage_percent)&&sample.usage_percent>=0&&sample.usage_percent<=100?sample.usage_percent.toFixed(1)+"% over "+counter(sample.interval_ms)+" ms (idle and iowait excluded)":"Unknown");
    if(key==="load")add(label,Number.isFinite(sample.load_average_1m)?sample.load_average_1m:"Unknown");
    if(key==="storage"){add(label,bytes(sample.values?.filesystem_available_bytes)+" available / "+bytes(sample.values?.filesystem_total_bytes)+" total");add("Registry DB/WAL/SHM allocated (not whole panel)",bytes(sample.values?.registry_allocated_bytes));}
+   if(key==="network"){
+    add(label,sample.namespace||"Unknown namespace");
+    for(const entry of sample.interfaces||[]){
+     for(const [direction,key] of [["RX","receive"],["TX","transmit"]]){
+      const values=entry[key];add(entry.name+" "+direction,bytes(values?.bytes)+" · "+counter(values?.packets)+" packets · "+counter(values?.errors)+" errors · "+counter(values?.dropped)+" dropped");
+     }
+    }
+   }
    add(label+" source",sample.source+" · "+dates(sample.observed_at));
   }
-  byId("resource-time").textContent="Local ingress OS only. No VPN, exit health, CPU percent or total panel footprint is inferred.";
+  byId("resource-time").textContent="Local ingress OS and collector network namespace only. Network counters include loopback and do not identify VPN traffic or physical interfaces. No VPN/exit health or total panel footprint is inferred.";
  }
  let resourceSnapshot=null;
  async function loadResources(){resourceSnapshot=await api("/api/v1/system/resources");renderResources(resourceSnapshot);}

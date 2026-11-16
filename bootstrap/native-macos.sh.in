@@ -378,6 +378,6 @@ if [ "$code" -eq 44 ]; then
  code=0; run_wizard after-exit-reboot || code=$?
 fi
 if [ "$code" -eq 45 ]; then wait_reboot entry; fresh_sessions || die 'SSH did not recover'; code=0; run_wizard after-entry-reboot || code=$?; fi
-[ "$code" -eq 0 ] || die "Installer exited $code; if apply started, check server rollback timers"
+[ "$code" -eq 0 ] || die "Installer exited $code; read the stage-specific error above. Setup has stopped; do not assume a rollback timer is active."
 fresh_sessions || die 'Final SSH check failed'
 printf 'New key-authenticated SSH sessions to both nodes: PASS\n'

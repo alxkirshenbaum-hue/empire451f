@@ -464,7 +464,7 @@ try{
   $code=$script:WizardExit
  }
  if($code -eq 45){Wait-Reboot entry;if(!(Fresh-Sessions)){throw 'SSH did not recover'};Run-Wizard after-entry-reboot;$code=$script:WizardExit}
- if($code -ne 0){throw ('Installer ended with code '+$code+'. If apply started, server rollback timers remain the safety net.')}
+ if($code -ne 0){throw ('Installer ended with code '+$code+'. Read the stage-specific error above. Setup has stopped; do not assume a rollback timer is active.')}
  if(!(Fresh-Sessions)){throw 'Final SSH check failed'}
 }catch{
  Write-Host ('Setup stopped: '+$_.Exception.Message)

@@ -2,7 +2,7 @@
 
 ## 16.11.2026 — закрыты целые U-критерии
 
-**W9U [██░░░] 2/5 (02,05) · W10U [█░░░] 1/4 (03).**
+**W9U [███░░] 3/5 (02,04,05) · W10U [█░░░] 1/4 (03).**
 W8U0/4, W13U0/4, W14U0/4; W8E3/8 reused, новых E-gates нет.
 [Точная приёмка](U_ACCEPTANCE_2026-11-16.md), [инструкция владельца](OWNER_GUIDE_U.md).
 Runtime5374923 + controller41d05d1: настоящий owner API→worker→CRUD→private
@@ -14,10 +14,15 @@ modverify/go.sum сохранены. Оба runtime и браузерный adap
 MainPID0/Resultsuccess/listenerclosed/no owned units; старые артефакты сохранены.
 Raw логи остаются в Lab; в Git только фиксированные numeric/boolean receipts.
 
-Первый следующий целый кандидат — **W9U04**: actual canonical service restart
-на existing Lab + old/control TCP/UoT + безопасный rollback. Ранее916001 уже
-доказал worker rollback/return, но canonical restart этим не закрыт. Проверить
-existing unit/runtime wiring; локальные рестарты разрешены, production запрещён.
+W9U04 дополнительно принят: controller70c980c/fixture37d97b5/run916043,
+unchanged537binaries. Actual canonical-derived API/frontend restart→newPID,
+stable owner/session/users/key/profiles; badconfigstartup failed/API unavailable
+while freshTCP/UoT worked; exactenvrollback throughsameunits→TLS/owner/controlPASS.
+PublicunitSHA verified againstGitLF; cleanup independently verified. Не boot,
+не cross-version/schema downgrade и не полный W8DR. [Receipt](reports/W9U04_5374923_916043.json).
+Первый следующий целый кандидат — **W10U02**: проверить существующий collector и
+доступный readonly источник exit-local audit; без producer не подменять его
+owner-provided fiction. W9U01 ждёт телефона, W9U03 migration deferred.
 W13 partial report не начинать вместо целого критерия. W14 plan без конкретного
 desired ingress не засчитывать. F3/phone и production действия ждут владельца.
 Новый код остаётся локальным; опубликованный rc1 и его runtime0c05a61 не менялись.

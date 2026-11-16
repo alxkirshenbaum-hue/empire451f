@@ -26,6 +26,21 @@
     "browser_transport_proves_tls_or_login": false,
     "separate_actual_tls_frontend_check": true
   },
+  "W9U04": {
+    "status": "U_PASS",
+    "controller_source": "70c980c5402556cadee7093a16884bd939315d5f",
+    "fixture_source": "37d97b52df8cef3df70be6d5cf46e7d89fd24e9a",
+    "run": 916043,
+    "same_canonical_units_restarted": true,
+    "new_pids_and_socket": true,
+    "owner_session_users_key_profiles_unchanged": true,
+    "failed_start_observed": true,
+    "vpn_tcp_uot_during_api_failure": true,
+    "same_path_config_rollback": true,
+    "trusted_tls_and_sandbox_denials": true,
+    "cleanup_independently_verified": true,
+    "boot_or_cross_version_downgrade_claimed": false
+  },
   "W9U05": {
     "status": "U_PASS",
     "api_target_seconds": 1.312,

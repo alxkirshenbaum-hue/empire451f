@@ -1,7 +1,8 @@
 # Owner guide — local U candidate, 16 November 2026
 
 Applies to the development candidate with runtime source `5374923` and acceptance
-controller `41d05d1`. Published `v0.4.0-rc1` still contains runtime `0c05a61`;
+controller `41d05d1` for CRUD and `70c980c` for service restart. Published
+`v0.4.0-rc1` still contains runtime `0c05a61`;
 the newer features below need a later packaged deployment. No production upgrade
 is authorised by this guide. Fresh-install owner checks remain in
 [FRESH_OWNER_ACCEPTANCE.md](FRESH_OWNER_ACCEPTANCE.md).
@@ -62,7 +63,8 @@ to exit3. A queued operation is a receipt, not proof of successful application.
 Use the already qualified VPNControl-Lab and a **new** source/run directory; keep
 the offline Go environment from [HANDOFF_W8_2026-11-15.md](HANDOFF_W8_2026-11-15.md).
 Build `cmd/vpnctl` and `cmd/vpn-control` into that source's `rehearsal-bin`.
-Use the final controller revision `41d05d1` (includes private UI fixture parent).
+Use controller revision `70c980c` (includes the earlier CRUD controller and
+private UI fixture parent). Choose an unused numeric NEW_RUN_ID >=916041.
 
 ```sh
 VPN_REHEARSAL_PROJECT="$PROJECT" VPN_REHEARSAL_UI=1 \
@@ -70,6 +72,13 @@ VPN_REHEARSAL_PROJECT="$PROJECT" VPN_REHEARSAL_UI=1 \
 python3 -B "$PROJECT/pilot/owner_cli_rehearsal.py" "$PROJECT" "$NEW_RUN_ID" --mutations
 python3 -B "$PROJECT/pilot/panel_frontend_rehearsal.py" "$PROJECT" "$NEW_RUN_ID" --browser-port 18900
 ```
+
+For the service restart/failure/configuration-rollback acceptance use the same
+frontend rehearsal with `--restart-check` instead of `--browser-port`.
+It takes over the bootstrap API in that disposable root; browser view and owner
+CRUD must run before it or in a separate new root. Never reinitialise a used
+root after a failed attempt. This checks the same-version service/configuration
+recovery, not a production upgrade or database downgrade.
 
 Keep an owned foreground WSL keeper while detached units run. The optional
 browser view is read-only synthetic localhost transport; real TLS/auth checks

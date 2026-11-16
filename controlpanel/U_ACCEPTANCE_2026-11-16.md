@@ -1,6 +1,6 @@
 # Whole U criteria accepted locally — 16 November 2026
 
-U: **W9U 2/5** (02,05), **W10U 1/4** (03). W8U 0/4, W13U 0/4,
+U: **W9U 3/5** (02,04,05), **W10U 1/4** (03). W8U 0/4, W13U 0/4,
 W14U 0/4 unchanged. E: W8E 3/8 reused, no new E closure.
 G6/G7/G8/G9/G9.1 and owner fresh-install F3 remain open.
 
@@ -70,6 +70,49 @@ forwarding was experimentally observed; no route/portproxy/trust-store changes.
 History, peaks, total panel footprint, per-user traffic and live exit health are
 outside this U03. W10U01/02/04 are still open.
 
+## W9U04 — U_PASS, canonical-derived service restart and config rollback
+
+Final controller `70c980c5402556cadee7093a16884bd939315d5f`, fixture
+`37d97b52df8cef3df70be6d5cf46e7d89fd24e9a`, new root916043 under
+`/opt/vpn-control/src-w9u04-37d97b5-916043`; unchanged5374923 binaries.
+[Typed receipt](reports/W9U04_5374923_916043.json). Main independently verified
+public template SHA against exact Git-archive LF bytes, not Windows CRLF copies.
+
+- Canonical API/frontend Service properties retained, with explicit lab-only
+  RootDirectory/network namespace, unique unit/runtime names, executable/socket,
+  credential and environment-file path substitutions. No host manager socket or
+  admin socket was exposed. Production unit files were not changed.
+- Real `systemctl restart` of the same units produced new PIDs and sockets;
+  former canonical PIDs ended. Exact owner/session identity, user/credential/
+  profile bindings, statuses/master protection, vault and original profile bytes
+  were preserved. Only legitimate session last_seen changes were excluded.
+- Trusted CA/SNI and owner response through the real TLS frontend passed.
+  The same UID/sandbox probe confirmed proc/registry/vault denial and admin
+  ENOENT/EACCES. All Cache-Control directives had to be no-store; duplicate
+  no-store fields were accepted without permitting public/max-age directives.
+- A controlled invalid PROFILE_DOMAIN produced nonzero ExecMainStatus and
+  Result=exit-code. Canonical autorestart was retained, then the owned API unit
+  was explicitly stopped. While API was unavailable, fresh master/old-control
+  TCP/UoT continued working.
+- Exact previous environment bytes were restored at the same path; the same
+  units recovered, with owner/TLS/state and fresh TCP/UoT passing again. The
+  frontend was restarted to refresh the lab RootDirectory's directory bind.
+
+Whole controller exited0; 11 policy mocks PASS0.048s. Both canonical units and
+parent fixture ended successfully; Main confirmed their completed journals,
+removed runtime directories, no owned active units and no owned keeper.
+Private credential/profile hashes stayed in memory; receipt contains booleans
+and public canonical-template hashes only.
+
+Three distinct test-adaptation corrections preceded the final pass: device/inode
+root comparison across mount namespaces; optional denial of an already absent
+admin path in private /run; comma-list handling of duplicate no-store headers.
+Each was independently reviewed; no product sandbox or restart policy was
+weakened. Failed roots916041/42 remain preserved, not reinitialised.
+
+This proves service restart and configuration rollback. It does not prove boot
+ordering/reboot, cross-version/schema downgrade, package rollout or full W8 DR.
+
 ## W9U05 — U_PASS, targeted regression and instructions
 
 Pinned5374923, offline Go, separate PrivateNetwork units:
@@ -109,9 +152,10 @@ structured evidence, not raw diagnostic streams.
 
 ## Still open / next choice
 
-W9U01 phone/TLS/nonadmin/external observations, W9U03 deferred migration plus
-actual health, and W9U04 restart/data-plane/rollback remain open. The next
-smallest complete criterion is being assessed against actual existing scripts;
-do not resume a partial W13 report merely to produce another substep.
+W9U01 phone/TLS/nonadmin/external observations and W9U03 deferred migration plus
+actual health remain open. Next evaluate W10U02's actual exit-local audit source
+and existing collector/reader path; do not resume a partial W13 report merely
+to produce another substep. No deployment-ready production package is claimed:
+reviewed W10 changes must first be isolated from deferred WIP and packaged.
 W14U01 needs concrete desired ingress parameters; a no-op/placeholder plan does
 not count. Production changes and owner actions are skipped until available.

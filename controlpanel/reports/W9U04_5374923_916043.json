@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "run": 916043,
+  "runtime_source": "5374923e2e9f27058b95f35c0e964d11a6912fab",
+  "controller_source": "70c980c5402556cadee7093a16884bd939315d5f",
+  "fixture_source": "37d97b52df8cef3df70be6d5cf46e7d89fd24e9a",
+  "canonical_templates": {
+    "api": "1a81334cb0a2210cdc991cf67327dffab891d392b310eea3991d30963fdf7b05",
+    "panel": "a98db0b1f6bd023b8ea4ecef929bb3ffa5e7fb236ccf15b031d657c5fd0dfa02",
+    "worker": "a885820138213564fe0d271ef5183a921e5bb8c302639fb90b9cd7cf398113ea"
+  },
+  "canonical_restart": true,
+  "failure_isolated": true,
+  "rollback_recovered": true,
+  "state_unchanged": true,
+  "private_tls": true,
+  "old_control_tcp_uot": true,
+  "runtime_cleanup_verified": true,
+  "production_changed": false,
+  "boot_ordering_or_reboot_claimed": false
+}

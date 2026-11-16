@@ -2,6 +2,13 @@
 
 ## 16.11.2026 — whole U acceptance
 
+W9U04 complete: lead_coder owner_password controller70c980c/fixture37d97b5,
+actual916043 canonical-derived restart/badstartup/configrollback/owner+TLS+
+old-controlTCP-UoT PASS,11mocksPASS0.048s. Architect reviewed each mount/root/header
+adaptation, no product weakening. Main independently checked publicunitSHA from
+GitLF, unchanged537core, typedreceipt and completed-unit cleanup. All keepers/
+runtime dirs/activeunits removed; no production. W9U3/5, W10U1/4; E unchanged.
+
 Main: actual normal/fault runtime916001 PASS; final5374923 build/API1.312s,
 owner API CRUD controller41d05d1 PASS; resources OS/API/CLI/browser/stale/refresh
 PASS; final auth6.447s/CLI0.033s/inventory0.063s PASS; cleanup observed.

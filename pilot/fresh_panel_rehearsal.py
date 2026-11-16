@@ -136,6 +136,13 @@ def services(project,number):
             require(service_pid>1,'derived service inactive')
             fields=dict(line.split(':',1) for line in Path('/proc/'+str(service_pid)+'/status').read_text().splitlines() if ':' in line)
             require(fields['Uid'].split()==['981']*4 and int(fields['CapEff'],16)==0,'service UID/caps mismatch')
+        # Wait for real frontend -> API readiness, not merely Type=exec PIDs.
+        deadline=time.monotonic()+30
+        while True:
+            ready=subprocess.run(['nsenter','-t',str(pid),'-n','curl','--noproxy','*','--max-time','3','--cacert',str(tls/'ca.crt'),'--resolve','panel.home.arpa:18650:127.0.0.1','--silent','--show-error','--fail','--output','/dev/null','https://panel.home.arpa:18650/login'],capture_output=True,timeout=5)
+            if ready.returncode==0:break
+            require(time.monotonic()<deadline,'generated TLS frontend/API readiness failed')
+            time.sleep(.2)
         # Real TLS login using generated private panel CA, password only via stdin.
         login_code="""import http.client,ssl,sys,urllib.parse,json
 from pathlib import Path

@@ -136,7 +136,9 @@ print('Issued profile fresh TCP/UoT PASS' if active else 'Revoked profile fresh 
             check_profile(control)
             if expected!="active":
                 refused=private/(action+"-refused.json")
-                call("profile","download",user,"--output",str(refused),"--quiet",code=3)
+                # Missing/revoked profile is HTTP404, mapped by owner CLI to2;
+                # code3 is reserved for authentication/private-file failures.
+                call("profile","download",user,"--output",str(refused),"--quiet",code=2)
                 require(not refused.exists(),"revoked profile issued")
         require(source.read_bytes()==control_bytes,"control profile changed")
         require(all(secret not in stream for secret in secrets for stream in captured),"secret in CLI output")

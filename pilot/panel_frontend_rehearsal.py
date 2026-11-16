@@ -427,7 +427,7 @@ for index,name in enumerate(('master_user.sfa.json','vpn-Old-User.json')):
         require(api('/api/v1/auth/me')==identity and api('/api/v1/users?limit=100&search=&status=')==user_metadata and state()==before,'restart changed protected state')
         profiles();receipt['canonical_restart']=True
         env.write_bytes(b'PROFILE_DOMAIN=invalid/endpoint\n');env.chmod(0o600)
-        subprocess.run(['systemctl','restart',api_unit],capture_output=True)
+        subprocess.run(['systemctl','restart',api_unit],capture_output=True,timeout=30)
         for _ in range(80):
             if int(owned_unit_property(api_unit,'ExecMainStatus'))!=0:break
             time.sleep(.1)
@@ -446,6 +446,6 @@ for index,name in enumerate(('master_user.sfa.json','vpn-Old-User.json')):
         print('Canonical API/frontend restart, failure isolation, same-path rollback and old/control TCP/UoT PASS',flush=True)
     finally:
         env.write_bytes(before_env);env.chmod(0o600)
-        for unit in reversed(started):subprocess.run(['systemctl','stop',unit],capture_output=True)
+        for unit in reversed(started):subprocess.run(['systemctl','stop',unit],capture_output=True,timeout=30)
 
 if __name__=="__main__":main()

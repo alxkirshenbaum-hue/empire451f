@@ -407,7 +407,8 @@ import http.client,socket,ssl,sys
 ctx=ssl.create_default_context(cafile=sys.argv[1]);raw=socket.create_connection(('127.0.0.1',18650),timeout=5)
 s=ctx.wrap_socket(raw,server_hostname='panel.home.arpa');c=http.client.HTTPConnection('panel.home.arpa');c.sock=s
 c.request('GET','/api/v1/auth/me',headers={'Cookie':'session='+sys.stdin.read().strip()});r=c.getresponse();body=r.read()
-assert r.status==200 and r.getheader('Cache-Control')=='no-store'
+cache=[part.strip().lower() for raw in r.headers.get_all('Cache-Control',[]) for part in raw.split(',')]
+assert r.status==200 and cache and set(cache)=={'no-store'}
 import json
 assert json.loads(body)['data']['role']=='owner'
 c.close()

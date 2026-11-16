@@ -1,5 +1,18 @@
 # Ручная проверка fresh VPN + panel v0.4.0-rc1
 
+## Current release: v0.4.0-rc2
+
+Use the rc2 command in [README](../README.md); runtime8d9b87c/schema8.
+[Verified package and user values](RELEASE_RC2_2026-11-16.md).
+The owner previously confirmed a checked current JSON including master_user.
+Recheck freshness before wiping; agent cleanup/reinstall is not authorized.
+Run the checklist below with **rc2**. F3 remains OPEN until the owner's real
+installation and VPN/panel test. rc1 publication evidence below is historical.
+After step7 also check System resources/refresh, owner identity, and (optionally)
+owner password change followed by re-login. VPN passwords must stay unchanged.
+
+## Retained rc1 checklist and evidence (apply the steps to rc2)
+
 F3 остаётся открытой до проверки владельцем. Агент не очищает, не переустанавливает и не меняет текущие ноды. Отдельная новая пара/дополнительный стенд не требуются.
 
 ## Перед очисткой — обязательно

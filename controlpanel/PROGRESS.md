@@ -1,5 +1,19 @@
 # Общий прогресс VPN Control
 
+## 16.11.2026 — rc2 release preparation (current priority)
+
+W9U3/5 (02,04,05), W10U1/4 (03); W8E3/8 reused, E unchanged.
+Further development paused at owner's request. Clean runtime8d9b87c/schema8,
+installer71fc540, verified final ZIP and actual release ELF acceptance PASS.
+[Release provenance, tests and limits](RELEASE_RC2_2026-11-16.md).
+Full exact Go suite, Q13 JSON/master compatibility, actual owner CRUD/TCP/UoT,
+canonical restart/config rollback and Windows/Linux launchers PASS. No production
+changes; rc1 unchanged. Next: publish rc2 and verify public bootstrap/full ZIP;
+then owner manual F3 on independently cleared nodes. Do not resume portable or
+next W10U development before this release result. Historical next-task entries
+below are superseded by this release priority.
+
+
 **16.11.2026 — целые U-критерии:** W9U **3/5** (02,04,05), W10U **1/4** (03).
 W8U0/4, W13U0/4, W14U0/4. E: W8E3/8 reused, без новых закрытий.
 [E2E-приёмка/точные границы](U_ACCEPTANCE_2026-11-16.md): actual owner CRUD/

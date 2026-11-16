@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "core_sha": "8d9b87c6b4bb9105d21860a2819c372dcc318db2",
+  "core_tree": "63b63907b400787d0cdf94255e482f58c9f02d26",
+  "base_sha": "0c05a6174e254192939227668f9d4947904984d4",
+  "go_version": "go version go1.27.3 linux/amd64",
+  "build_flags": [
+    "-trimpath",
+    "-buildvcs=false",
+    "-ldflags=-s -w"
+  ],
+  "go_environment": {
+    "GOPROXY": "file:///opt/vpn-control/proxy",
+    "GOSUMDB": "off",
+    "GOTOOLCHAIN": "local",
+    "GOFLAGS": "-p=1 -mod=readonly",
+    "CGO_ENABLED": "1",
+    "GOOS": "linux",
+    "GOARCH": "amd64"
+  },
+  "full_go_exit": 0,
+  "full_go_command": [
+    "go",
+    "test",
+    "./...",
+    "-count=1"
+  ],
+  "validation_umask": "022",
+  "exact_engine_optins": true,
+  "go_mod_verify": true,
+  "go_sum_sha256": "d21703d26da01b776d242a173790ac72e660d96a0347678923243d0f3ba8c825",
+  "binaries": {
+    "vpn-control": {
+      "sha256": "7819dac20300d0f424e26656a1eafb98b8e136e8c5776c7d885b228a9e74836a",
+      "bytes": 11421432,
+      "path": "bin/vpn-control"
+    },
+    "vpnctl": {
+      "sha256": "98251aab125c2ebdd89339804f39fd756933425a654120214dfcb5f053a59cc9",
+      "bytes": 9949720,
+      "path": "bin/vpnctl"
+    }
+  },
+  "helper_manifest_unchanged_from_base": true,
+  "schema_version": 8,
+  "release": "v0.4.0-rc2",
+  "installer_source_sha": "71fc5403f891e2633574353eb2a50b5b15af4244",
+  "zip": {
+    "sha256": "31a5d1b3089b3e8ce4f390a9c1e69807227d85e788dfcfa5c5eafe707a6d4e1c",
+    "bytes": 11691039,
+    "members": 28
+  },
+  "payload_sha256": {
+    "bin/vpn-control": "7819dac20300d0f424e26656a1eafb98b8e136e8c5776c7d885b228a9e74836a",
+    "bin/vpnctl": "98251aab125c2ebdd89339804f39fd756933425a654120214dfcb5f053a59cc9",
+    "helpers/vpn-add-user.template": "0adafe5b445b0b1a3d613e66934531ce945989107e965f1dfc73bf5478f24592",
+    "helpers/owned_auth.py": "d161f67951f732bf1b671afefb8bf3cf58be16badf7a65514a4f55ba610caadd",
+    "helpers/create_probe.py": "b6d3f93737e3cf0c950aa46b87515a3b04a0f91a32ce7b196c84c3ecb923c12f",
+    "helpers/g3_snapshot.py": "85e1c89d2a18cd0612aa351be315e74e7fb06166bb38410bf2ec33d2b57bc4cf",
+    "helpers/g3_restore_runtime.py": "9c7da6a54b35e14898c09feb26787d3f7aadf9624fd99b64873d5b405895e9ee",
+    "helpers/inspect_legacy.py": "b3df61e84414b078eccfecf5587166643809556f82cc76b719e465d27fc1d0a9",
+    "helpers/handoff_legacy.py": "a2ab3f73ccf67fd12db7d9c0144f6abd7d8cae22af356d94bec59a27a569c9e7",
+    "helpers/return_legacy.py": "dae1d6545f1badf24d6c59ad0ae2d84a52b61c3d9dcf600cca155975da5db434",
+    "helpers/render.py": "f184ab524304cbc8fe5b892cbc84fb9f61f75bc68ed0f1009d28d7bc2087678e",
+    "helpers/verify.py": "b57472a4836a59ef2dbc0b01e35f6104193c309f8fa57172a0afaee25965ebe1",
+    "helpers/backup_artifact.py": "69f3dad25851c8ae5b5b29dcdc327abccb8715a5607f298c834efe09150c582d",
+    "templates/sfa-profile.json": "1cea56f365912867563039963cc6fe25c47c1873c10010bcd1916d23c1a9a1b8",
+    "templates/panel-frontend.Caddyfile": "aa0d03c304d6d1729b162fa78b0df0c29d63edeb0ec327ea87558044865fc0cb",
+    "systemd/vpn-control-api.service": "1a81334cb0a2210cdc991cf67327dffab891d392b310eea3991d30963fdf7b05",
+    "systemd/vpn-control-panel.service": "a98db0b1f6bd023b8ea4ecef929bb3ffa5e7fb236ccf15b031d657c5fd0dfa02",
+    "systemd/vpn-control-worker@.service": "a885820138213564fe0d271ef5183a921e5bb8c302639fb90b9cd7cf398113ea",
+    "systemd/vpn-control-worker@.timer": "e23845370813efd060be6ad9ca5b7a602cb03b993367c108f249b7cdc62f8f02"
+  },
+  "checks": {
+    "q13_json_exact_credentials_master_owner_key_preserved": true,
+    "q13_test_seconds": 0.665,
+    "owner_crud_profiles_fresh_tcp_uot": true,
+    "disabled_deleted_denied": true,
+    "protected_master_unchanged_control": true,
+    "canonical_restart": true,
+    "bad_config_failure_isolated": true,
+    "same_path_config_rollback": true,
+    "private_tls": true,
+    "state_unchanged": true,
+    "runtime_cleanup_main_pid": 0,
+    "runtime_cleanup_result": "success",
+    "linux_release_tests": 61,
+    "linux_release_skips": 4,
+    "windows_launcher_tests": 16,
+    "windows_launcher_skips": 1,
+    "powershell_51_7_ast": true,
+    "public_ca_handoff_mocks": true,
+    "macos_bash_syntax": true,
+    "payload_all_files_hash_verified": true
+  },
+  "runtime_run": 916072,
+  "publication": "pending",
+  "f3_real_two_vds": "OPEN_OWNER_MANUAL",
+  "production_changed": false
+}

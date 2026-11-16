@@ -1,5 +1,7 @@
 # Owner guide — local U candidate, 16 November 2026
 
+Release applicability: v0.4.0-rc2, clean runtime8d9b87c/schema8. Use the fresh-install command in [README](../README.md). [Package checks and limits](RELEASE_RC2_2026-11-16.md). Prior candidate references below retain their evidence scope.
+
 Applies to the development candidate with runtime source `5374923` and acceptance
 controller `41d05d1` for CRUD and `70c980c` for service restart. Published
 `v0.4.0-rc1` still contains runtime `0c05a61`;

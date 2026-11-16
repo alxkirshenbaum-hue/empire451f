@@ -123,6 +123,7 @@ def services(project,number):
         if wait:args+=['--wait','--pipe']
         for prop in properties:args+=['-p',prop]
         result=subprocess.run(args+list(map(str,executable)),capture_output=True,timeout=190)
+        if result.returncode:put(root/('root/'+name+'-startup.log'),result.stdout+result.stderr)
         require(result.returncode==0,'generated derived unit failed: '+name)
     try:
         for kind,filename in [('api','vpn-control-api.service'),('panel','vpn-control-panel.service')]:
@@ -130,9 +131,9 @@ def services(project,number):
             name,props,exe=canonical_lab_service(entries,kind,root,project,number,pid,owner_run)
             if kind=='api':exe[0]='/usr/local/bin/vpn-control'
             else:
-                props=[('InaccessiblePaths=+/proc +/var/lib/vpn-control +/var/lib/empire-vpn +/etc/empire-vpn +/run/evpn-lab-caddy-admin' if prop.startswith('InaccessiblePaths=') else prop) for prop in props]
+                props=[('InaccessiblePaths=+/proc +/var/lib/vpn-control +/var/lib/empire-vpn +/etc/empire-vpn -+/run/evpn-lab-caddy-admin' if prop.startswith('InaccessiblePaths=') else prop) for prop in props]
             props+=['BindReadOnlyPaths='+str(root/'usr/local')+':/usr/local']
-            launch(name,props,exe);created.append(name)
+            created.append(name);launch(name,props,exe)
         socket_path=root/('run/'+api_name+'/api.sock')
         deadline=time.monotonic()+25
         while not socket_path.is_socket() and time.monotonic()<deadline:time.sleep(.1)
@@ -142,6 +143,24 @@ def services(project,number):
             require(service_pid>1,'derived service inactive')
             fields=dict(line.split(':',1) for line in Path('/proc/'+str(service_pid)+'/status').read_text().splitlines() if ':' in line)
             require(fields['Uid'].split()==['981']*4 and int(fields['CapEff'],16)==0,'service UID/caps mismatch')
+        # Credentials give this RootDirectory frontend a private /run. Prove
+        # admin denial inside its actual mount/root as its cap-less UID.
+        frontend_pid=int(subprocess.check_output(['systemctl','show',created[1],'-p','MainPID','--value']))
+        require((root/'run/evpn-lab-caddy-admin/admin.sock').is_socket(),'real admin socket missing')
+        denial_code="""import os,socket,errno
+assert os.geteuid()==981
+for path in ('/run/evpn-lab-caddy-admin','/run/caddy-admin'):
+ try:os.listdir(path)
+ except OSError as e:assert e.errno in (errno.ENOENT,errno.EACCES,errno.ENOTDIR)
+ else:raise RuntimeError('admin directory accessible')
+ s=socket.socket(socket.AF_UNIX)
+ try:s.connect(path+'/admin.sock')
+ except OSError as e:assert e.errno in (errno.ENOENT,errno.EACCES,errno.ENOTDIR)
+ else:raise RuntimeError('admin socket accessible')
+ finally:s.close()
+"""
+        denied=subprocess.run(['nsenter','--target',str(frontend_pid),'--mount','--root=/proc/'+str(frontend_pid)+'/root','--wd=/','--','/usr/bin/setpriv','--reuid=981','--regid=981','--clear-groups','--bounding-set=-all','--no-new-privs','/usr/bin/python3','-B','-c',denial_code],capture_output=True,timeout=10)
+        require(denied.returncode==0,'frontend UID admin directory/socket denial failed')
         # Wait for real frontend -> API readiness, not merely Type=exec PIDs.
         deadline=time.monotonic()+30
         while True:

@@ -161,13 +161,11 @@ for path in ('/run/evpn-lab-caddy-admin','/run/caddy-admin'):
 """
         denied=subprocess.run(['nsenter','--target',str(frontend_pid),'--mount','--root=/proc/'+str(frontend_pid)+'/root','--wd=/','--','/usr/bin/setpriv','--reuid=981','--regid=981','--clear-groups','--bounding-set=-all','--no-new-privs','/usr/bin/python3','-B','-c',denial_code],capture_output=True,timeout=10)
         require(denied.returncode==0,'frontend UID admin directory/socket denial failed')
-        # Wait for real frontend -> API readiness, not merely Type=exec PIDs.
-        deadline=time.monotonic()+30
-        while True:
-            ready=subprocess.run(['nsenter','-t',str(pid),'-n','curl','--noproxy','*','--max-time','3','--cacert',str(tls/'ca.crt'),'--resolve','panel.home.arpa:18650:127.0.0.1','--silent','--show-error','--fail','--output','/dev/null','https://panel.home.arpa:18650/login'],capture_output=True,timeout=5)
-            if ready.returncode==0:break
-            require(time.monotonic()<deadline,'generated TLS frontend/API readiness failed')
-            time.sleep(.2)
+        # Execute the SAME readiness function shipped in the final bundle.
+        import remote as installer_remote
+        with zipfile.ZipFile(project/'dist/installer.zip') as archive:
+            require(archive.read('remote.py')==(project/'remote.py').read_bytes(),'readiness source differs from final bundle')
+        installer_remote.wait_panel_https(['nsenter','--target',str(pid),'--net'],tls/'ca.crt',dict(os.environ,PATH='/usr/sbin:/usr/bin:/sbin:/bin'))
         # Real TLS login using generated private panel CA, password only via stdin.
         login_code="""import http.client,ssl,sys,urllib.parse,json
 from pathlib import Path

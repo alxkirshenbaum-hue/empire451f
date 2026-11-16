@@ -765,6 +765,21 @@ def verification(c, request, before_block=None):
         raise Invalid('Acceptance failed: ' + str(error)) from None
 
 
+
+def wait_panel_https(namespace, ca_path, environment):
+    """Require the real public login page over verified private TLS."""
+    curl=shutil.which('curl',path=environment.get('PATH'));require(curl,'Required panel readiness tool missing')
+    command=namespace+[str(Path(curl).resolve()),'--noproxy','*','--max-time','3','--cacert',str(ca_path),'--resolve','panel.home.arpa:18650:127.0.0.1','--output','/dev/null','--write-out','%{http_code}','--silent','--show-error','--fail','https://panel.home.arpa:18650/']
+    deadline=time.monotonic()+30
+    while True:
+        result=panel_command('private panel readiness',command,environment,check=False,timeout=5)
+        code=(result.stdout or b'').decode('ascii',errors='replace').strip()
+        status=code if re.fullmatch('[0-9]{3}',code) else 'unknown'
+        if result.returncode==0 and status=='200':return
+        require(time.monotonic()<deadline,'Private panel HTTPS/API did not become ready (HTTP '+status+'; curl exit '+str(result.returncode)+')')
+        time.sleep(1)
+
+
 def install_panel(c, payload, owner_username, owner_password):
     """Fresh entry only, invoked after VPN commit. Never accepts owner secret in argv."""
     import grp, pwd, uuid
@@ -863,13 +878,7 @@ def install_panel(c, payload, owner_username, owner_password):
     panel_run('worker startup',['systemctl','start',worker_unit],timeout=190)
     checked=panel_run('worker startup',['systemctl','show',worker_unit,'--property=Result,ExecMainStatus']).stdout.decode().splitlines()
     require(dict(line.split('=',1) for line in checked if '=' in line)=={'Result':'success','ExecMainStatus':'0'},'Panel worker did not complete startup successfully')
-    curl=shutil.which('curl');require(curl,'Required panel readiness tool missing')
-    readiness=namespace+[str(Path(curl).resolve()),'--noproxy','*','--max-time','3','--cacert',str(ca_path),'--resolve','panel.home.arpa:18650:127.0.0.1','--output','/dev/null','--silent','--show-error','--fail','https://panel.home.arpa:18650/login']
-    deadline=time.monotonic()+30
-    while panel_run('private panel readiness',readiness,check=False,timeout=5).returncode:
-        require(time.monotonic()<deadline,'Private panel HTTPS/API did not become ready; inspect panel service state')
-        time.sleep(1)
-
+    wait_panel_https(namespace,ca_path,environment)
     return dict(panel_url='https://panel.home.arpa/',ca_path=str(ca_path),ca_sha256=digest(ca_path),owner=owner_username,owner_run=owner_run,profile_path=str(state/'master_user.sfa.json'))
 
 

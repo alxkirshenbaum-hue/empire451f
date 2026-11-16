@@ -99,5 +99,27 @@ class PanelStageTests(unittest.TestCase):
             self.assertIs(remote.panel_command('service startup', ['systemctl'], {}, check=False), result)
 
 
+class PanelReadinessTests(unittest.TestCase):
+    def attempt(self,exit_code,status):
+        result=subprocess.CompletedProcess(['curl'],exit_code,status,b'secret diagnostics')
+        with patch.object(remote.shutil,'which',return_value='/usr/bin/curl'),patch.object(remote,'panel_command',return_value=result),patch.object(remote.time,'monotonic',side_effect=[0,31]):
+            return remote.wait_panel_https([],Path('/public-ca.crt'),{'PATH':'/usr/bin'})
+
+    def test_success_requires_http200(self):
+        self.attempt(0,b'200')
+
+    def test_non200_never_counts_as_ready(self):
+        for code in (b'302',b'404',b'503'):
+            with self.subTest(code=code),self.assertRaises(Invalid):self.attempt(0,code)
+
+    def test_transport_or_tls_error_never_counts_as_ready(self):
+        for code in (7,60):
+            with self.subTest(code=code),self.assertRaises(Invalid):self.attempt(code,b'000')
+
+    def test_unknown_status_does_not_leak_output(self):
+        with self.assertRaises(Invalid) as error:self.attempt(22,b'secret output')
+        self.assertNotIn('secret',str(error.exception))
+
+
 if __name__ == '__main__':
     unittest.main()

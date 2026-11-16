@@ -769,6 +769,9 @@ def install_panel(c, payload, owner_username, owner_password):
     """Fresh entry only, invoked after VPN commit. Never accepts owner secret in argv."""
     import grp, pwd, uuid
     environment=dict(os.environ);environment.pop('PYTHONPATH',None);environment.pop('PYTHONHOME',None);environment['PYTHONNOUSERSITE']='1';environment['PATH']='/usr/sbin:/usr/bin:/sbin:/bin'
+    # Match the installed Caddy and worker units when validating as evpn-caddy.
+    environment['XDG_DATA_HOME']='/var/lib/empire-vpn-acme'
+    environment['XDG_CONFIG_HOME']='/var/lib/empire-vpn-acme'
     def panel_run(stage, args, **kwargs):return panel_command(stage,args,environment,**kwargs)
     require(hasattr(os,'geteuid') and os.geteuid()==0,'Panel installation requires root on the entry')
     c=validate(c);n=names(c);state=Path(n['state']);base=Path(n['base'])
@@ -855,6 +858,18 @@ def install_panel(c, payload, owner_username, owner_password):
     panel_run('service startup',['systemctl','daemon-reload']);panel_run('service startup',['systemd-tmpfiles','--create','/etc/tmpfiles.d/vpn-control.conf'])
     panel_run('service startup',['systemctl','enable','--now','vpn-control-api.service','vpn-control-panel.service','vpn-control-worker@'+c['id']+'.timer'])
     for unit in ('vpn-control-api.service','vpn-control-panel.service','vpn-control-worker@'+c['id']+'.timer'):require(panel_run('service startup',['systemctl','is-active','--quiet',unit],check=False).returncode==0,'Panel service failed startup')
+    # A running timer does not prove its worker can start, or that TLS/API is ready.
+    worker_unit='vpn-control-worker@'+c['id']+'.service'
+    panel_run('worker startup',['systemctl','start',worker_unit],timeout=190)
+    checked=panel_run('worker startup',['systemctl','show',worker_unit,'--property=Result,ExecMainStatus']).stdout.decode().splitlines()
+    require(dict(line.split('=',1) for line in checked if '=' in line)=={'Result':'success','ExecMainStatus':'0'},'Panel worker did not complete startup successfully')
+    curl=shutil.which('curl');require(curl,'Required panel readiness tool missing')
+    readiness=namespace+[str(Path(curl).resolve()),'--noproxy','*','--max-time','3','--cacert',str(ca_path),'--resolve','panel.home.arpa:18650:127.0.0.1','--output','/dev/null','--silent','--show-error','--fail','https://panel.home.arpa:18650/login']
+    deadline=time.monotonic()+30
+    while panel_run('private panel readiness',readiness,check=False,timeout=5).returncode:
+        require(time.monotonic()<deadline,'Private panel HTTPS/API did not become ready; inspect panel service state')
+        time.sleep(1)
+
     return dict(panel_url='https://panel.home.arpa/',ca_path=str(ca_path),ca_sha256=digest(ca_path),owner=owner_username,owner_run=owner_run,profile_path=str(state/'master_user.sfa.json'))
 
 

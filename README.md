@@ -1,14 +1,16 @@
-# VPN + VPN Control — v0.4.0-rc3
+# VPN + VPN Control — v0.4.0-rc4
+
+**rc4 — исправление fresh writer cutover:** согласованы свежий Unix admin socket, snapshot и откат; окружение Caddy validator совпадает с установленными службами. Границы проверок фиксируются в отчёте выпуска; локальный panel-gate не заменяет полную установку двух VDS. Полная установка двух VDS (F3) остаётся отдельной фактической проверкой.
 
 **rc3 исправляет остановку настройки панели после ввода owner в rc2:** общий lock создаётся с правами0600, существующий0644 нормализуется без замены файла. Ошибки панели показывают безопасное название этапа. Runtime/core и реквизиты не менялись. Реальная установка двух VDS (F3) остаётся открытой до повторной проверки владельца; rc2 на этой проверке завершился ошибкой. Агент ноды не очищает и не переустанавливает.
 
 Одна команда Windows загружает закреплённый GitHub bootstrap и запускает общий SSH-мастер. Оба сервера автоматически загружают пакет; bootstrap проверяет встроенный SHA256. Локальные Python/Git и ручная передача bundle не нужны.
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc3/bootstrap/windows.ps1')"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc4/bootstrap/windows.ps1')"
 ```
 
-**Реальную установку на очищенных нодах проверяет владелец; F3 остаётся открытой.** Агент не имеет разрешения очищать/переустанавливать текущие ноды. Core панели закреплён на чистой release-ревизии `8d9b87c6b4bb9105d21860a2819c372dcc318db2`, schema8; отложенные portable/prune WIP не включены в runtime.
+**Реальную установку на очищенных нодах проверяет владелец; F3 остаётся открытой.** Агент не имеет разрешения очищать/переустанавливать текущие ноды. Core панели закреплён на чистой release-ревизии `6bfb74bfa891071a5b8e316b23178026edd7d19e`, schema8; отложенные portable/prune WIP не включены в runtime.
 
 ## Что будет в панели после установки
 
@@ -41,7 +43,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iex (irm 'https://ra
 
 Ограничения: только fresh, не upgrade/replace/portable; существующие registry/key/TLS/units панели вызывают отказ. Leaf-сертификат private panel действует 365 дней, автоматическое продление пока отсутствует. Публикация сайта после fresh panel отложена для сохранения worker site-baseline.
 
-macOS-вход сохранён: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc3/bootstrap/macos.sh)"`. Настоящая macOS-проверка не выполнена. Локальный `-BundlePath` остаётся дополнительным способом доставки. Ниже сохранена история VPN-only v0.3.6, а не команда нового выпуска.
+macOS-вход сохранён: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc4/bootstrap/macos.sh)"`. Настоящая macOS-проверка не выполнена. Локальный `-BundlePath` остаётся дополнительным способом доставки. Ниже сохранена история VPN-only v0.3.6, а не команда нового выпуска.
 ---
 # Персональная VPN — v0.3.6
 

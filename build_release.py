@@ -42,7 +42,7 @@ def build(panel_root=None, panel_source_sha=None, release_url=None):
     digest = hashlib.sha256((destination / 'installer.zip').read_bytes()).hexdigest()
     (destination / 'installer.sha256').write_text(digest + '  installer.zip\n', encoding='ascii')
     loader = (ROOT / 'server_boot.py.in').read_text().replace('__BUNDLE_SHA256__', digest)
-    loader = loader.replace('__BUNDLE_URL__', repr(release_url or 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc3/dist/installer.zip'))
+    loader = loader.replace('__BUNDLE_URL__', repr(release_url or 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc4/dist/installer.zip'))
     encoded = base64.b64encode(loader.encode()).decode()
     command = "python3 -c exec\\(__import__\\(\\'base64\\'\\).b64decode\\(\\'" + encoded + "\\'\\)\\)"
     for name in ['windows.ps1', 'macos.sh']:
@@ -56,7 +56,7 @@ def build(panel_root=None, panel_source_sha=None, release_url=None):
 
 
 # Panel artifacts come from an independently staged VERIFIED core, not HEAD.
-PANEL_CORE_REVISIONS = ('4dd8956', '0c05a61', '8d9b87c')
+PANEL_CORE_REVISIONS = ('4dd8956', '0c05a61', '8d9b87c', '6bfb74b')
 PANEL_PATHS = (
     'bin/vpn-control', 'bin/vpnctl', 'vpn-add-user.template',
     'owned_auth.py', 'create_probe.py', 'g3_snapshot.py', 'g3_restore_runtime.py',
@@ -83,6 +83,13 @@ PANEL_BINARY_MANIFESTS = {
         'bin/vpnctl': '98251aab125c2ebdd89339804f39fd756933425a654120214dfcb5f053a59cc9',
     },
 }
+
+
+# RC4 changes only the reviewed cutover/restore helpers; Go/schema/ELF bytes match RC2.
+PANEL_CORE_MANIFESTS['6bfb74bfa891071a5b8e316b23178026edd7d19e'] = dict(PANEL_CORE_MANIFESTS['8d9b87c6b4bb9105d21860a2819c372dcc318db2'])
+PANEL_CORE_MANIFESTS['6bfb74bfa891071a5b8e316b23178026edd7d19e']['handoff_legacy.py'] = 'd889c9d17021968c7d145811318763fc2e8740dc6c153ef8bcd37905fcdea377'
+PANEL_CORE_MANIFESTS['6bfb74bfa891071a5b8e316b23178026edd7d19e']['g3_restore_runtime.py'] = 'b370f86359e46af79d1033136df9c7551902cf224682da672060d820d88d3439'
+PANEL_BINARY_MANIFESTS['6bfb74bfa891071a5b8e316b23178026edd7d19e'] = dict(PANEL_BINARY_MANIFESTS['8d9b87c6b4bb9105d21860a2819c372dcc318db2'])
 
 
 def panel_destination(name):

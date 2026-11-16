@@ -7,7 +7,7 @@
   "forwardproxy": "v0.0.0-20261022172731-e747854e7874",
   "sing_box": "1.14.4",
   "sing_box_sha256": "699a1b510aa4396b2176d32d1181920399ebf1e267835da6f3b598d0f7c24968",
-  "installer_release": "0.4.0-rc3",
-  "panel_core_revision": "8d9b87c6b4bb9105d21860a2819c372dcc318db2",
+  "installer_release": "0.4.0-rc4",
+  "panel_core_revision": "6bfb74bfa891071a5b8e316b23178026edd7d19e",
   "panel_schema_version": 8
 }

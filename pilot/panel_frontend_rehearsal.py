@@ -302,6 +302,15 @@ def canonical_lab_service(entries,kind,root,project,run,pid,owner_run):
             'After='+api_name+'.service vpn-full-worker-root-'+str(run)+'.service','Wants='+api_name+'.service'])
     return runtime,properties,executable
 
+def bootstrap_stopped(pid):
+    path=Path('/proc')/str(pid)/'status'
+    try: fields=dict(line.split(':',1) for line in path.read_text().splitlines() if ':' in line)
+    except FileNotFoundError:return True
+    # Only the disposable bootstrap is a child of the holding Python fixture.
+    # A zombie has no executable/network activity; canonical systemd PIDs below
+    # still must be reaped by PID1 and disappear completely.
+    return fields.get('State','').split()[:1]==['Z']
+
 def owned_unit_property(unit,key):
     return command(['systemctl','show',unit,'-p',key,'--value'])
 
@@ -311,10 +320,12 @@ def restart_check(project,root,run,pid,context):
     validate_browser_root(root,run,pid)
     require(type(context.get('api_pid')) is int and context['api_pid']>1,'bootstrap API identity required')
     bootstrap=context['api_pid']
-    require(Path('/proc/'+str(bootstrap)+'/root').resolve()==root,'bootstrap API root mismatch')
+    require(Path('/proc/'+str(bootstrap)+'/root').samefile(root),'bootstrap API root mismatch')
     require(os.readlink('/proc/'+str(bootstrap)+'/ns/net')==os.readlink('/proc/'+str(pid)+'/ns/net'),'bootstrap API namespace mismatch')
     commandline=Path('/proc/'+str(bootstrap)+'/cmdline').read_bytes().split(b'\0')
-    require(commandline[0]==b'/work/rehearsal-bin/vpn-control' and b'--socket' in commandline,'bootstrap API command mismatch')
+    require(commandline[0]==b'/work/rehearsal-bin/vpn-control' and b'--socket' in commandline and commandline[commandline.index(b'--socket')+1]==b'/run/vpn-control/api/api.sock' and b'--owner-run' in commandline and commandline[commandline.index(b'--owner-run')+1]==context['owner_run'].encode(),'bootstrap API command mismatch')
+    fields=dict(line.split(':',1) for line in Path('/proc/'+str(bootstrap)+'/status').read_text().splitlines() if ':' in line)
+    require(fields['Uid'].split()==['981']*4 and fields['Gid'].split()==['981']*4 and int(fields['CapEff'],16)==0,'bootstrap API identity/caps')
     token=browser_session(root)
     receipt={'schema':1,'run':run,'canonical_templates':{},'canonical_restart':False,'failure_isolated':False,
         'rollback_recovered':False,'state_unchanged':False,'private_tls':False,'old_control_tcp_uot':False}
@@ -412,9 +423,9 @@ for index,name in enumerate(('master_user.sfa.json','vpn-Old-User.json')):
     try:
         os.kill(bootstrap,signal.SIGTERM)
         for _ in range(100):
-            if not Path('/proc/'+str(bootstrap)).exists():break
+            if bootstrap_stopped(bootstrap):break
             time.sleep(.05)
-        require(not Path('/proc/'+str(bootstrap)).exists(),'bootstrap API did not stop')
+        require(bootstrap_stopped(bootstrap),'bootstrap API did not stop')
         start_service('api');identity=ready();user_metadata=api('/api/v1/users?limit=100&search=&status=')
         start_service('panel');tls();profiles()
         previous={name:int(owned_unit_property(name,'MainPID')) for name in started}

@@ -284,6 +284,7 @@ module.main()
             deadline=time.monotonic()+1800
             print('ui-rehearsal: ready; disposable owner and canonical worker active',flush=True)
             while marker.exists() and time.monotonic()<deadline:
+                api_process.poll()  # Reap bootstrap after the owned canonical-service handoff.
                 result=subprocess.run([str(cli),'worker','once','--installation','lab','--owner-run',migration],
                                       stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=180)
                 if result.returncode:

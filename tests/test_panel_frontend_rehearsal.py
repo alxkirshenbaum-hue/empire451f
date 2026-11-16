@@ -128,4 +128,11 @@ class BrowserAdapterTests(unittest.TestCase):
                 self.assertIn('--owner-run',executable)
             else:self.assertIn('BindReadOnlyPaths=/run/vpn-w9u-api-916041:/api',props)
 
+    def test_bootstrap_stopped_rejects_live_only_accepts_gone_or_zombie(self):
+        for state,expected in (('S (sleeping)',False),('R (running)',False),('Z (zombie)',True),('D (disk sleep)',False)):
+            with mock.patch.object(Path,'read_text',return_value='State:\t'+state+'\n'):
+                self.assertEqual(frontend.bootstrap_stopped(42),expected)
+        with mock.patch.object(Path,'read_text',side_effect=FileNotFoundError):
+            self.assertTrue(frontend.bootstrap_stopped(42))
+
 if __name__=='__main__':unittest.main()

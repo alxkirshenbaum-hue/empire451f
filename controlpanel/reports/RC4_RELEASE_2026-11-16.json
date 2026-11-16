@@ -41,7 +41,16 @@
   "cleanup_main_pid": 0,
   "cleanup_parent_result": "success",
   "cleanup_is_not_acceptance": true,
-  "publication": "pending",
+  "publication": {
+    "status": "VERIFIED_DOWNLOAD_ONLY",
+    "artifact_commit": "de4c5fa3670809ec15587df46624ee75f1c68067",
+    "main_instruction_commit": "31f02c930d4dce91df82f7c8ec6cb9c7d2a21ef6",
+    "public_windows_macos_bootstrap_hashes": true,
+    "public_full_zip_and_checksum_hashes": true,
+    "encoded_rc4_url_and_sha": true,
+    "public_main_readme_git_blob": true,
+    "installer_executed_for_publication_check": false
+  },
   "production_mutations": false,
   "owner_decision": "stop local gate debugging; publish for owner manual fresh acceptance",
   "f3": "OPEN_OWNER_MANUAL"

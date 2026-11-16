@@ -12,8 +12,9 @@ because test RootDirectory mount226 failed on /run/lock/empire-vpn.lock. No
 new CRUD/profile end-to-end PASS claimed. Owner explicitly requested no further
 stand debugging/tests and publication for his own clean-install test. All failed
 runs preserved, owned processes stopped. No production mutations.
-Next: publish rc4 and verify public artifact hashes, then owner's manual F3 after
-both OS reinstalls actually complete. Do not resume gate debugging automatically.
+rc4 published: artifactde4c5fa, main instruction31f02c9. Public bootstrap/ZIP
+hashes and encoded URL verified without running installer/stand. Next: owner's
+manual F3 after both OS reinstalls actually complete. No further gate debugging.
 
 
 ## 16.11.2026 — rc3 hotfix validated after owner F3 failure

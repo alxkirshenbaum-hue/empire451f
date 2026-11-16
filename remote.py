@@ -31,6 +31,35 @@ def run(args, data=None, check=True, timeout=120, env=None):
     return p
 
 
+def open_installer_lock(path='/run/lock/empire-vpn.lock'):
+    """Open the shared root lock without replacing its inode or following links."""
+    import stat
+    fd = os.open(path, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK, 0o600)
+    try:
+        info = os.fstat(fd)
+        current = os.lstat(path)
+        require(stat.S_ISREG(info.st_mode) and info.st_uid == 0 and info.st_nlink == 1
+                and (info.st_dev, info.st_ino) == (current.st_dev, current.st_ino),
+                'Unsafe installer lock; preserve state and inspect its ownership')
+        os.fchmod(fd, 0o600)
+        return os.fdopen(fd, 'a')
+    except BaseException:
+        os.close(fd)
+        raise
+
+
+def panel_command(stage, args, environment, **kwargs):
+    """Expose only a fixed caller stage and exit status, never command output."""
+    check = kwargs.pop('check', True)
+    try:
+        result = run(args, env=environment, check=False, **kwargs)
+    except Invalid:
+        raise Invalid('Panel setup failed during ' + stage + '; command timed out') from None
+    if check and result.returncode:
+        raise Invalid('Panel setup failed during ' + stage + ' (exit ' + str(result.returncode) + ')')
+    return result
+
+
 def text(args, **kw):
     return run(args, **kw).stdout.decode().strip()
 
@@ -692,7 +721,7 @@ def dispatch(request):
     import fcntl
     os.umask(0o077)
     Path('/run/lock').mkdir(exist_ok=True)
-    with open('/run/lock/empire-vpn.lock', 'a') as lock:
+    with open_installer_lock() as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         if action == 'prepare':
             return prepare(c, role, request['versions'])
@@ -740,7 +769,7 @@ def install_panel(c, payload, owner_username, owner_password):
     """Fresh entry only, invoked after VPN commit. Never accepts owner secret in argv."""
     import grp, pwd, uuid
     environment=dict(os.environ);environment.pop('PYTHONPATH',None);environment.pop('PYTHONHOME',None);environment['PYTHONNOUSERSITE']='1';environment['PATH']='/usr/sbin:/usr/bin:/sbin:/bin'
-    def panel_run(args, **kwargs):return run(args,env=environment,**kwargs)
+    def panel_run(stage, args, **kwargs):return panel_command(stage,args,environment,**kwargs)
     require(hasattr(os,'geteuid') and os.geteuid()==0,'Panel installation requires root on the entry')
     c=validate(c);n=names(c);state=Path(n['state']);base=Path(n['base'])
     require(c['mode']=='fresh' and c.get('panel_enabled') and c.get('tls')=='ready','Panel requires a fresh committed TLS-ready installation')
@@ -778,19 +807,21 @@ def install_panel(c, payload, owner_username, owner_password):
     for name in ('vpnctl','vpn-control'):atomic('/usr/local/bin/'+name,(root/'bin'/name).read_bytes(),0o755)
     helper=root/'helpers';config=Path('/etc/vpn-control');config.mkdir(mode=0o755,exist_ok=True)
     scratch=Path('/run/vpn-control/probes');scratch.mkdir(mode=0o700,parents=True,exist_ok=True);scratch.chmod(0o700)
-    Path('/run/lock').mkdir(exist_ok=True);lock=Path('/run/lock/empire-vpn.lock');lock.touch(mode=0o600,exist_ok=True)
+    Path('/run/lock').mkdir(exist_ok=True)
+    with open_installer_lock():
+        pass
     cli='/usr/local/bin/vpnctl';api='/usr/local/bin/vpn-control'
     template=root/'templates/sfa-profile.json'
-    panel_run([cli,'registry','init','--installation',c['id'],'--sfa-template',str(template),'--approve-sha256',digest(template)])
-    panel_run([api,'--bootstrap-owner',owner_username,'--owner-password-stdin'],data=(owner_password+'\n').encode())
+    panel_run('registry initialization',[cli,'registry','init','--installation',c['id'],'--sfa-template',str(template),'--approve-sha256',digest(template)])
+    panel_run('owner initialization',[api,'--bootstrap-owner',owner_username,'--owner-password-stdin'],data=(owner_password+'\n').encode())
     # Snapshot/plan/stage/cutover use the accepted common lock and migration journal.
     interpreter=str(Path(sys.executable).resolve())
-    captured=json.loads(panel_run([interpreter,'-E','-s',str(helper/'g3_snapshot.py'),c['id'],str(uuid.uuid4()),'pre']).stdout)
+    captured=json.loads(panel_run('VPN snapshot',[interpreter,'-E','-s',str(helper/'g3_snapshot.py'),c['id'],str(uuid.uuid4()),'pre']).stdout)
     source=Path(captured['import_snapshot'])
-    report=json.loads(panel_run([interpreter,'-E','-s',str(helper/'inspect_legacy.py'),str(source),'--registry',str(panel/'state.db')]).stdout)
+    report=json.loads(panel_run('migration inspection',[interpreter,'-E','-s',str(helper/'inspect_legacy.py'),str(source),'--registry',str(panel/'state.db')]).stdout)
     owner_run=report['run_id']
-    panel_run([interpreter,'-E','-s',str(helper/'inspect_legacy.py'),str(source),'--registry',str(panel/'state.db'),'--plan',owner_run])
-    panel_run([cli,'migration','execute','--approved-plan',owner_run,'--staging-db',str(panel/'state.db'),'--snapshot',str(source),'--vault-key-file',str(panel/'vault.key')])
+    panel_run('migration plan approval',[interpreter,'-E','-s',str(helper/'inspect_legacy.py'),str(source),'--registry',str(panel/'state.db'),'--plan',owner_run])
+    panel_run('migration staging',[cli,'migration','execute','--approved-plan',owner_run,'--staging-db',str(panel/'state.db'),'--snapshot',str(source),'--vault-key-file',str(panel/'vault.key')])
     caddy=service['evpn-caddy'];admin='/run/'+n['prefix']+'-caddy-admin/admin.sock'
     namespace=['/usr/sbin/ip','netns','exec','naive']
     # Resolve actual installed tools, never user-supplied executable paths.
@@ -802,13 +833,13 @@ def install_panel(c, payload, owner_username, owner_password):
     atomic(probe,json.dumps(policy))
     worker=dict(installation=c['id'],owner_run=owner_run,socket=admin,helper=str(helper/'owned_auth.py'),validate_command=validate_command,probe_command=namespace+[str(Path(python).resolve()),'-B',str(helper/'create_probe.py'),'--policy',str(probe)])
     atomic(config/('worker-'+c['id']+'.json'),json.dumps(worker));atomic(config/('worker-'+c['id']+'.env'),'OWNER_RUN='+owner_run+'\n')
-    panel_run([cli,'migration','cutover','--installation',c['id'],'--approved-plan',owner_run,'--snapshot',str(source),'--legacy-writers-stopped'])
+    panel_run('writer cutover',[cli,'migration','cutover','--installation',c['id'],'--approved-plan',owner_run,'--snapshot',str(source),'--legacy-writers-stopped'])
     # Bootstrap private TLS using a per-installation CA; expose only public CA.
     tls=config/'private-panel';require(not tls.exists(),'Existing panel TLS material refused');tls.mkdir(mode=0o700)
-    panel_run(['openssl','req','-x509','-newkey','rsa:2048','-nodes','-sha256','-days','3650','-subj','/CN=VPN Control private CA','-addext','basicConstraints=critical,CA:TRUE,pathlen:0','-keyout',str(tls/'ca.key'),'-out',str(tls/'ca.crt')])
-    panel_run(['openssl','req','-new','-newkey','rsa:2048','-nodes','-subj','/CN=panel.home.arpa','-keyout',str(tls/'tls.key'),'-out',str(tls/'leaf.csr')])
+    panel_run('private TLS initialization',['openssl','req','-x509','-newkey','rsa:2048','-nodes','-sha256','-days','3650','-subj','/CN=VPN Control private CA','-addext','basicConstraints=critical,CA:TRUE,pathlen:0','-keyout',str(tls/'ca.key'),'-out',str(tls/'ca.crt')])
+    panel_run('private TLS initialization',['openssl','req','-new','-newkey','rsa:2048','-nodes','-subj','/CN=panel.home.arpa','-keyout',str(tls/'tls.key'),'-out',str(tls/'leaf.csr')])
     atomic(tls/'extensions','basicConstraints=critical,CA:FALSE\nsubjectAltName=DNS:panel.home.arpa\nextendedKeyUsage=serverAuth\nkeyUsage=digitalSignature,keyEncipherment\n')
-    panel_run(['openssl','x509','-req','-in',str(tls/'leaf.csr'),'-CA',str(tls/'ca.crt'),'-CAkey',str(tls/'ca.key'),'-set_serial','1','-days','365','-sha256','-extfile',str(tls/'extensions'),'-out',str(tls/'leaf.crt')]);(tls/'ca.key').unlink()
+    panel_run('private TLS initialization',['openssl','x509','-req','-in',str(tls/'leaf.csr'),'-CA',str(tls/'ca.crt'),'-CAkey',str(tls/'ca.key'),'-set_serial','1','-days','365','-sha256','-extfile',str(tls/'extensions'),'-out',str(tls/'leaf.crt')]);(tls/'ca.key').unlink()
     for path in tls.iterdir():path.chmod(0o600)
     ca_path=state/'panel-ca.crt';atomic(ca_path,(tls/'ca.crt').read_bytes(),0o644)
     frontend=(root/'templates/panel-frontend.Caddyfile').read_text().replace('@API_SOCKET@','/run/vpn-control-api/api.sock');atomic(tls/'Caddyfile',frontend)
@@ -821,9 +852,9 @@ def install_panel(c, payload, owner_username, owner_password):
     paneluser=service['evpn-panel']
     for path in [panel,*[panel/name for name in ('state.db','state.db-wal','state.db-shm','vault.key') if (panel/name).exists()]]:
         require(not path.is_symlink(),'Unsafe panel registry path');os.chown(path,paneluser.pw_uid,paneluser.pw_gid);path.chmod(0o700 if path.is_dir() else 0o600)
-    panel_run(['systemctl','daemon-reload']);panel_run(['systemd-tmpfiles','--create','/etc/tmpfiles.d/vpn-control.conf'])
-    panel_run(['systemctl','enable','--now','vpn-control-api.service','vpn-control-panel.service','vpn-control-worker@'+c['id']+'.timer'])
-    for unit in ('vpn-control-api.service','vpn-control-panel.service','vpn-control-worker@'+c['id']+'.timer'):require(panel_run(['systemctl','is-active','--quiet',unit],check=False).returncode==0,'Panel service failed startup')
+    panel_run('service startup',['systemctl','daemon-reload']);panel_run('service startup',['systemd-tmpfiles','--create','/etc/tmpfiles.d/vpn-control.conf'])
+    panel_run('service startup',['systemctl','enable','--now','vpn-control-api.service','vpn-control-panel.service','vpn-control-worker@'+c['id']+'.timer'])
+    for unit in ('vpn-control-api.service','vpn-control-panel.service','vpn-control-worker@'+c['id']+'.timer'):require(panel_run('service startup',['systemctl','is-active','--quiet',unit],check=False).returncode==0,'Panel service failed startup')
     return dict(panel_url='https://panel.home.arpa/',ca_path=str(ca_path),ca_sha256=digest(ca_path),owner=owner_username,owner_run=owner_run,profile_path=str(state/'master_user.sfa.json'))
 
 
@@ -831,7 +862,7 @@ if __name__ == '__main__':
     try:
         if len(sys.argv) == 3 and sys.argv[1] == 'rollback-local':
             import fcntl
-            with open('/run/lock/empire-vpn.lock', 'a') as lock:
+            with open_installer_lock() as lock:
                 fcntl.flock(lock, fcntl.LOCK_EX)
                 result = rollback_local(sys.argv[2])
         else:

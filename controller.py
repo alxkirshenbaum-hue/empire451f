@@ -249,7 +249,7 @@ def configure(saved=None, nodes=None, imported=None):
 @contextlib.contextmanager
 def installer_lock():
     import fcntl
-    with open('/run/lock/empire-vpn.lock', 'a') as lock:
+    with remote.open_installer_lock() as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         yield
 

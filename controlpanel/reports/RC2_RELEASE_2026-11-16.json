@@ -94,7 +94,20 @@
     "payload_all_files_hash_verified": true
   },
   "runtime_run": 916072,
-  "publication": "pending",
+  "publication": {
+    "status": "PASS",
+    "artifact_commit": "c5f74fc3c428e39cdff18e055f77af345472df28",
+    "default_readme_commit": "f9e8596299b04d2bb261eb52d97116bc3e47ca87",
+    "public_bootstrap_windows_sha256_match": true,
+    "public_bootstrap_macos_sha256_match": true,
+    "public_full_zip_sha256_match": true,
+    "public_checksum_match": true,
+    "public_tag_readme_git_blob_match": true,
+    "public_main_readme_git_blob_match": true,
+    "decoded_loader_release_url_sha_match": true,
+    "public_one_command_ps51_ps7_first_prompt": true,
+    "stopped_before_ssh_target": true
+  },
   "f3_real_two_vds": "OPEN_OWNER_MANUAL",
   "production_changed": false
 }

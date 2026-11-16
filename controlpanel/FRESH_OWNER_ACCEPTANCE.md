@@ -1,5 +1,7 @@
 # Ручная проверка fresh VPN + panel v0.4.0-rc1
 
+rc2 publication PASS: artifactc5f74fc, public bootstrap/fullZIP/hash verified; actual command startup PS5.1/7 PASS before any SSH target. Main README now offers rc2. F3 OPEN, no agent node cleanup.
+
 ## Current release: v0.4.0-rc2
 
 Use the rc2 command in [README](../README.md); runtime8d9b87c/schema8.

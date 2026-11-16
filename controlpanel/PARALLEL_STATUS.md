@@ -1,5 +1,20 @@
 # Parallel development journal
 
+## 16.11.2026 — rc2 published and public command verified
+
+**U: W9U3/5 · W10U1/4. E: W8E3/8 reused, no new gate closures.**
+`v0.4.0-rc2` artifactc5f74fc, clean core8d9b87c/schema8 published; main README/
+GUIDE command updated byf9e8596 without merging WIP into stable code. Public
+bootstrap/fullZIP/checksum and encoded loader URL/SHA verified; actual public
+command reaches first master prompt in PS5.1/7 from a new directory, stopped
+before SSH target. [Release evidence](RELEASE_RC2_2026-11-16.md).
+F1/F2/F4 ready with stated local/provenance boundaries; **F3 remains OPEN** for
+owner manual cleared-node install→old VPN→owner login→create→download→TCP/UoT.
+Owner confirmed checked JSON; recheck freshness before destructive steps. No
+production actions. Further implementation paused; next action is owner's F3,
+not next W10U development. Earlier publication-pending entries are historical.
+
+
 ## 16.11.2026 — rc2 release preparation (current priority)
 
 W9U3/5 (02,04,05), W10U1/4 (03); W8E3/8 reused, E unchanged.

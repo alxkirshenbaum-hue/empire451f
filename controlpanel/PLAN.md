@@ -1,5 +1,29 @@
 # План разработки панели
 
+## 16.11.2026 — закрыты целые U-критерии
+
+**W9U [██░░░] 2/5 (02,05) · W10U [█░░░] 1/4 (03).**
+W8U0/4, W13U0/4, W14U0/4; W8E3/8 reused, новых E-gates нет.
+[Точная приёмка](U_ACCEPTANCE_2026-11-16.md), [инструкция владельца](OWNER_GUIDE_U.md).
+Runtime5374923 + controller41d05d1: настоящий owner API→worker→CRUD→private
+profiles→freshTCP/UoT, disabled/deleted denial, unchanged control/master protection
+PASS. Actual API/CLI/browser CPU/RAM/load/disk/network/source/timestamps/stale+
+refresh PASS; backup timestamps проверены как stored metadata, не новый restore.
+Pinned targeted regression: API1.312s/auth6.447s/CLI0.033s/storage0.063s PASS,
+modverify/go.sum сохранены. Оба runtime и браузерный adapter завершены;
+MainPID0/Resultsuccess/listenerclosed/no owned units; старые артефакты сохранены.
+Raw логи остаются в Lab; в Git только фиксированные numeric/boolean receipts.
+
+Первый следующий целый кандидат — **W9U04**: actual canonical service restart
+на existing Lab + old/control TCP/UoT + безопасный rollback. Ранее916001 уже
+доказал worker rollback/return, но canonical restart этим не закрыт. Проверить
+existing unit/runtime wiring; локальные рестарты разрешены, production запрещён.
+W13 partial report не начинать вместо целого критерия. W14 plan без конкретного
+desired ingress не засчитывать. F3/phone и production действия ждут владельца.
+Новый код остаётся локальным; опубликованный rc1 и его runtime0c05a61 не менялись.
+
+Нижеследующие счётчики 0/5 и очереди описывают предшествующие точки.
+
 ## 16.11.2026 — актуальная U-очередь ночного продолжения
 
 По новому поручению владельца выбираем самые простые полезные остатки W8U/W9U,

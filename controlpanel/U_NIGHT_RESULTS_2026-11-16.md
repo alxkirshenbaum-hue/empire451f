@@ -1,5 +1,9 @@
 # U-first: local overnight work, 16 November 2026
 
+**Subsequent whole-criterion acceptance:** W9U02+05 and W10U03 U_PASS.
+See [current acceptance](U_ACCEPTANCE_2026-11-16.md); the0/5 and0/4 counters
+below describe the earlier substep-only checkpoint.
+
 Owner authorised choosing the smallest useful remaining items in W8U/W9U,
 earlier U omissions, W10U/W13U/W14U, then continuing without confirmations.
 Actions requiring the owner's phone or server changes are postponed. Production,

@@ -1,5 +1,13 @@
 # Общий прогресс VPN Control
 
+**16.11.2026 — целые U-критерии:** W9U **2/5** (02,05), W10U **1/4** (03).
+W8U0/4, W13U0/4, W14U0/4. E: W8E3/8 reused, без новых закрытий.
+[E2E-приёмка/точные границы](U_ACCEPTANCE_2026-11-16.md): actual owner CRUD/
+profile/control TCP-UoT и actual metrics API/CLI/browser PASS, pinned regression
+и owner guide PASS. Следующий цельный кандидат W9U04 canonical restart+rollback
+на существующем Lab. F3/parent gates OPEN; rc1/production не менялись.
+Прежние 0/5/0/4 ниже — исторические состояния.
+
 **16.11.2026 — актуально:** ночная U-очередь владельца, [проверенные подшаги и остатки](U_NIGHT_RESULTS_2026-11-16.md).
 U: W8U0/4 · W9U0/5 · W10U0/4 · W13U0/4 · W14U0/4 fully accepted;
 реализованы и целево проверены пять подшагов: PROF-03, AUTH-04, AUTH-03,

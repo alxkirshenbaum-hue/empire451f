@@ -1,5 +1,20 @@
 # Parallel development journal
 
+## 16.11.2026 — whole U acceptance
+
+Main: actual normal/fault runtime916001 PASS; final5374923 build/API1.312s,
+owner API CRUD controller41d05d1 PASS; resources OS/API/CLI/browser/stale/refresh
+PASS; final auth6.447s/CLI0.033s/inventory0.063s PASS; cleanup observed.
+lead_coder local_observations: CPU/network a328910 + diagnostic-test5374923,
+targetPASS0.593s, all191 source Git blob hashes MATCH, no remaining WIP.
+lead_coder owner_password: readonly browser adapter6121f3c/0bc42c9,
+8mocktestsPASS0.049s; synthetic owner-parent0700 fixe45cb7f, no policy weakening.
+architect security: adapter contract/concrete guard review complete; required
+canonical socket/unit recheck fixed and reviewed, local execution clear.
+explorer next_whole_u: readonly code triage complete; W9U04 canonical restart
+is the smallest remaining whole local candidate, current proof gap is explicit.
+No nested agents/heavy parallel runs/production changes. [Current ledger](U_ACCEPTANCE_2026-11-16.md).
+
 ## 16.11.2026 — локальная ночная U-очередь
 
 [Итоги и доказательства](U_NIGHT_RESULTS_2026-11-16.md). Независимые bounded-пакеты:

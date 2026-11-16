@@ -1,0 +1,53 @@
+{
+  "runtime_source": "5374923e2e9f27058b95f35c0e964d11a6912fab",
+  "owner_controller_source": "41d05d1d086c5cd22bd9aff41bc6ff78ac3c0356",
+  "scope": "synthetic_local_component_acceptance",
+  "W9U02": {
+    "status": "U_PASS",
+    "owner_api_crud": true,
+    "exact_case": true,
+    "replay_and_cas": true,
+    "protected_master": true,
+    "private_profiles": true,
+    "fresh_tcp_and_uot": true,
+    "disabled_and_deleted_refused": true,
+    "unchanged_independent_control": true,
+    "no_secrets_in_cli_output": true
+  },
+  "W10U03": {
+    "status": "U_PASS",
+    "actual_os_comparison": true,
+    "owner_api_cli_browser": true,
+    "sources_and_timestamps": true,
+    "real_elapsed_stale_and_refresh": true,
+    "stored_metadata_display_fixture": true,
+    "new_backup_artifact_verified": false,
+    "new_restore_verified": false,
+    "browser_transport_proves_tls_or_login": false,
+    "separate_actual_tls_frontend_check": true
+  },
+  "W9U05": {
+    "status": "U_PASS",
+    "api_target_seconds": 1.312,
+    "auth_package_seconds": 6.447,
+    "cli_target_seconds": 0.033,
+    "inventory_target_seconds": 0.063,
+    "adapter_mock_tests": 8,
+    "adapter_mock_seconds": 0.049,
+    "mod_verify": true,
+    "go_sum_sha256": "d21703d26da01b776d242a173790ac72e660d96a0347678923243d0f3ba8c825",
+    "owner_guide": "OWNER_GUIDE_U.md",
+    "full_exact_engine_suite_claimed": false
+  },
+  "cleanup": {
+    "runtime_main_pid_zero": true,
+    "runtime_result_success": true,
+    "browser_listener_closed": true,
+    "owned_keeper_exited": true,
+    "no_owned_units_running": true
+  },
+  "production_changed": false,
+  "published_rc1_changed": false,
+  "fresh_F3_accepted": false,
+  "parent_gates_accepted": false
+}

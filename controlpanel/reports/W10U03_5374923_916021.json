@@ -1,0 +1,47 @@
+{
+  "runtime_source": "5374923",
+  "run_id": 916021,
+  "scope": "synthetic_local_ingress",
+  "os_reference_comparison_pass": true,
+  "owner_unauthenticated_refused": true,
+  "api_no_store": true,
+  "cli_actual_api_pass": true,
+  "metrics": {
+    "cpu": {
+      "state": "observed",
+      "usage_percent": 0,
+      "interval_ms": 101
+    },
+    "memory": {
+      "state": "observed",
+      "total_bytes": 16695054336,
+      "available_bytes": 16053166080
+    },
+    "load": {
+      "state": "observed",
+      "average_1m": 0.34
+    },
+    "storage": {
+      "state": "observed",
+      "filesystem_total_bytes": 1081101176832,
+      "filesystem_available_bytes": 1018677166080,
+      "registry_allocated_bytes": 839680
+    },
+    "network": {
+      "state": "observed",
+      "namespace": "collector_process_network_namespace",
+      "interface": "lo",
+      "receive_bytes": 321723,
+      "transmit_bytes": 321723
+    }
+  },
+  "backup_timestamp_display_fixture": {
+    "created_utc": "2026-11-16 07:31:03",
+    "verified_utc": "2026-11-16T08:36:56Z",
+    "artifact_verified": false,
+    "restore_verified": false
+  },
+  "browser_render_pass": true,
+  "browser_stale_and_refresh_pass": true,
+  "browser_utc_conversion_pass": true
+}

@@ -1,5 +1,11 @@
 # SOL Lead / Subagents · U/E backlog
 
+**16.11.2026 — actual U_PASS:** W9U02+05 и W10U03.
+[Whole-criterion evidence](U_ACCEPTANCE_2026-11-16.md), [owner guide](OWNER_GUIDE_U.md).
+Runtime5374923/controller41d05d1, реальный existing Lab; production/rc1 не менялись.
+Следующий наименьший цельный кандидат — W9U04 canonical restart/data-plane/rollback;
+получение partial report W13 не заменяет приёмку целого пункта.
+
 **16.11.2026 — актуальная очередь:** владелец разрешил без подтверждений выбирать
 наиболее простую пользовательскую ценность W8U/W9U, пропуски до W9.5U,
 W10U/W13U/W14U; действия владельца пропускать до утра. [Результаты/остатки](U_NIGHT_RESULTS_2026-11-16.md).
@@ -16,9 +22,9 @@ Portable migration остаётся deferred; fresh rc1/F3 сохраняютс�
 | Этап / source | Именованные U-критерии | Зависимость / владелец / остаток |
 |---|---|---|
 | W8U · BKP01/04–06,USR,CRED,PROF,MIG | 01 скачать переносимый encrypted bundle incl master/login/status/template; 02 verify/wrong key/corrupt отказ; 03 preview+import clean без silent overwrite; 04 old TCP/UoT PASS,disabled FAIL,ошибка безопасна | W3–7 core; Lead, coder только UX/тест с контрактом Lead; 2 пакета связка+E2E. 0/4 U_PASS;01/02/04 имеют partial evidence |
-| W9U · §12–13 | 01 phone owner/TLS/nonadmin/external;02 CRUD/profile/контрольный пользователь;03 export/import+честный health;04 restart/data-plane+откат;05 pinned targeted regression+инструкция | W8U, критические остатки G6/G7; Lead; 2 пакета сверка+приёмка;0/5 |
+| W9U · §12–13 | 01 phone owner/TLS/nonadmin/external;02 CRUD/profile/контрольный пользователь;03 export/import+честный health;04 restart/data-plane+откат;05 pinned targeted regression+инструкция | **2/5 U_PASS:02,05**, local candidate;01/03/04 open; [evidence](U_ACCEPTANCE_2026-11-16.md) |
 | W9.5U · legacy W9.1 | 01 пакет и опубликованные команды;02 clean pair+панель;03 upgrade/migrate;04 повтор/critical failure+replace ingress сохраняет panel/users;05 E2E fresh/upgrade/import/startup/private access | W9U,W8U; Lead installer, coder упаковка/инструкции;3 пакета;0/5 |
-| W10U · MET01–05,SYS,AUD | 01 live egress TCP/UDP/IP и службы;02 last local audit exit отдельно/stale;03 ingress metrics/backup timestamps по источникам;04 PASS и FAIL/stale в UI/CLI | W9.5U; Lead источники,coder UI;2 пакета;0/4 |
+| W10U · MET01–05,SYS,AUD | 01 live egress TCP/UDP/IP и службы;02 last local audit exit отдельно/stale;03 ingress metrics/backup timestamps по источникам;04 PASS и FAIL/stale в UI/CLI | **1/4 U_PASS:03**, actual API/CLI/browser;01/02/04 open; [evidence](U_ACCEPTANCE_2026-11-16.md) |
 | W11U · ALT01–05 | 01 выбранный канал+test;02 sustained fail/recovery;03 cooldown/dedup+token safety;04 без канала локальное событие | W10U, выбор канала; Lead,coder канал;2 пакета;0/4 |
 | W12U · PROF,TPL,§7/10 | 01 каталог approved;02 выбор+персональная выдача;03 старые профили сохранены;04 unsupported version отказ+импорт клиента | W9U, текущий renderer; coder/Lead;1–2 пакета;0/4 |
 | W13U · DEP01–08,NMG01–04 | 01 allowlisted режим preview;02 approval+execute staging;03 status/error/recovery;04 command injection denied/ресурсы | W9.5U; Lead и review;2 пакета;0/4 |

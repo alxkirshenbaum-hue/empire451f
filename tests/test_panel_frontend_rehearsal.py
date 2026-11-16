@@ -107,4 +107,25 @@ class BrowserAdapterTests(unittest.TestCase):
             frontend.validate_browser_root(root,9,42)
             socket_check.assert_called_once_with(root)
 
+    def test_canonical_security_properties_preserved(self):
+        project=Path('/synthetic/source');root=project/'rehearsal-root-916041'
+        repo=Path(__file__).parents[1]
+        for kind,name in (('api','vpn-control-api.service'),('panel','vpn-control-panel.service')):
+            entries=frontend.canonical_service(repo/'controlpanel/systemd'/name)
+            unit,props,executable=frontend.canonical_lab_service(entries,kind,root,project,916041,42,'owner-run')
+            self.assertEqual(unit,'vpn-w9u-'+kind+'-916041')
+            for key,value in entries:
+                if key in ('User','Group','RuntimeDirectory','ExecStart','EnvironmentFile','ReadWritePaths','NetworkNamespacePath','Environment','InaccessiblePaths','LoadCredential'):continue
+                self.assertIn(key+'='+value,props)
+            self.assertIn('RootDirectory='+str(root),props)
+            self.assertIn('RuntimeDirectoryMode=0700',props)
+            self.assertIn('Restart=on-failure',props)
+            self.assertIn('NoNewPrivileges=yes',props)
+            self.assertIn('CapabilityBoundingSet=',props)
+            self.assertFalse(any('systemd/private' in item or ':/run' in item for item in props))
+            if kind=='api':
+                self.assertIn('/run/vpn-w9u-api-916041/api.sock',executable)
+                self.assertIn('--owner-run',executable)
+            else:self.assertIn('BindReadOnlyPaths=/run/vpn-w9u-api-916041:/api',props)
+
 if __name__=='__main__':unittest.main()

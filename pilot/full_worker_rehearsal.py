@@ -279,7 +279,7 @@ module.main()
             gateway=(ROOT/'templates/panel-frontend.Caddyfile').read_text().replace('@API_SOCKET@',str(api_dir/'api.sock'))
             put(frontend/'config',gateway)
             home=Path('/run/ui-frontend-home');home.mkdir(mode=0o700);os.chown(home,981,981)
-            put('/run/ui-context.json',json.dumps(dict(synthetic=True,owner_run=migration,api_socket=str(api_dir/'api.sock'))))
+            put('/run/ui-context.json',json.dumps(dict(synthetic=True,owner_run=migration,api_pid=api_process.pid,api_socket=str(api_dir/'api.sock'))))
             marker=Path('/run/ui-hold');put(marker,'isolated UI rehearsal\n')
             deadline=time.monotonic()+1800
             print('ui-rehearsal: ready; disposable owner and canonical worker active',flush=True)

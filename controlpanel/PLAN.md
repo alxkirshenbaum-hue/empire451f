@@ -1,5 +1,14 @@
 # План разработки панели
 
+## 17.11.2026 — BL-011.1 domain/path HTTPS candidate
+
+U W9.5U-Fresh4/4 from rc4; W9U3/5,W10U1/4. E unchanged. BL-011.1 local PASS,
+rc5 real acceptance pending. Architect design/review: PANEL_DOMAIN_PATH_SPEC.md.
+Python25 PASS; clean pinned corec174ba9 auth/API/CLI/storage target PASS. Caddy
+public/private separation/frontend Host and exact sing-box configs PASS. go.sum
+unchanged/mod verify PASS. Next: publish rc5, authorized actual hh-entry/hh-exit
+cleanup/reinstall, real VPN→trusted TLS→owner→create/download→TCP/UoT acceptance.
+
 ## 17.11.2026 — real authorized F3 PASS
 
 **W9.5U-Fresh F1–F4:4/4.** W9U3/5, W10U1/4, W8E3/8 and whole W9.5U/E/E1 unchanged.

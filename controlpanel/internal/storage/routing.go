@@ -18,9 +18,12 @@ const RoutingWarning = "Requires SFA 1.15.0-alpha.13. Routes selected Russian re
 var ErrTemplateIncompatible = errors.New("TEMPLATE_INCOMPATIBLE")
 
 type ProfileOptions struct {
-	Client      string
-	RUDM        bool
-	Acknowledge bool
+	// Deployment-owned rendering inputs, never accepted from JSON requests.
+	PanelDomain  string `json:"-"`
+	PanelEntryIP string `json:"-"`
+	Client       string
+	RUDM         bool
+	Acknowledge  bool
 }
 
 func (o ProfileOptions) variant() (string, error) {

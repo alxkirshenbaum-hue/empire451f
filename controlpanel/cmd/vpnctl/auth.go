@@ -112,11 +112,39 @@ func postAuth(client *http.Client, action string, body io.Reader, token string) 
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Origin", auth.Origin)
+	origin, err := configuredOrigin()
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Origin", origin)
 	req.Header.Set("Content-Type", "application/json")
 	if token != "" {
 		req.AddCookie(&http.Cookie{Name: "session", Value: token})
 		req.Header.Set("X-CSRF-Token", auth.CSRF(token))
 	}
 	return client.Do(req)
+}
+
+// configuredOrigin reads a single data value; it never sources shell commands.
+func configuredOrigin() (string, error) {
+	origin, present := os.LookupEnv("PANEL_ORIGIN")
+	if !present {
+		raw, err := os.ReadFile("/etc/vpn-control/api.env")
+		if err != nil && !os.IsNotExist(err) {
+			return "", err
+		}
+		for _, line := range strings.Split(string(raw), "\n") {
+			if value, ok := strings.CutPrefix(line, "PANEL_ORIGIN="); ok {
+				if present {
+					return "", fmt.Errorf("duplicate PANEL_ORIGIN")
+				}
+				origin, present = strings.TrimSpace(value), true
+			}
+		}
+	}
+	if present && origin == "" {
+		return "", fmt.Errorf("empty PANEL_ORIGIN")
+	}
+	config, err := auth.ParseConfig(origin, "/")
+	return config.Origin, err
 }

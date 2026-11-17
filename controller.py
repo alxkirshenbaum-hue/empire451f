@@ -397,7 +397,7 @@ def start(nodes, session, imported, resume_id=None):
         require('panel/payload.json' in BUNDLE, 'Use the VPN + panel release candidate: panel payload missing')
         if action != 'preview':
             require(c.get('tls') == 'ready', 'Fresh VPN + panel requires DNS ready for trusted HTTPS; select ready at Q16')
-        c = dict(c, panel_enabled=True)
+        c = dict(c, panel_enabled=True, panel_path=c.get('panel_path') or '/'+secrets.token_hex(16)+'/')
     users = clients(c, imported)
     state = {'config': c, 'changed': [], 'action': action}
     if action == 'ssh-security':
@@ -637,21 +637,16 @@ def setup_fresh_panel(c, session, state):
         raise
     finally:
         password = None
-    ca = Path(result['ca_path'])
-    require(ca.is_file() and not ca.is_symlink(), 'Public panel CA missing')
-    target = session_path(session).with_suffix('.panel-ca.crt')
-    if target.exists():
-        require(target.read_bytes() == ca.read_bytes(), 'Panel CA handoff conflict')
-    else:
-        remote.atomic(target, ca.read_bytes(), mode=0o644)
+    target = session_path(session).with_suffix('.panel-url.txt')
+    remote.atomic(target,result['panel_url']+'\n')
     state['panel_ready'] = True
     state['panel_owner'] = owner
+    state['panel_url'] = result['panel_url']
     store_session(session, state)
     print('VPN + private panel installed: ' + result['panel_url'])
     print('Panel owner: ' + owner)
-    print('Panel CA SHA256: ' + result['ca_sha256'])
-    print('Trust the public panel CA on your client after comparing SHA256 over this verified SSH connection. Never bypass TLS verification.')
-    print('Public panel CA for client: ' + str(target))
+    print('Connect the VPN, open the HTTPS link above, and sign in with the independent panel owner.')
+    print('The panel uses the VPN domain trusted certificate. No CA installation is needed; never bypass browser certificate warnings.')
 
 
 def main(argv):

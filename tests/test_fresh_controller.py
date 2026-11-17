@@ -26,13 +26,14 @@ class FreshControllerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);ca=root/'ca.crt';ca.write_bytes(b'public certificate')
             state={'config':{'mode':'fresh','panel_enabled':True},'committed':True}
-            result={'ca_path':str(ca),'panel_url':'https://panel.home.arpa/','ca_sha256':'f'*64}
+            result={'panel_url':'https://vpn.example/'+('a'*32)+'/'}
             output=io.StringIO();secret='Independent owner secret'
             with patch.dict(controller.BUNDLE,{'panel/payload.json':'{}'}),patch('builtins.input',return_value='owner'),patch.object(controller.getpass,'getpass',return_value=secret),patch.object(controller.remote,'install_panel',return_value=result) as install,patch.object(controller,'session_path',return_value=root/'session.json'),patch.object(controller,'store_session') as store,contextlib.redirect_stdout(output):
                 controller.setup_fresh_panel(state['config'],'session',state)
             self.assertEqual(install.call_args.args[2:],('owner',secret))
             self.assertTrue(state['panel_ready']);self.assertNotIn(secret,json.dumps(state));self.assertNotIn(secret,output.getvalue())
-            self.assertEqual((root/'session.panel-ca.crt').read_bytes(),ca.read_bytes());store.assert_called_once()
+            self.assertEqual((root/'session.panel-url.txt').read_text().strip(),result['panel_url']);store.assert_called_once()
+            self.assertIn('No CA installation is needed',output.getvalue())
     def test_panel_failure_does_not_abort_committed_vpn(self):
         state={'config':{'mode':'fresh','panel_enabled':True,'tls':'ready'},'changed':['entry','exit'],'transaction':'fixture-transaction'}
         nodes=Mock();nodes.call.return_value={'status':'committed'}

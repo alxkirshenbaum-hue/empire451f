@@ -766,10 +766,14 @@ def verification(c, request, before_block=None):
 
 
 
-def wait_panel_https(namespace, ca_path, environment):
+def wait_panel_https(namespace, ca_path, environment, panel_url=None):
     """Require the real public login page over verified private TLS."""
     curl=shutil.which('curl',path=environment.get('PATH'));require(curl,'Required panel readiness tool missing')
-    command=namespace+[str(Path(curl).resolve()),'--noproxy','*','--max-time','3','--cacert',str(ca_path),'--resolve','panel.home.arpa:18650:127.0.0.1','--output','/dev/null','--write-out','%{http_code}','--silent','--show-error','--fail','https://panel.home.arpa:18650/']
+    from urllib.parse import urlsplit
+    domain=urlsplit(panel_url).hostname if panel_url else 'panel.home.arpa'
+    trust=['--cacert',str(ca_path)] if ca_path else []
+    url='https://'+domain+':18650'+(urlsplit(panel_url).path if panel_url else '/')
+    command=namespace+[str(Path(curl).resolve()),'--noproxy','*','--max-time','3']+trust+['--resolve',domain+':18650:127.0.0.1','--output','/dev/null','--write-out','%{http_code}','--silent','--show-error','--fail',url]
     deadline=time.monotonic()+30
     while True:
         result=panel_command('private panel readiness',command,environment,check=False,timeout=5)
@@ -852,20 +856,15 @@ def install_panel(c, payload, owner_username, owner_password):
     worker=dict(installation=c['id'],owner_run=owner_run,socket=admin,helper=str(helper/'owned_auth.py'),validate_command=validate_command,probe_command=namespace+[str(Path(python).resolve()),'-B',str(helper/'create_probe.py'),'--policy',str(probe)])
     atomic(config/('worker-'+c['id']+'.json'),json.dumps(worker));atomic(config/('worker-'+c['id']+'.env'),'OWNER_RUN='+owner_run+'\n')
     panel_run('writer cutover',[cli,'migration','cutover','--installation',c['id'],'--approved-plan',owner_run,'--snapshot',str(source),'--legacy-writers-stopped'])
-    # Bootstrap private TLS using a per-installation CA; expose only public CA.
-    tls=config/'private-panel';require(not tls.exists(),'Existing panel TLS material refused');tls.mkdir(mode=0o700)
-    panel_run('private TLS initialization',['openssl','req','-x509','-newkey','rsa:2048','-nodes','-sha256','-days','3650','-subj','/CN=VPN Control private CA','-addext','basicConstraints=critical,CA:TRUE,pathlen:0','-keyout',str(tls/'ca.key'),'-out',str(tls/'ca.crt')])
-    panel_run('private TLS initialization',['openssl','req','-new','-newkey','rsa:2048','-nodes','-subj','/CN=panel.home.arpa','-keyout',str(tls/'tls.key'),'-out',str(tls/'leaf.csr')])
-    atomic(tls/'extensions','basicConstraints=critical,CA:FALSE\nsubjectAltName=DNS:panel.home.arpa\nextendedKeyUsage=serverAuth\nkeyUsage=digitalSignature,keyEncipherment\n')
-    panel_run('private TLS initialization',['openssl','x509','-req','-in',str(tls/'leaf.csr'),'-CA',str(tls/'ca.crt'),'-CAkey',str(tls/'ca.key'),'-set_serial','1','-days','365','-sha256','-extfile',str(tls/'extensions'),'-out',str(tls/'leaf.crt')]);(tls/'ca.key').unlink()
-    for path in tls.iterdir():path.chmod(0o600)
-    ca_path=state/'panel-ca.crt';atomic(ca_path,(tls/'ca.crt').read_bytes(),0o644)
-    frontend=(root/'templates/panel-frontend.Caddyfile').read_text().replace('@API_SOCKET@','/run/vpn-control-api/api.sock');atomic(tls/'Caddyfile',frontend)
+    # Main Caddy owns the automatically renewed domain certificate.
+    # Existing dedicated frontend retains Unix API access without TLS keys.
+    tls=config/'private-panel';require(not tls.exists(),'Existing panel frontend refused');tls.mkdir(mode=0o700)
+    frontend=(root/'templates/panel-frontend.Caddyfile').read_text().replace('@API_SOCKET@','/run/vpn-control-api/api.sock').replace('@PANEL_DOMAIN@',c['domain']);atomic(tls/'Caddyfile',frontend)
     unitsroot=root/'systemd'
     apiunit=(unitsroot/'vpn-control-api.service').read_text().replace('--vault-key-file /var/lib/vpn-control/vault.key','--vault-key-file /var/lib/vpn-control/vault.key --owner-run '+owner_run)
     frontendunit=(unitsroot/'vpn-control-panel.service').read_text().replace('evpn-nh1',n['prefix'])
     for name,content in [('vpn-control-api.service',apiunit),('vpn-control-panel.service',frontendunit),('vpn-control-worker@.service',(unitsroot/'vpn-control-worker@.service').read_text()),('vpn-control-worker@.timer',(unitsroot/'vpn-control-worker@.timer').read_text())]:atomic('/etc/systemd/system/'+name,content,0o644)
-    atomic(config/'api.env','PROFILE_DOMAIN='+c['domain']+'\n')
+    atomic(config/'api.env','PROFILE_DOMAIN='+c['domain']+'\nPANEL_ORIGIN=https://'+c['domain']+'\nPANEL_BASE_PATH='+c['panel_path']+'\nPANEL_ENTRY_IP='+c['entry']['address']+'\n')
     atomic('/etc/tmpfiles.d/vpn-control.conf','d /run/vpn-control 0700 root root -\nd /run/vpn-control/probes 0700 root root -\nf /run/lock/empire-vpn.lock 0600 root root -\n',0o644)
     paneluser=service['evpn-panel']
     for path in [panel,*[panel/name for name in ('state.db','state.db-wal','state.db-shm','vault.key') if (panel/name).exists()]]:
@@ -878,8 +877,9 @@ def install_panel(c, payload, owner_username, owner_password):
     panel_run('worker startup',['systemctl','start',worker_unit],timeout=190)
     checked=panel_run('worker startup',['systemctl','show',worker_unit,'--property=Result,ExecMainStatus']).stdout.decode().splitlines()
     require(dict(line.split('=',1) for line in checked if '=' in line)=={'Result':'success','ExecMainStatus':'0'},'Panel worker did not complete startup successfully')
-    wait_panel_https(namespace,ca_path,environment)
-    return dict(panel_url='https://panel.home.arpa/',ca_path=str(ca_path),ca_sha256=digest(ca_path),owner=owner_username,owner_run=owner_run,profile_path=str(state/'master_user.sfa.json'))
+    panel_url='https://'+c['domain']+c['panel_path']
+    wait_panel_https(namespace,None,environment,panel_url)
+    return dict(panel_url=panel_url,owner=owner_username,owner_run=owner_run,profile_path=str(state/'master_user.sfa.json'))
 
 
 if __name__ == '__main__':
@@ -896,5 +896,3 @@ if __name__ == '__main__':
         # Deliberately hide third-party exceptions that may embed request/config data.
         print(json.dumps({'ok': False, 'error': str(exc) if isinstance(exc, Invalid) else type(exc).__name__}))
         sys.exit(1)
-
-

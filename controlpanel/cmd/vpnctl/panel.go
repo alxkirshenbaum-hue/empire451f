@@ -277,7 +277,12 @@ func ownerCLI(args []string, out, stderr io.Writer) int {
 	}
 	req.AddCookie(&cookie)
 	if method != "GET" {
-		req.Header.Set("Origin", auth.Origin)
+		origin, err := configuredOrigin()
+		if err != nil {
+			fmt.Fprintln(stderr, "Invalid panel origin configuration")
+			return 2
+		}
+		req.Header.Set("Origin", origin)
 		req.Header.Set("X-CSRF-Token", auth.CSRF(cookie.Value))
 		req.Header.Set("Content-Type", "application/json")
 		if mutation {

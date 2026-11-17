@@ -7,13 +7,15 @@ from test_installer import config,users
 
 class FreshPanelTests(unittest.TestCase):
     def test_exact_namespace_panel_route_and_separate_socket_identity(self):
-        c=config();c['panel_enabled']=True
+        c=config();c.update(panel_enabled=True,panel_path='/'+('a'*32)+'/')
         files=render.render(c,'entry',dict(interface='ens99',ssh_port=2222),dict(entry='A'*43+'=',exit='B'*43+'='),users(),client.bundle())
         base='/etc/empire-vpn/'+c['id'];sb=json.loads(files[base+'/sing-box.json']['content'])
         self.assertEqual(sb['route']['final'],'wg-only')
         for rule in sb['route']['rules'][:2]:
             self.assertEqual((rule['network'],rule['port'],rule['override_address'],rule['override_port']),('tcp',443,'127.0.0.1',18650))
-        self.assertEqual(sb['route']['rules'][1]['ip_cidr'],['192.0.2.119/32'])
+        self.assertEqual(sb['route']['rules'][1]['ip_cidr'],[c['entry']['address']+'/32'])
+        self.assertEqual(sb['route']['rules'][2]['port'],80)
+        self.assertEqual(sb['route']['rules'][2]['override_port'],18652)
         self.assertEqual(sb['outbounds'][-1],dict(type='direct',tag='panel-only',bind_interface='lo'))
         unit=files['/etc/systemd/system/evpn-'+c['id']+'-caddy.service']['content']
         self.assertIn('User=evpn-caddy\nGroup=evpn-caddy',unit);self.assertIn('RuntimeDirectoryMode=0700',unit)
@@ -24,7 +26,9 @@ class FreshPanelTests(unittest.TestCase):
         template=(Path(__file__).resolve().parents[1]/'templates/sfa-profile.json').read_text();c=config()
         old=delivery.profile(template,c,'synthetic');c['panel_enabled']=True;new=delivery.profile(template,c,'synthetic')
         self.assertFalse(any(s.get('tag')=='panel-dns' for s in old['dns']['servers']))
-        self.assertEqual(new['dns']['servers'][0],dict(type='hosts',tag='panel-dns',predefined={'panel.home.arpa':'192.0.2.119'}))
+        self.assertEqual(new['dns'],old['dns'])
+        self.assertEqual(new['route']['rules'][0]['domain'],[c['domain']])
+        self.assertNotIn('panel.home.arpa',json.dumps(new))
         self.assertEqual(new['route']['rules'][0]['outbound'],'naive-out')
         self.assertEqual(new['outbounds'],old['outbounds'])
     def test_existing_tls_is_rejected_before_any_mutating_command(self):

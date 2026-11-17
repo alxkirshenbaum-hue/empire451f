@@ -9,7 +9,7 @@ def main():
     directory=Path(sys.argv[1]);snap=directory/'snapshot';snap.mkdir(mode=0o700)
     raw=b'{"format":"empire-vpn-clients","schema_version":1,"clients":[{"username":"Alice","password":"Synthetic Alice exact Case"},{"username":"master_user","password":"Synthetic master imported unchanged"}]}'
     imported=directory/'input.json';imported.write_bytes(raw);imported.chmod(0o600)
-    c=render.validate(json.loads((ROOT/'tests/fixture.json').read_bytes()));c['panel_enabled']=True
+    c=render.validate(json.loads((ROOT/'tests/fixture.json').read_bytes()));c['panel_enabled']=True;c['panel_path']='/'+('a'*32)+'/'
     with patch.object(controller,'names',return_value={'state':str(snap)}),patch.object(controller.secrets,'token_urlsafe',side_effect=AssertionError('Imported master password must not regenerate')),patch.object(controller.getpass,'getpass',side_effect=AssertionError('Imported JSON must not prompt')),contextlib.redirect_stdout(io.StringIO()):
         result=controller._clients(c,json.loads(imported.read_bytes()),True)
     assert result==json.loads(raw)

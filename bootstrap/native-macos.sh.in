@@ -320,27 +320,11 @@ finish_handoff() {
   fi
   rm -f "$tmp"; printf '%s\n' 'Profile transfer failed; retry or skip.' >&2
  done
- local panel_ca_available=0
- if ssh -F "$CONFIG" "$entry_host" "test -f $prefix.panel-ca.crt" 2>/dev/null; then
-  panel_ca_available=1
-  local ca_hash ca_target ca_tmp
-  ca_hash=$(ssh -F "$CONFIG" "$entry_host" "sha256sum $prefix.panel-ca.crt" | awk '{print $1}')
-  [[ "$ca_hash" =~ ^[a-f0-9]{64}$ ]] || die 'Cannot verify panel CA fingerprint'
-  printf 'Panel public CA SHA256: %s\n' "$ca_hash"
-  while :; do
-   ca_target=$(ask PanelCA 'Save public panel CA? Enter a NEW local .crt path, or Enter to skip')
-   [ -n "$ca_target" ] || break
-   case "$ca_target" in '~/'*) ca_target="$HOME/${ca_target#\~/}";; /*) ;; *) ca_target="$PWD/$ca_target";; esac
-   if [ -e "$ca_target" ] || [ -L "$ca_target" ] || [ ! -d "$(dirname "$ca_target")" ]; then printf '%s\n' 'Choose a new path.' >&2; continue; fi
-   ca_tmp=$(mktemp "$(dirname "$ca_target")/.panel-ca.XXXXXX") || continue
-   if scp -q -F "$CONFIG" "${entry_host}:$prefix.panel-ca.crt" "$ca_tmp" && [ "$(wc -c < "$ca_tmp")" -le 65536 ] && [ "$(shasum -a 256 "$ca_tmp" | awk '{print $1}')" = "$ca_hash" ] && chmod 644 "$ca_tmp" && ln "$ca_tmp" "$ca_target"; then
-    rm -f "$ca_tmp"; printf '%s\n' 'Saved PUBLIC CA. Verify SHA256 against trusted SSH output, review the certificate, then manually configure device trust. No trust store changed.'; break
+ if ssh -F "$CONFIG" "$entry_host" "test -f $prefix.panel-url.txt" 2>/dev/null; then
+    printf '%s\n' 'Panel uses the VPN domain trusted HTTPS certificate; no CA installation is required. Connect VPN and use the URL printed above. Website publishing remains deferred to preserve its verified baseline.'
+    return 0
    fi
-   rm -f "$ca_tmp"; printf '%s\n' 'CA transfer failed; retry or skip.' >&2
-  done
- fi
- if [ "$panel_ca_available" = 1 ]; then printf '%s\\n' 'Website publishing is deferred for this panel candidate to preserve its verified health baseline.'; return 0; fi
- while :; do
+   while :; do
   archive=$(ask Q25 'Publish a static website now? Enter a local handoff ZIP path, or Enter to keep the current site')
   [ -n "$archive" ] || return 0
   case "$archive" in '~/'*) archive="$HOME/${archive#\~/}";; /*) ;; *) archive="$PWD/$archive";; esac

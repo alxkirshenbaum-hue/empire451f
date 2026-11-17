@@ -255,8 +255,8 @@ function Finish-Handoff {
   }catch{Write-Host 'Could not save the profile. Choose a new path in a private writable folder.'}
   finally{if($tmp -and [IO.File]::Exists($tmp)){[IO.File]::Delete($tmp)}}
  }
- Offer-PanelCA $prefix
- if($script:PanelCAAvailable){Write-Host 'Website publishing is deferred for this panel candidate to preserve its verified health baseline.';return}
+ & ssh -F $Config $entryHost ('test -f '+$prefix+'.panel-url.txt') 2>$null
+ if($LASTEXITCODE -eq 0){Write-Host 'Panel uses the VPN domain trusted HTTPS certificate; no CA installation is required. Connect VPN and use the URL printed above. Website publishing remains deferred to preserve its verified baseline.';return}
  while($true){
   $zip=Ask Q25 'Publish a static website now? Enter a local handoff ZIP path, or Enter to keep the current site'
   if(!$zip){return}

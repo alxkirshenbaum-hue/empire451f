@@ -55,6 +55,7 @@ def validate(config):
             raise Invalid(name + ' must be a network /30') from None
     require(not ipaddress.ip_network(c['tunnel']).overlaps(ipaddress.ip_network(c['relay'])), 'Subnets overlap')
     require(type(c.get('panel_enabled', False)) is bool, 'panel_enabled must be boolean')
+    if 'panel_path' in c:require(isinstance(c['panel_path'],str) and re.fullmatch(r'/[0-9a-f]{32}/',c['panel_path']), 'Invalid panel path')
     c.setdefault('wg_port', 51830)
     require(type(c['wg_port']) is int and 1024 <= c['wg_port'] <= 65535, 'Invalid WG port')
     c.setdefault('mtu', 1380)
@@ -150,8 +151,11 @@ def render(c, role, facts, public_keys, clients, templates):
               'route': {'default_domain_resolver': 'resolver', 'rules': [{'action': 'resolve', 'strategy': 'ipv4_only'}, {'ip_cidr': deny + ['::/0'], 'action': 'reject'}], 'final': 'wg-only'}}
         if c.get('panel_enabled'):
             sb['outbounds'].append(dict(type='direct',tag='panel-only',bind_interface='lo'))
-            private=dict(inbound=['uot'],network='tcp',port=443,action='route',outbound='panel-only',override_address='127.0.0.1',override_port=18650)
-            sb['route']['rules'][:0]=[dict(private,domain=['panel.home.arpa']),dict(private,ip_cidr=['192.0.2.119/32'])]
+            private=dict(inbound=['uot'],network='tcp',action='route',outbound='panel-only',override_address='127.0.0.1')
+            sb['route']['rules'][:0]=[dict(private,port=port,override_port=target,**dest) for port,target in ((443,18650),(80,18652)) for dest in (dict(domain=[c['domain']]),dict(ip_cidr=[c['entry']['address']+'/32']))]
+            path=c.get('panel_path');require(path and re.fullmatch(r'/[0-9a-f]{32}/',path),'Missing stable panel path')
+            private_site='\nhttps://'+c['domain']+':18650 {\n bind 127.0.0.1\n @bare path '+path[:-1]+'\n redir @bare '+path+' 308\n handle_path '+path+'* {\n  reverse_proxy 127.0.0.1:18651\n }\n handle {\n  respond 404\n }\n}\nhttp://'+c['domain']+':18652 {\n bind 127.0.0.1\n redir https://'+c['domain']+'{uri} 308\n}\n'
+            out[base+'/Caddyfile']['content']+=private_site
         out[base + '/sing-box.json'] = file(json.dumps(sb, indent=2), 0o640, 'evpn')
         out[base + '/site/index.html'] = file('<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Personal space</title><h1>Personal space</h1><p>Notes and projects.</p></html>')
         for svc in ('caddy', 'singbox'):
@@ -179,9 +183,14 @@ def change_plan(desired, existing, owned):
     return result
 
 
-def panel_profile(profile):
+def panel_profile(profile, config=None):
     """Exact private panel DNS/route; no general loopback bypass."""
     result=copy.deepcopy(profile)
+    if config is not None:
+        rules=result.setdefault('route',{}).setdefault('rules',[])
+        rules[:]=[r for r in rules if r.get('domain')!=['panel.home.arpa']]
+        rules[:0]=[dict(domain=[config['domain']],network='tcp',port=[80,443],action='route',outbound='naive-out'),dict(ip_cidr=[config['entry']['address']+'/32'],network='tcp',port=[80,443],action='route',outbound='naive-out')]
+        return result
     dns=result.setdefault('dns',{})
     dns.setdefault('servers',[]).insert(0,dict(type='hosts',tag='panel-dns',predefined={'panel.home.arpa':'192.0.2.119'}))
     dns.setdefault('rules',[]).insert(0,dict(domain=['panel.home.arpa'],server='panel-dns',action='route'))

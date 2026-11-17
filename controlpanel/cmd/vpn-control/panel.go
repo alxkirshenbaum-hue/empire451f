@@ -79,6 +79,10 @@ func panelBody(w http.ResponseWriter, r *http.Request, value any) bool {
 	return true
 }
 func panelRoutes(mux *http.ServeMux, registry *storage.Registry, run string, observationDir ...string) {
+	panelRoutesOrigin(mux, registry, run, auth.Origin, observationDir...)
+}
+
+func panelRoutesOrigin(mux *http.ServeMux, registry *storage.Registry, run, origin string, observationDir ...string) {
 	owner := func(mutate bool, handler func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			cookie, err := r.Cookie("session")
@@ -92,7 +96,7 @@ func panelRoutes(mux *http.ServeMux, registry *storage.Registry, run string, obs
 				return
 			}
 			if mutate {
-				if r.Header.Get("Origin") != auth.Origin || subtle.ConstantTimeCompare([]byte(r.Header.Get("X-CSRF-Token")), []byte(auth.CSRF(cookie.Value))) != 1 {
+				if r.Header.Get("Origin") != origin || subtle.ConstantTimeCompare([]byte(r.Header.Get("X-CSRF-Token")), []byte(auth.CSRF(cookie.Value))) != 1 {
 					http.Error(w, "Forbidden", 403)
 					return
 				}

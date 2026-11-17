@@ -1,5 +1,6 @@
 "use strict";
 (() => {
+ const basePath = document.querySelector('script[data-base-path]').dataset.basePath;
  const byId = id => document.getElementById(id);
  const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
  if (!csrf) return;
@@ -47,12 +48,12 @@
   try {
    const headers={"Accept":"application/json"};
    if(method!=="GET") {headers["Content-Type"]="application/json";headers["X-CSRF-Token"]=csrf;if(key)headers["Idempotency-Key"]=key;}
-   const response=await fetch(path,{method,headers,body:body===undefined?undefined:JSON.stringify(body),credentials:"same-origin",cache:"no-store",signal:controller.signal});
+   const response=await fetch(basePath + path.slice(1),{method,headers,body:body===undefined?undefined:JSON.stringify(body),credentials:"same-origin",cache:"no-store",signal:controller.signal});
    if(response.status===204)return null;
    let envelope;
    try {envelope=await response.json();}catch(_){const e=new Error("Invalid API response.");e.status=response.ok?0:response.status;throw e;}
    if(!response.ok) {
-    if(response.status===401){sessionStorage.removeItem(pendingKey);location.assign("/");}
+    if(response.status===401){sessionStorage.removeItem(pendingKey);location.assign(basePath);}
     const e=new Error(envelope.error?.code||"Request unavailable.");e.status=response.status;throw e;
    }
    return envelope.data;
@@ -173,7 +174,7 @@
   if(available){
    const query=new URLSearchParams({client:byId("profile-client").value});
    if(option.checked){query.set("ru_dm","1");query.set("ack","1");}
-   link.href="/api/v1/users/"+user.id+"/profiles/download?"+query;
+   link.href=basePath+"api/v1/users/"+user.id+"/profiles/download?"+query;
   } else link.removeAttribute("href");
   byId("profile-state").textContent=available?"Base routing is used unless the optional feature is selected.":"A profile is available only after the account is confirmed active.";
  }
@@ -246,7 +247,7 @@
   if(byteLength<12||byteLength>1024){form.reset();report(new Error("New password must contain 12 to 1024 bytes."));return;}
   if(values.new_password!==values.confirm_password){form.reset();report(new Error("New passwords do not match."));return;}
   button.disabled=true;
-  try{await api("/api/v1/auth/change-password","POST",values);form.reset();location.assign("/");}
+  try{await api("/api/v1/auth/change-password","POST",values);form.reset();location.assign(basePath);}
   catch(error){form.reset();report(error);}finally{button.disabled=false;}
  });
  byId("create-user").addEventListener("submit",event=>{

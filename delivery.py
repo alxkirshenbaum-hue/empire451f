@@ -24,7 +24,7 @@ def profile(template, config, password):
     outbound.update(server=config['domain'], username=MASTER, password=password)
     if config.get('panel_enabled'):
         from render import panel_profile
-        result=panel_profile(result)
+        result=panel_profile(result,config)
     return result
 
 

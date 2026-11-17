@@ -1,29 +1,23 @@
-**17.11.2026: реальная техническая приёмка fresh rc4 прошла на hh-entry/hh-exit.** Опубликованная команда → VPN+панель → owner login → create → download → TCP/UoT PASS. [Доказательства и границы](https://github.com/alxkirshenbaum-hue/empire451f/blob/feature/controlpanel-pilot/controlpanel/REAL_F3_2026-11-17.md). Прежние пометки F3 OPEN ниже описывают состояние до приёмки.
+**17.11.2026: rc5 установлен штатной публичной командой на очищенных hh-entry/hh-exit, exit0.** VPN → trusted HTTPS → owner → create → download → TCP/UoT PASS; публичный путь закрыт. Без ручной установки CA.
 
-## Fresh VPN + VPN Control: v0.4.0-rc4
+# VPN + VPN Control — v0.4.0-rc5
 
-rc4 исправляет fresh writer cutover/откат с Unix admin socket и согласует окружение validator/готовность служб. Публикуется по просьбе владельца для ручной приёмки; полный сквозной fresh PASS пока не получен.
-
-Для новой чистой установки **VPN вместе с панелью** используйте этот
-предварительный выпуск для ручной приёмки. Старый стабильный VPN-only v0.3.6 сохранён ниже.
-Windows PowerShell5.1/7, одна команда:
+Панель: `https://<VPN-domain>/<случайный-путь>/`, основной автоматически продлеваемый сертификат Let's Encrypt. Отдельный поддомен и установка CA на устройства не нужны. Доступ к панели только через VPN; отдельный owner login сохраняется.
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc4/bootstrap/windows.ps1')"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc5/bootstrap/windows.ps1')"
 ```
 
-[Полная инструкция rc2: подготовка, JSON-импорт и первый вход](https://github.com/alxkirshenbaum-hue/empire451f/blob/v0.4.0-rc4/README.md).
-[Проверки пакета и ограничения](https://github.com/alxkirshenbaum-hue/empire451f/blob/v0.4.0-rc4/controlpanel/RELEASE_RC4_2026-11-16.md).
-Общий мастер устанавливает VPN, затем приватную панель. В Q13 выберите локальный
-JSONv1 с нужными активными пользователями: регистр логинов и пароли, включая
-master_user, сохраняются. JSONv1 не переносит disabled-статусы. В P01–P03 задайте
-отдельного владельца панели и сохраните/проверьте публичный CA для первого входа.
-Включены управление пользователями/профили, смена owner-пароля и показатели
-ресурсов с источником/временем/обновлением. Это fresh, не обновление действующей пары.
+1. До очистки проверьте актуальный JSON пользователей вне Git: `empire-vpn-clients`, `schema_version:1`, username/password включая master_user. JSON v1 импортирует включённые записи активными; исключите отозванные записи. Проверку SSH host key не отключайте.
+2. Две подготовленные Ubuntu24.04/26.04 amd64 VDS, SSH-ключ, домен на вход. В мастере new → fresh, прежние домен/адреса для сохранения реквизитов; Q16 ready. Q13 — локальный JSON, имя произвольное.
+3. P01–P03 — отдельный owner панели. Q24 — сохраните профиль и импортируйте в SFA: реквизиты прежние, добавлены точные маршруты панели.
+4. Подключите VPN, откройте готовую HTTPS-ссылку мастера, войдите владельцем. Сертификаты вручную устанавливать не нужно. Проверьте список, создайте пользователя, скачайте профиль и подключитесь.
 
-**F3 — реальная установка на двух очищенных VDS — пока OPEN:** её выполняет
-владелец. До очистки обязательно перепроверьте актуальность сохранённого экспорта.
-Не запускайте fresh на действующих нодах для обновления панели.
+Сохранены принятые W9U/W10U возможности управления пользователями, защищённый master_user, смена owner-пароля, ресурсы и timestamps аудитов/копий. Только fresh; upgrade/portable и полные E-матрицы не заявлены. Публикация сайта после fresh панели отложена. Через VPN основной домен вне пути панели возвращает404.
+
+При частичном отказе сохраняйте сообщения и journal; не сбрасывайте ключи и не повторяйте очистку. Чистый core c174ba9babba229ee04f3eca4c1f323a06755301/schema8 исключает отложенный portable/prune WIP. [Проверки rc5](https://github.com/alxkirshenbaum-hue/empire451f/blob/feature/controlpanel-pilot/controlpanel/RELEASE_RC5_2026-11-17.md). Реальная F3 rc4 не заменяет приёмку rc5.
+
+macOS: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc5/bootstrap/macos.sh)"`. Настоящая macOS-проверка не выполнена.
 
 ---
 

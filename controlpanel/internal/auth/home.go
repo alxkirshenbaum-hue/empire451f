@@ -17,6 +17,7 @@ var panelScript []byte
 var pageTemplate = template.Must(template.New("home").Parse(pageSource))
 
 type page struct {
+	BasePath    string
 	Profiles    []profileLink
 	CSRF        string
 	Error       string
@@ -31,7 +32,7 @@ func render(w http.ResponseWriter, code int, data page) {
 	pageTemplate.Execute(w, data)
 }
 
-func loginError(w http.ResponseWriter, web bool, code int) {
+func (s *Service) loginError(w http.ResponseWriter, web bool, code int) {
 	if !web {
 		fail(w, code)
 		return
@@ -40,11 +41,11 @@ func loginError(w http.ResponseWriter, web bool, code int) {
 	if code == 429 {
 		message = "Please wait a moment before signing in again."
 	}
-	render(w, code, page{Error: message})
+	render(w, code, page{Error: message, BasePath: s.Config().BasePath})
 }
 
 func (s *Service) home(w http.ResponseWriter, r *http.Request) {
-	var data page
+	data := page{BasePath: s.Config().BasePath}
 	data.ApplyNotice = caddy.ApplyNotice
 	if c, err := r.Cookie("session"); err == nil {
 		var id string
@@ -81,7 +82,7 @@ func (s *Service) home(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		case errors.Is(err, sql.ErrNoRows):
-			http.SetCookie(w, cookie("", -1))
+			http.SetCookie(w, s.cookie("", -1))
 		default:
 			fail(w, 503)
 			return

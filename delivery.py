@@ -22,6 +22,9 @@ def profile(template, config, password):
     result = json.loads(template)
     outbound = next(o for o in result['outbounds'] if o['type'] == 'naive')
     outbound.update(server=config['domain'], username=MASTER, password=password)
+    if config.get('panel_enabled'):
+        from render import panel_profile
+        result=panel_profile(result,config)
     return result
 
 

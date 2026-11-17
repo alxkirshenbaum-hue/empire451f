@@ -1,0 +1,50 @@
+"""Fresh controller integration; no SSH, network or service mutations."""
+import contextlib
+import io
+import json
+from pathlib import Path
+import sys
+import tempfile
+import unittest
+from unittest.mock import patch, Mock
+ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT))
+import controller
+from render import Invalid
+
+class FreshControllerTests(unittest.TestCase):
+    def test_panel_site_change_is_refused_without_mutation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            session=Path(directory)/'session.json';archive=session.with_suffix('.zip');archive.write_bytes(b'fixture upload')
+            state={'committed':True,'config':{'panel_enabled':True}}
+            with patch.object(controller.remote,'readjson',return_value=state),patch.object(controller,'session_path',return_value=session),patch.object(controller.delivery,'publish_site') as publish:
+                with contextlib.redirect_stdout(io.StringIO()) as output, contextlib.redirect_stderr(output):
+                    self.assertEqual(controller.finish(Mock(),'session','publish-site'),1)
+                self.assertIn('Site ZIP rejected',output.getvalue())
+            publish.assert_not_called();self.assertFalse(archive.exists())
+    def test_owner_secret_stays_out_of_session_and_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);ca=root/'ca.crt';ca.write_bytes(b'public certificate')
+            state={'config':{'mode':'fresh','panel_enabled':True},'committed':True}
+            result={'panel_url':'https://vpn.example/'+('a'*32)+'/'}
+            output=io.StringIO();secret='Independent owner secret'
+            with patch.dict(controller.BUNDLE,{'panel/payload.json':'{}'}),patch('builtins.input',return_value='owner'),patch.object(controller.getpass,'getpass',return_value=secret),patch.object(controller.remote,'install_panel',return_value=result) as install,patch.object(controller,'session_path',return_value=root/'session.json'),patch.object(controller,'store_session') as store,contextlib.redirect_stdout(output):
+                controller.setup_fresh_panel(state['config'],'session',state)
+            self.assertEqual(install.call_args.args[2:],('owner',secret))
+            self.assertTrue(state['panel_ready']);self.assertNotIn(secret,json.dumps(state));self.assertNotIn(secret,output.getvalue())
+            self.assertEqual((root/'session.panel-url.txt').read_text().strip(),result['panel_url']);store.assert_called_once()
+            self.assertIn('No CA installation is needed',output.getvalue())
+    def test_panel_failure_does_not_abort_committed_vpn(self):
+        state={'config':{'mode':'fresh','panel_enabled':True,'tls':'ready'},'changed':['entry','exit'],'transaction':'fixture-transaction'}
+        nodes=Mock();nodes.call.return_value={'status':'committed'}
+        with patch.object(controller.remote,'readjson',return_value=state),patch.object(controller,'session_path',return_value=Path('/unused')),patch.object(controller,'clients',return_value={}),patch.object(controller,'verify'),patch.object(controller,'store_session'),patch.object(controller,'handoff_profile'),patch.object(controller,'setup_fresh_panel',side_effect=Invalid('panel startup incomplete')),patch.object(controller,'abort') as abort,contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaises(Invalid):controller.finish(nodes,'session','finish')
+        self.assertTrue(state['committed']);abort.assert_not_called()
+        self.assertEqual([c.args[1] for c in nodes.call.call_args_list],['health','commit','commit'])
+    def test_replace_does_not_enter_fresh_panel(self):
+        state={'config':{'mode':'replace-entry','tls':'ready'},'changed':[]}
+        with patch.object(controller.remote,'readjson',return_value=state),patch.object(controller,'session_path',return_value=Path('/unused')),patch.object(controller,'clients',return_value={}),patch.object(controller,'verify'),patch.object(controller,'store_session'),patch.object(controller,'handoff_profile'),patch.object(controller,'setup_fresh_panel') as panel,contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(controller.finish(Mock(),'session','finish'),0)
+        panel.assert_not_called()
+
+if __name__=='__main__':unittest.main()

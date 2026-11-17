@@ -17,6 +17,78 @@ import (
 
 var domainLabel = regexp.MustCompile(`^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$`)
 
+// WithVPNPanelDestination adds only the panel's HTTP(S) destinations to Naive.
+// It leaves the outbound and its DNS bootstrap unchanged.
+func WithVPNPanelDestination(body []byte, domain string, entryIP string) ([]byte, error) {
+	if !ValidEndpoint(domain) {
+		return nil, errors.New("invalid panel domain")
+	}
+	if entryIP != "" && (net.ParseIP(entryIP) == nil || net.ParseIP(entryIP).To4() == nil || strings.Contains(entryIP, ":")) {
+		return nil, errors.New("invalid panel IPv4")
+	}
+	var profile map[string]json.RawMessage
+	if err := json.Unmarshal(body, &profile); err != nil || profile == nil {
+		return nil, errors.New("invalid profile")
+	}
+	exact := func(raw json.RawMessage, value string) bool {
+		var values []string
+		return json.Unmarshal(raw, &values) == nil && len(values) == 1 && values[0] == value
+	}
+	for _, section := range []string{"dns", "route"} {
+		var object map[string]json.RawMessage
+		if raw, ok := profile[section]; ok {
+			if json.Unmarshal(raw, &object) != nil || object == nil {
+				return nil, errors.New("invalid profile section")
+			}
+		} else {
+			object = make(map[string]json.RawMessage)
+		}
+		var rules []map[string]json.RawMessage
+		if raw, ok := object["rules"]; ok && json.Unmarshal(raw, &rules) != nil {
+			return nil, errors.New("invalid profile rules")
+		}
+		kept := make([]map[string]json.RawMessage, 0, len(rules)+2)
+		if section == "route" {
+			add := func(key, value string) {
+				raw, _ := json.Marshal(map[string]any{key: []string{value}, "network": "tcp", "port": []int{80, 443}, "action": "route", "outbound": "naive-out"})
+				var rule map[string]json.RawMessage
+				_ = json.Unmarshal(raw, &rule)
+				kept = append(kept, rule)
+			}
+			add("domain", domain)
+			if entryIP != "" {
+				add("ip_cidr", entryIP+"/32")
+			}
+		}
+		for _, rule := range rules {
+			if exact(rule["domain"], "panel.home.arpa") || section == "route" && exact(rule["ip_cidr"], "192.0.2.119/32") {
+				continue
+			}
+			kept = append(kept, rule)
+		}
+		if section == "route" || object["rules"] != nil {
+			object["rules"], _ = json.Marshal(kept)
+		}
+		if section == "dns" && object["servers"] != nil {
+			var servers []map[string]json.RawMessage
+			if json.Unmarshal(object["servers"], &servers) != nil {
+				return nil, errors.New("invalid DNS servers")
+			}
+			keptServers := make([]map[string]json.RawMessage, 0, len(servers))
+			for _, server := range servers {
+				if string(server["tag"]) != `"panel-dns"` {
+					keptServers = append(keptServers, server)
+				}
+			}
+			object["servers"], _ = json.Marshal(keptServers)
+		}
+		if section == "route" || profile[section] != nil {
+			profile[section], _ = json.Marshal(object)
+		}
+	}
+	return json.Marshal(profile)
+}
+
 // E1 certifies stable SFA builds independently of prerelease builds.
 func supports1144(bound string, minimum bool) bool {
 	parts := strings.Split(bound, ".")
@@ -183,5 +255,10 @@ func (r *Registry) renderSFA(ctx context.Context, tx *sql.Tx, userID, domain str
 		return nil, err
 	}
 	defer clear(profile["outbounds"])
-	return json.Marshal(profile)
+	blob, err := json.Marshal(profile)
+	if err != nil || options.PanelDomain == "" {
+		return blob, err
+	}
+	defer clear(blob)
+	return WithVPNPanelDestination(blob, options.PanelDomain, options.PanelEntryIP)
 }

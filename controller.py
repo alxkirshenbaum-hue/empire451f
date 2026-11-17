@@ -249,7 +249,7 @@ def configure(saved=None, nodes=None, imported=None):
 @contextlib.contextmanager
 def installer_lock():
     import fcntl
-    with open('/run/lock/empire-vpn.lock', 'a') as lock:
+    with remote.open_installer_lock() as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         yield
 
@@ -393,6 +393,11 @@ def start(nodes, session, imported, resume_id=None):
             c = configure(saved, nodes, imported)
         else:
             c = validate(saved)
+    if action in ('new', 'preview') and c['mode'] == 'fresh':
+        require('panel/payload.json' in BUNDLE, 'Use the VPN + panel release candidate: panel payload missing')
+        if action != 'preview':
+            require(c.get('tls') == 'ready', 'Fresh VPN + panel requires DNS ready for trusted HTTPS; select ready at Q16')
+        c = dict(c, panel_enabled=True, panel_path=c.get('panel_path') or '/'+secrets.token_hex(16)+'/')
     users = clients(c, imported)
     state = {'config': c, 'changed': [], 'action': action}
     if action == 'ssh-security':
@@ -535,6 +540,7 @@ def finish(nodes, session, operation):
         require(state.get('committed'), 'Website upload requires a committed deployment')
         archive = session_path(session).with_suffix('.zip')
         try:
+            require(not c.get('panel_enabled'), 'Website publication is deferred for this panel candidate: preserve the verified worker site baseline')
             if c['entry']['kind'] == 'legacy':
                 base = Path('/var/www/empire-tomorrow')
                 require(str(base / 'current') in Path('/etc/naive/Caddyfile').read_text(), 'Unrecognised legacy site root')
@@ -579,6 +585,8 @@ def finish(nodes, session, operation):
     state['committed'] = True
     store_session(session,state)
     handoff_profile(c, users, session)
+    if c.get('panel_enabled'):
+        setup_fresh_panel(c, session, state)
     return 0
 
 
@@ -599,7 +607,46 @@ def handoff_profile(c, users, session):
     print('Private client profile on entry: ' + str(path))
     print('Android: import the JSON in sing-box for Android (SFA), SagerNet releases: ' + delivery.RELEASES)
     print('TUN + TLS/443 + UoT v2. The entry name is resolved via direct HTTPS DNS. Other DNS uses HTTPS via VPN. Russian destinations, local networks and most Android Download Manager traffic go direct; other traffic uses VPN.')
-    print('Planned VPN-only management URL: ' + delivery.PANEL + ' (reserved; panel not deployed).')
+    if c.get('panel_enabled'):
+        print('VPN profile ready. Private owner panel setup follows; keep this SSH session open.')
+    else:
+        print('Planned VPN-only management URL: ' + delivery.PANEL + ' (reserved; panel not deployed).')
+
+
+def setup_fresh_panel(c, session, state):
+    """Panel failure must not roll back an already committed VPN."""
+    require(c.get('mode') == 'fresh' and c.get('panel_enabled') is True, 'Fresh panel scope required')
+    payload = json.loads(BUNDLE['panel/payload.json'])
+    print('Configure an independent panel owner. Its password stays on entry and is not saved in the installer session.')
+    while True:
+        owner = input('[P01] Panel owner login [owner]: ').strip() or 'owner'
+        if owner != 'master_user' and re.fullmatch(r'[A-Za-z0-9_.@-]{1,64}', owner):
+            break
+        print('Choose an independent owner login (not master_user).')
+    while True:
+        password = getpass.getpass('[P02] Panel owner password (12+ characters): ')
+        if not 12 <= len(password) <= 256 or len(password.encode()) > 256 or '\n' in password or '\r' in password:
+            print('Use a password of 12 to 256 bytes.'); continue
+        if password == getpass.getpass('[P03] Repeat panel owner password: '):
+            break
+        print('Passwords differ.')
+    try:
+        result = remote.install_panel(c, payload, owner, password)
+    except BaseException:
+        print('VPN is committed. Panel setup is incomplete; preserve protected migration/journal state. Do not reinstall VPN or reset keys.', file=sys.stderr)
+        raise
+    finally:
+        password = None
+    target = session_path(session).with_suffix('.panel-url.txt')
+    remote.atomic(target,result['panel_url']+'\n')
+    state['panel_ready'] = True
+    state['panel_owner'] = owner
+    state['panel_url'] = result['panel_url']
+    store_session(session, state)
+    print('VPN + private panel installed: ' + result['panel_url'])
+    print('Panel owner: ' + owner)
+    print('Connect the VPN, open the HTTPS link above, and sign in with the independent panel owner.')
+    print('The panel uses the VPN domain trusted certificate. No CA installation is needed; never bypass browser certificate warnings.')
 
 
 def main(argv):

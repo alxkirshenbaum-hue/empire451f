@@ -118,6 +118,6 @@ func (s *Service) changePassword(w http.ResponseWriter, r *http.Request) {
 		fail(w, 503)
 		return
 	}
-	http.SetCookie(w, cookie("", -1))
+	http.SetCookie(w, s.cookie("", -1))
 	w.WriteHeader(http.StatusNoContent)
 }

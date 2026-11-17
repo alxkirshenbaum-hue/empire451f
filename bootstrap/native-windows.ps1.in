@@ -1,7 +1,7 @@
 # Native Windows launcher: no local Python, module bundle, or server templates.
-param([string]$EntryAlias,[string]$ExitAlias,[string]$DeploymentId)
+param([string]$EntryAlias,[string]$ExitAlias,[string]$DeploymentId,[string]$BundlePath)
 $ErrorActionPreference='Stop'
-$resume = $PSBoundParameters.Count -gt 0
+$resume = $PSBoundParameters.ContainsKey('EntryAlias') -or $PSBoundParameters.ContainsKey('ExitAlias') -or $PSBoundParameters.ContainsKey('DeploymentId')
 if ($resume -and ($EntryAlias -notmatch '^[a-zA-Z0-9][a-zA-Z0-9_.-]*$' -or $ExitAlias -notmatch '^[a-zA-Z0-9][a-zA-Z0-9_.-]*$' -or $EntryAlias -eq $ExitAlias -or $DeploymentId -cnotmatch '^[a-z][a-z0-9]{2,9}$')) { throw 'Supply two distinct SSH aliases and an existing deployment ID.' }
 $entryHost='entry'; $exitHost='exit'; $startOperation='start'
 if ($resume) {$entryHost=$EntryAlias; $exitHost=$ExitAlias; $startOperation='resume-'+$DeploymentId}
@@ -128,7 +128,7 @@ function Public-Key{
 function Shell-Quote([string]$Value){return "'"+$Value.Replace("'","'\''")+"'"}
 function Authenticate([string]$Role){
  $status=Probe $Role
- if($status -eq 'changed-key'){throw 'SSH host identity changed. Check provider console; no automatic replacement.'}
+ if($status -eq 'changed-key'){throw ('SSH host identity changed. If this server was reinstalled, first verify its new SSH fingerprint in the provider console. Then remove this server''s old entry from: {0} . Restart setup and confirm the verified fingerprint. Keep all other known_hosts entries. No automatic replacement is performed.' -f (Join-Path $HOME '.ssh\known_hosts'))}
  if($status -eq 'identity'){
   Write-Host ('Verify '+$Role+' SSH fingerprint against the provider console.')
   & ssh -F $Config -o BatchMode=no -o StrictHostKeyChecking=ask $Role true
@@ -167,9 +167,26 @@ function New-Port{
  $listener=New-Object Net.Sockets.TcpListener([Net.IPAddress]::Loopback,0)
  $listener.Start();$port=$listener.LocalEndpoint.Port;$listener.Stop();return $port
 }
+function Upload-LocalBundle{
+ $env:LC_EVPN_BUNDLE_FILE=''
+ if(!$BundlePath){return}
+ $local=(Resolve-Path -LiteralPath $BundlePath).ProviderPath
+ $info=Get-Item -LiteralPath $local
+ if(!$info.PSIsContainer -and $info.Length -le 67108864 -and (Get-FileHash -LiteralPath $local -Algorithm SHA256).Hash.ToLowerInvariant() -eq '__BUNDLE_SHA256__'){
+  foreach($role in @($entryHost,$exitHost)){
+   & ssh -F $Config $role 'set -eu; test ! -L /run/empire-vpn-local-installer; install -d -m 700 /run/empire-vpn-local-installer; test ! -L /run/empire-vpn-local-installer/installer.zip'
+   if($LASTEXITCODE -ne 0){throw 'Cannot prepare private bundle directory'}
+   & scp -q -F $Config $local ($role+':/run/empire-vpn-local-installer/installer.zip')
+   if($LASTEXITCODE -ne 0){throw 'Local bundle upload failed'}
+   & ssh -F $Config $role 'chmod 600 /run/empire-vpn-local-installer/installer.zip'
+   if($LASTEXITCODE -ne 0){throw 'Cannot protect uploaded bundle'}
+  }
+  $env:LC_EVPN_BUNDLE_FILE='/run/empire-vpn-local-installer/installer.zip'
+ }else{throw 'Local bundle is invalid or differs from this bootstrap SHA256'}
+}
 function Start-Rpc{
  Write-Host 'Opening exit SSH tunnel and loading installer on exit (up to 90 seconds)...'
- $arguments=@('-F',$Config,'-n','-o','SendEnv=LC_EVPN_TOKEN','-L',('127.0.0.1:'+$LocalPort+':127.0.0.1:'+$RpcPort),$exitHost,($Boot+' rpc '+$RpcPort))
+ $arguments=@('-F',$Config,'-n','-o','SendEnv=LC_EVPN_TOKEN','-o','SendEnv=LC_EVPN_BUNDLE_FILE','-L',('127.0.0.1:'+$LocalPort+':127.0.0.1:'+$RpcPort),$exitHost,($Boot+' rpc '+$RpcPort))
  $info=New-Object Diagnostics.ProcessStartInfo
  $info.FileName=(Get-Command ssh.exe).Source
  $info.Arguments=($arguments | ForEach-Object {Quote-WindowsArg $_}) -join ' '
@@ -188,8 +205,35 @@ function Start-Rpc{
 function Run-Wizard([string]$Operation){
  Write-Host ("Opening interactive wizard on entry: "+$Operation+" ...")
  # Keep native console handles: capturing/piping stdout buffers prompts without LF.
- & ssh -F $Config -tt -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -R ('127.0.0.1:'+$RelayPort+':127.0.0.1:'+$LocalPort) $entryHost ($Boot+' wizard '+$RelayPort+' '+$Operation)
+ & ssh -F $Config -tt -o SendEnv=LC_EVPN_BUNDLE_FILE -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -R ('127.0.0.1:'+$RelayPort+':127.0.0.1:'+$LocalPort) $entryHost ($Boot+' wizard '+$RelayPort+' '+$Operation)
  $script:WizardExit=$LASTEXITCODE
+}
+function Offer-PanelCA([string]$Prefix){
+ $script:PanelCAAvailable=$false
+ & ssh -F $Config $entryHost ('test -f '+$Prefix+'.panel-ca.crt') 2>$null
+ if($LASTEXITCODE -ne 0){return}
+ $script:PanelCAAvailable=$true
+ $remoteHash=(& ssh -F $Config $entryHost ('sha256sum '+$Prefix+'.panel-ca.crt') | Out-String).Trim().Split(' ')[0]
+ if($LASTEXITCODE -ne 0 -or $remoteHash -cnotmatch '^[a-f0-9]{64}$'){throw 'Cannot verify panel CA fingerprint'}
+ Write-Host ('Panel public CA SHA256: '+$remoteHash)
+ while($true){
+  $target=Ask 'PanelCA' 'Save the public panel CA? Enter a NEW local .crt path, or Enter to skip'
+  if(!$target){return}
+  $tmp=$null
+  try{
+   $dest=[IO.Path]::GetFullPath($target)
+   if([IO.File]::Exists($dest) -or !(Test-Path -LiteralPath ([IO.Path]::GetDirectoryName($dest)) -PathType Container)){throw 'New path required'}
+   $tmp=$dest+'.download-'+[guid]::NewGuid().ToString('N')
+   [IO.File]::Open($tmp,'CreateNew','Write','None').Dispose()
+   & scp -q -F $Config ($entryHost+':'+$Prefix+'.panel-ca.crt') $tmp
+   if($LASTEXITCODE -ne 0 -or (Get-Item -LiteralPath $tmp).Length -gt 65536 -or (Get-FileHash -LiteralPath $tmp -Algorithm SHA256).Hash.ToLowerInvariant() -ne $remoteHash){throw 'CA transfer verification failed'}
+   [IO.File]::Move($tmp,$dest)
+   Write-Host ('Saved PUBLIC CA: '+$dest)
+   Write-Host 'Verify this SHA256 against the trusted SSH output. Review the certificate, then manually configure trust on your device. No certificate store was changed.'
+   return
+  }catch{Write-Host 'Cannot save and verify the CA. Choose a new path or skip.'}
+  finally{if($tmp -and [IO.File]::Exists($tmp)){[IO.File]::Delete($tmp)}}
+ }
 }
 function Finish-Handoff {
  $prefix='/var/lib/empire-vpn-sessions/'+$env:LC_EVPN_SESSION
@@ -211,6 +255,8 @@ function Finish-Handoff {
   }catch{Write-Host 'Could not save the profile. Choose a new path in a private writable folder.'}
   finally{if($tmp -and [IO.File]::Exists($tmp)){[IO.File]::Delete($tmp)}}
  }
+ & ssh -F $Config $entryHost ('test -f '+$prefix+'.panel-url.txt') 2>$null
+ if($LASTEXITCODE -eq 0){Write-Host 'Panel uses the VPN domain trusted HTTPS certificate; no CA installation is required. Connect VPN and use the URL printed above. Website publishing remains deferred to preserve its verified baseline.';return}
  while($true){
   $zip=Ask Q25 'Publish a static website now? Enter a local handoff ZIP path, or Enter to keep the current site'
   if(!$zip){return}
@@ -299,7 +345,7 @@ $Jumps=@{}
 $Config=[IO.Path]::GetTempFileName()
 $RpcProcess=$null
 $SavedEnv=@{}
-foreach($name in @('LC_EVPN_TOKEN','LC_EVPN_SESSION','LC_EVPN_CLIENTS','LC_EVPN_PROBE')){$SavedEnv[$name]=[Environment]::GetEnvironmentVariable($name)}
+foreach($name in @('LC_EVPN_TOKEN','LC_EVPN_SESSION','LC_EVPN_CLIENTS','LC_EVPN_PROBE','LC_EVPN_BUNDLE_FILE')){$SavedEnv[$name]=[Environment]::GetEnvironmentVariable($name)}
 try{
  if ($resume) {
   $sshSettings=@('Host *',' StrictHostKeyChecking yes',' BatchMode yes',' PreferredAuthentications publickey',' ForwardAgent no',' ControlMaster no',' ControlPath none',' ExitOnForwardFailure yes',' ConnectTimeout 12',' ServerAliveInterval 10',' ServerAliveCountMax 2',' Include ~/.ssh/config')
@@ -386,6 +432,7 @@ try{
  $random=New-Object byte[] 32;$rng=[Security.Cryptography.RandomNumberGenerator]::Create();$rng.GetBytes($random);$rng.Dispose()
  $env:LC_EVPN_TOKEN=[BitConverter]::ToString($random).Replace('-','').ToLowerInvariant()
  $env:LC_EVPN_SESSION=[guid]::NewGuid().ToString('N')
+ Upload-LocalBundle
  $LocalPort=New-Port;$RpcPort=Get-Random -Minimum 30000 -Maximum 59000;$RelayPort=Get-Random -Minimum 30000 -Maximum 59000
  while(!$RpcProcess){
   try{$RpcProcess=Start-Rpc}catch{
@@ -417,7 +464,7 @@ try{
   $code=$script:WizardExit
  }
  if($code -eq 45){Wait-Reboot entry;if(!(Fresh-Sessions)){throw 'SSH did not recover'};Run-Wizard after-entry-reboot;$code=$script:WizardExit}
- if($code -ne 0){throw ('Installer ended with code '+$code+'. If apply started, server rollback timers remain the safety net.')}
+ if($code -ne 0){throw ('Installer ended with code '+$code+'. Read the stage-specific error above. Setup has stopped; do not assume a rollback timer is active.')}
  if(!(Fresh-Sessions)){throw 'Final SSH check failed'}
 }catch{
  Write-Host ('Setup stopped: '+$_.Exception.Message)

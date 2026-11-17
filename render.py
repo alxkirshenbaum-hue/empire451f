@@ -54,6 +54,8 @@ def validate(config):
         except ValueError:
             raise Invalid(name + ' must be a network /30') from None
     require(not ipaddress.ip_network(c['tunnel']).overlaps(ipaddress.ip_network(c['relay'])), 'Subnets overlap')
+    require(type(c.get('panel_enabled', False)) is bool, 'panel_enabled must be boolean')
+    if 'panel_path' in c:require(isinstance(c['panel_path'],str) and re.fullmatch(r'/[0-9a-f]{32}/',c['panel_path']), 'Invalid panel path')
     c.setdefault('wg_port', 51830)
     require(type(c['wg_port']) is int and 1024 <= c['wg_port'] <= 65535, 'Invalid WG port')
     c.setdefault('mtu', 1380)
@@ -140,16 +142,28 @@ def render(c, role, facts, public_keys, clients, templates):
         out['/usr/local/bin/vpn-add-user'] = file(command, 0o700)
         out[base + '/namespace.nft'] = file(tpl('namespace.nft'))
         out['/etc/netns/naive/resolv.conf'] = file('nameserver ' + c['dns'] + '\noptions timeout:2 attempts:2')
-        out[base + '/auth.caddy'] = file('\n'.join('basic_auth ' + json.dumps(x['username']) + ' ' + json.dumps(x['password']) for x in clients['clients']), 0o640, 'evpn')
-        out[base + '/Caddyfile'] = file(tpl('Caddyfile'), 0o640, 'evpn')
+        caddy_group='evpn-caddy' if c.get('panel_enabled') else 'evpn'
+        out[base + '/auth.caddy'] = file('\n'.join('basic_auth ' + json.dumps(x['username']) + ' ' + json.dumps(x['password']) for x in clients['clients']), 0o640, caddy_group)
+        out[base + '/Caddyfile'] = file(tpl('Caddyfile').replace('admin off','admin unix//run/'+n['prefix']+'-caddy-admin/admin.sock') if c.get('panel_enabled') else tpl('Caddyfile'), 0o640, caddy_group)
         sb = {'log': {'disabled': True}, 'dns': {'servers': [{'type': 'udp', 'tag': 'resolver', 'server': c['dns'], 'detour': 'wg-only'}], 'strategy': 'ipv4_only'},
               'inbounds': [{'type': 'http', 'tag': 'uot', 'listen': '127.0.0.1', 'listen_port': 1081}],
               'outbounds': [{'type': 'direct', 'tag': 'wg-only', 'bind_interface': 'wg0'}],
               'route': {'default_domain_resolver': 'resolver', 'rules': [{'action': 'resolve', 'strategy': 'ipv4_only'}, {'ip_cidr': deny + ['::/0'], 'action': 'reject'}], 'final': 'wg-only'}}
+        if c.get('panel_enabled'):
+            sb['outbounds'].append(dict(type='direct',tag='panel-only',bind_interface='lo'))
+            private=dict(inbound=['uot'],network='tcp',action='route',outbound='panel-only',override_address='127.0.0.1')
+            sb['route']['rules'][:0]=[dict(private,port=port,override_port=target,**dest) for port,target in ((443,18650),(80,18652)) for dest in (dict(domain=[c['domain']]),dict(ip_cidr=[c['entry']['address']+'/32']))]
+            path=c.get('panel_path');require(path and re.fullmatch(r'/[0-9a-f]{32}/',path),'Missing stable panel path')
+            private_site='\nhttps://'+c['domain']+':18650 {\n bind 127.0.0.1\n @bare path '+path[:-1]+'\n redir @bare '+path+' 308\n handle_path '+path+'* {\n  reverse_proxy 127.0.0.1:18651\n }\n handle {\n  respond 404\n }\n}\nhttp://'+c['domain']+':18652 {\n bind 127.0.0.1\n redir https://'+c['domain']+'{uri} 308\n}\n'
+            out[base+'/Caddyfile']['content']+=private_site
         out[base + '/sing-box.json'] = file(json.dumps(sb, indent=2), 0o640, 'evpn')
         out[base + '/site/index.html'] = file('<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Personal space</title><h1>Personal space</h1><p>Notes and projects.</p></html>')
         for svc in ('caddy', 'singbox'):
-            out['/etc/systemd/system/' + n['prefix'] + '-' + svc + '.service'] = file(tpl(svc + '.service'))
+            service=tpl(svc+'.service')
+            if svc=='caddy' and c.get('panel_enabled'):
+                service=service.replace('User=evpn\nGroup=evpn','User=evpn-caddy\nGroup=evpn-caddy')
+                service=service.replace('StateDirectory=empire-vpn-acme','RuntimeDirectory='+n['prefix']+'-caddy-admin\nRuntimeDirectoryMode=0700\nStateDirectory=empire-vpn-acme')
+            out['/etc/systemd/system/'+n['prefix']+'-'+svc+'.service']=file(service)
         for proto, port in [('http', 80), ('https', 443)]:
             for ext in ('socket', 'service'):
                 out['/etc/systemd/system/' + n['prefix'] + '-' + proto + '.' + ext] = file(tpl('relay.' + ext, port=port))
@@ -166,4 +180,19 @@ def change_plan(desired, existing, owned):
         if current is not None and (path not in owned or current != owned[path]):
             raise Invalid('Unknown or externally modified file: ' + path)
         result.append({'path': path, 'action': 'unchanged' if current == digest else ('create' if current is None else 'update')})
+    return result
+
+
+def panel_profile(profile, config=None):
+    """Exact private panel DNS/route; no general loopback bypass."""
+    result=copy.deepcopy(profile)
+    if config is not None:
+        rules=result.setdefault('route',{}).setdefault('rules',[])
+        rules[:]=[r for r in rules if r.get('domain')!=['panel.home.arpa']]
+        rules[:0]=[dict(domain=[config['domain']],network='tcp',port=[80,443],action='route',outbound='naive-out'),dict(ip_cidr=[config['entry']['address']+'/32'],network='tcp',port=[80,443],action='route',outbound='naive-out')]
+        return result
+    dns=result.setdefault('dns',{})
+    dns.setdefault('servers',[]).insert(0,dict(type='hosts',tag='panel-dns',predefined={'panel.home.arpa':'192.0.2.119'}))
+    dns.setdefault('rules',[]).insert(0,dict(domain=['panel.home.arpa'],server='panel-dns',action='route'))
+    result.setdefault('route',{}).setdefault('rules',[]).insert(0,dict(ip_cidr=['192.0.2.119/32'],action='route',outbound='naive-out'))
     return result

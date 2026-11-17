@@ -61,6 +61,10 @@ func download(registry *storage.Registry, domain string) http.HandlerFunc {
 			}
 			options.Acknowledge = true
 		}
+		if os.Getenv("PANEL_ORIGIN") != "" {
+			options.PanelDomain = domain
+			options.PanelEntryIP = os.Getenv("PANEL_ENTRY_IP")
+		}
 		blob, err := registry.IssueProfile(r.Context(), session.Value, r.PathValue("id"), domain, options)
 		if err != nil {
 			switch {
@@ -91,6 +95,16 @@ func serve(dbPath, socket, domain, keyPath string, keyVersion int64) error {
 	return servePanel(dbPath, socket, domain, keyPath, keyVersion, "")
 }
 func servePanel(dbPath, socket, domain, keyPath string, keyVersion int64, run string) error {
+	config, err := auth.ParseConfig(os.Getenv("PANEL_ORIGIN"), os.Getenv("PANEL_BASE_PATH"))
+	if err != nil {
+		return err
+	}
+	if os.Getenv("PANEL_ORIGIN") != "" {
+		ip := net.ParseIP(os.Getenv("PANEL_ENTRY_IP"))
+		if ip == nil || ip.To4() == nil {
+			return errors.New("invalid PANEL_ENTRY_IP")
+		}
+	}
 	if run != "" && !status.ValidID(run) {
 		return errors.New("invalid approved owner run")
 	}
@@ -111,6 +125,7 @@ func servePanel(dbPath, socket, domain, keyPath string, keyVersion int64, run st
 		return err
 	}
 	defer sessions.Close()
+	sessions.Configure(config)
 	mux := http.NewServeMux()
 	mux.Handle("/", reader.Handler())
 	if domain != "" || keyPath != "" {
@@ -136,7 +151,7 @@ func servePanel(dbPath, socket, domain, keyPath string, keyVersion int64, run st
 		}
 		defer registry.Close()
 		sessions.EnableProfileDownloads()
-		panelRoutes(mux, registry, run, filepath.Dir(dbPath))
+		panelRoutesOrigin(mux, registry, run, config.Origin, filepath.Dir(dbPath))
 		mux.HandleFunc("GET /api/v1/users/{id}/profiles/download", download(registry, domain))
 	}
 	listener, err := net.Listen("unix", socket)

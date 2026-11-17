@@ -20,6 +20,11 @@ resolve_target() {
   printf -v "${prefix}_${key}" '%s' "$value"
  done
 }
+bundle_path=''
+if [ "${1:-}" = --bundle ]; then
+ [ "$#" -ge 2 ] && [ -f "$2" ] || die 'Expected --bundle LOCAL_INSTALLER_ZIP'
+ bundle_path=$(cd "$(dirname "$2")" && pwd)/$(basename "$2"); shift 2
+fi
 entry_host=entry; exit_host=exit; start_operation=start; resume=0
 if [ "$#" -gt 0 ]; then
  [ "$#" -eq 4 ] && [ "$1" = --resume ] && [[ "$2" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] && [[ "$3" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] && [ "$2" != "$3" ] && [[ "$4" =~ ^[a-z][a-z0-9]{2,9}$ ]] || die 'Expected --resume ENTRY_ALIAS EXIT_ALIAS ID'
@@ -144,7 +149,7 @@ probe() {
 authenticate() {
  local role="$1" status choice public cmd
  status=$(probe "$role")
- [ "$status" != changed-key ] || die 'SSH host identity changed; check provider console. No automatic replacement.'
+ [ "$status" != changed-key ] || die "SSH host identity changed. If this server was reinstalled, first verify its new SSH fingerprint in the provider console. Then remove this server's old entry from: $HOME/.ssh/known_hosts . Restart setup and confirm the verified fingerprint. Keep all other known_hosts entries. No automatic replacement is performed."
  if [ "$status" = identity ]; then
   printf 'Compare %s SSH fingerprint with provider console.\n' "$role" >&2
   ssh -F "$CONFIG" -o BatchMode=no -o StrictHostKeyChecking=ask "$role" true >&2 || true
@@ -274,6 +279,17 @@ break
 done
 }
 if [ "$resume" = 1 ]; then LC_EVPN_CLIENTS=''; else read_client_export; fi
+export LC_EVPN_BUNDLE_FILE=''
+if [ -n "$bundle_path" ]; then
+ [ "$(wc -c < "$bundle_path" | tr -d ' ')" -le 67108864 ] || die 'Local bundle exceeds limit'
+ [ "$(shasum -a 256 "$bundle_path" | awk '{print $1}')" = '__BUNDLE_SHA256__' ] || die 'Local bundle differs from this bootstrap SHA256'
+ for role in "$entry_host" "$exit_host"; do
+  ssh -F "$CONFIG" "$role" 'set -eu; test ! -L /run/empire-vpn-local-installer; install -d -m 700 /run/empire-vpn-local-installer; test ! -L /run/empire-vpn-local-installer/installer.zip' || die 'Cannot prepare private bundle directory'
+  scp -q -F "$CONFIG" "$bundle_path" "$role:/run/empire-vpn-local-installer/installer.zip" || die 'Local bundle upload failed'
+  ssh -F "$CONFIG" "$role" 'chmod 600 /run/empire-vpn-local-installer/installer.zip' || die 'Cannot protect local bundle'
+ done
+ export LC_EVPN_BUNDLE_FILE='/run/empire-vpn-local-installer/installer.zip'
+fi
 TOKEN=$(openssl rand -hex 32)
 export LC_EVPN_TOKEN="$TOKEN" LC_EVPN_SESSION="$(openssl rand -hex 16)" LC_EVPN_CLIENTS
 random_port() { local hex; hex=$(openssl rand -hex 2); printf '%s' "$((30000 + 16#$hex % 29000))"; }
@@ -281,14 +297,14 @@ LOCAL_PORT=$(random_port); RPC_PORT=$(random_port); RELAY_PORT=$(random_port)
 start_rpc() {
  printf '%s\n' 'Opening exit SSH tunnel and loading installer on exit (up to 90 seconds)...' >&2
  rm -f "$WORK/ready"; mkfifo "$WORK/ready"
- (unset LC_EVPN_CLIENTS; exec ssh -n -F "$CONFIG" -o SendEnv=LC_EVPN_TOKEN -L "127.0.0.1:$LOCAL_PORT:127.0.0.1:$RPC_PORT" "$exit_host" "$BOOT rpc $RPC_PORT") > "$WORK/ready" 2> "$WORK/rpc.err" &
+ (unset LC_EVPN_CLIENTS; exec ssh -n -F "$CONFIG" -o SendEnv=LC_EVPN_BUNDLE_FILE -o SendEnv=LC_EVPN_TOKEN -L "127.0.0.1:$LOCAL_PORT:127.0.0.1:$RPC_PORT" "$exit_host" "$BOOT rpc $RPC_PORT") > "$WORK/ready" 2> "$WORK/rpc.err" &
  RPC_PID=$!
  IFS= read -r -t 90 ready < "$WORK/ready" || die 'Exit RPC bootstrap failed: check VPS Git HTTPS access and AcceptEnv LC_*'
  [ "$ready" = EVPN_RPC_READY ] || die 'Unexpected RPC handshake'
 }
 run_wizard() {
  printf 'Opening interactive wizard on entry: %s ...\n' "$1" >&2
- ssh -F "$CONFIG" -tt -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -R "127.0.0.1:$RELAY_PORT:127.0.0.1:$LOCAL_PORT" "$entry_host" "$BOOT wizard $RELAY_PORT $1"
+ ssh -F "$CONFIG" -tt -o SendEnv=LC_EVPN_BUNDLE_FILE -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -R "127.0.0.1:$RELAY_PORT:127.0.0.1:$LOCAL_PORT" "$entry_host" "$BOOT wizard $RELAY_PORT $1"
 }
 fresh_sessions() { [ "$(probe entry)" = ok ] && [ "$(probe exit)" = ok ]; }
 finish_handoff() {
@@ -304,7 +320,11 @@ finish_handoff() {
   fi
   rm -f "$tmp"; printf '%s\n' 'Profile transfer failed; retry or skip.' >&2
  done
- while :; do
+ if ssh -F "$CONFIG" "$entry_host" "test -f $prefix.panel-url.txt" 2>/dev/null; then
+    printf '%s\n' 'Panel uses the VPN domain trusted HTTPS certificate; no CA installation is required. Connect VPN and use the URL printed above. Website publishing remains deferred to preserve its verified baseline.'
+    return 0
+   fi
+   while :; do
   archive=$(ask Q25 'Publish a static website now? Enter a local handoff ZIP path, or Enter to keep the current site')
   [ -n "$archive" ] || return 0
   case "$archive" in '~/'*) archive="$HOME/${archive#\~/}";; /*) ;; *) archive="$PWD/$archive";; esac
@@ -342,6 +362,6 @@ if [ "$code" -eq 44 ]; then
  code=0; run_wizard after-exit-reboot || code=$?
 fi
 if [ "$code" -eq 45 ]; then wait_reboot entry; fresh_sessions || die 'SSH did not recover'; code=0; run_wizard after-entry-reboot || code=$?; fi
-[ "$code" -eq 0 ] || die "Installer exited $code; if apply started, check server rollback timers"
+[ "$code" -eq 0 ] || die "Installer exited $code; read the stage-specific error above. Setup has stopped; do not assume a rollback timer is active."
 fresh_sessions || die 'Final SSH check failed'
 printf 'New key-authenticated SSH sessions to both nodes: PASS\n'

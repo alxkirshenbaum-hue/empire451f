@@ -1,5 +1,5 @@
 [Unit]
-Description=Private VPN owner panel TLS frontend
+Description=Private VPN owner panel loopback frontend
 Wants=vpn-control-api.service
 After=vpn-control-api.service evpn-nh1-caddy.service
 
@@ -25,8 +25,6 @@ InaccessiblePaths=/proc /var/lib/vpn-control /var/lib/empire-vpn /etc/empire-vpn
 RuntimeDirectory=vpn-control-panel
 RuntimeDirectoryMode=0700
 Environment=HOME=/run/vpn-control-panel
-LoadCredential=cert:/etc/vpn-control/private-panel/leaf.crt
-LoadCredential=key:/etc/vpn-control/private-panel/tls.key
 LoadCredential=config:/etc/vpn-control/private-panel/Caddyfile
 ExecStart=/opt/empire-vpn/bin/caddy run --adapter caddyfile --config ${CREDENTIALS_DIRECTORY}/config
 Restart=on-failure

@@ -32,6 +32,7 @@ const prefix = "$argon2id$v=19$m=32768,t=2,p=1$"
 var encoding = base64.RawStdEncoding
 
 type Service struct {
+	config           Config
 	profileDownloads bool
 	db               *sql.DB
 	gate             chan struct{}
@@ -142,7 +143,7 @@ func (s *Service) Handler(operations http.Handler) http.Handler {
 		// Navigation POSTs must retain their same-origin Origin for the strict guard.
 		w.Header().Set("Referrer-Policy", "same-origin")
 		w.Header().Set("Content-Security-Policy", "default-src 'none'; script-src 'self'; connect-src 'self'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")
-		if r.Method != "GET" && r.Method != "HEAD" && r.Method != "OPTIONS" && r.Header.Get("Origin") != Origin {
+		if r.Method != "GET" && r.Method != "HEAD" && r.Method != "OPTIONS" && r.Header.Get("Origin") != s.Config().Origin {
 			fail(w, 403)
 			return
 		}
@@ -178,13 +179,13 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 	case s.gate <- struct{}{}:
 		defer func() { <-s.gate }()
 	default:
-		loginError(w, web, 429)
+		s.loginError(w, web, 429)
 		return
 	}
 	var id, stored string
 	bucket := byte(maphash.String(s.seed, input.Username))
 	if time.Now().Before(s.next[bucket]) {
-		loginError(w, web, 429)
+		s.loginError(w, web, 429)
 		return
 	}
 	err := s.db.QueryRowContext(r.Context(), "SELECT id,password_hash FROM admin_accounts WHERE username=? AND disabled=0", input.Username).Scan(&id, &stored)
@@ -194,7 +195,7 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 	}
 	if !verify(input.Password, stored) {
 		s.next[bucket] = time.Now().Add(time.Second)
-		loginError(w, web, 401)
+		s.loginError(w, web, 401)
 		return
 	}
 	token := base64.RawURLEncoding.EncodeToString(randomBytes(32))
@@ -219,9 +220,9 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 		fail(w, 503)
 		return
 	}
-	http.SetCookie(w, cookie(token, 43200))
+	http.SetCookie(w, s.cookie(token, 43200))
 	if web {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, s.Config().BasePath, http.StatusSeeOther)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -261,9 +262,9 @@ func (s *Service) logout(w http.ResponseWriter, r *http.Request) {
 		fail(w, 401)
 		return
 	}
-	http.SetCookie(w, cookie("", -1))
+	http.SetCookie(w, s.cookie("", -1))
 	if web {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, s.Config().BasePath, http.StatusSeeOther)
 		return
 	}
 	w.WriteHeader(204)

@@ -37,7 +37,7 @@ class HandoffCaddyTests(unittest.TestCase):
     @unittest.skipUnless(os.environ.get('VPN_INSTALLER_SOURCE'),'Set to pinned actual fresh installer source')
     def test_actual_fresh_renderer(self):
         root=Path(os.environ['VPN_INSTALLER_SOURCE']).resolve()
-        code="import client,render,json; from pathlib import Path; c=json.loads(Path('tests/fixture.json').read_text()); c.update(panel_enabled=True,tls='ready'); files=render.render(c,'entry',dict(interface='ens99',ssh_port=2222),dict(entry='A'*43+'=',exit='B'*43+'='),dict(format='empire-vpn-clients',schema_version=1,clients=[dict(username='master_user',password='synthetic')]),client.bundle()); print(json.dumps(files['/etc/empire-vpn/'+c['id']+'/Caddyfile']['content']))"
+        code="import client,render,json; from pathlib import Path; c=json.loads(Path('tests/fixture.json').read_text()); c.update(panel_enabled=True,tls='ready',panel_path='/'+('a'*32)+'/'); files=render.render(c,'entry',dict(interface='ens99',ssh_port=2222),dict(entry='A'*43+'=',exit='B'*43+'='),dict(format='empire-vpn-clients',schema_version=1,clients=[dict(username='master_user',password='synthetic')]),client.bundle()); print(json.dumps(files['/etc/empire-vpn/'+c['id']+'/Caddyfile']['content']))"
         source=json.loads(subprocess.check_output([sys.executable,'-B','-c',code],cwd=root,text=True)).encode()
         self.assertIn(('admin unix/'+self.socket).encode(),source)
         self.assertEqual(checked_caddy_cutover(source,source,self.socket),source)

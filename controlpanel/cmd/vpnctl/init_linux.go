@@ -23,6 +23,7 @@ func initializeRegistry(args []string, out, stderr io.Writer) int {
 	flags.SetOutput(io.Discard)
 	installation := flags.String("installation", "", "Installation ID")
 	source := flags.String("sfa-template", "", "Reviewed root-owned template")
+	bindImported := flags.Bool("bind-imported-profiles", false, "Bind missing imported profiles to the reviewed template")
 	approved := flags.String("approve-sha256", "", "Explicit reviewed template digest")
 	if flags.Parse(args) != nil || flags.NArg() != 0 || !installationID.MatchString(*installation) || !regexp.MustCompile("^[0-9a-f]{64}$").MatchString(*approved) {
 		fmt.Fprintln(stderr, "Expected installation, SFA template and approved SHA-256")
@@ -132,6 +133,11 @@ func initializeRegistry(args []string, out, stderr io.Writer) int {
 	revision, err := registry.InstallInitialSFA(context.Background(), body, *approved)
 	if err != nil {
 		return fail()
+	}
+	if *bindImported {
+		if err = registry.BindMissingLegacyProfiles(context.Background(), revision, *approved); err != nil {
+			return fail()
+		}
 	}
 	if json.NewEncoder(out).Encode(map[string]string{"status": "initialized", "template_revision_id": revision}) != nil {
 		return 9

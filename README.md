@@ -1,11 +1,13 @@
+**rc6: исправлена отсутствующая привязка профилей импортированных пользователей (ошибка404, включая alpha13/RuDM).** Базовая приёмка rc5 ниже относится к неизменённым компонентам; [hotfix](https://github.com/alxkirshenbaum-hue/empire451f/blob/feature/controlpanel-pilot/controlpanel/PROFILE_404_FIX_2026-11-17.md).
+
 **17.11.2026: rc5 установлен штатной публичной командой на очищенных hh-entry/hh-exit, exit0.** VPN → trusted HTTPS → owner → create → download → TCP/UoT PASS; публичный путь закрыт. Без ручной установки CA.
 
-# VPN + VPN Control — v0.4.0-rc5
+# VPN + VPN Control — v0.4.0-rc6
 
 Панель: `https://<VPN-domain>/<случайный-путь>/`, основной автоматически продлеваемый сертификат Let's Encrypt. Отдельный поддомен и установка CA на устройства не нужны. Доступ к панели только через VPN; отдельный owner login сохраняется.
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc5/bootstrap/windows.ps1')"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc6/bootstrap/windows.ps1')"
 ```
 
 1. До очистки проверьте актуальный JSON пользователей вне Git: `empire-vpn-clients`, `schema_version:1`, username/password включая master_user. JSON v1 импортирует включённые записи активными; исключите отозванные записи. Проверку SSH host key не отключайте.
@@ -17,7 +19,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iex (irm 'https://ra
 
 При частичном отказе сохраняйте сообщения и journal; не сбрасывайте ключи и не повторяйте очистку. Чистый core c174ba9babba229ee04f3eca4c1f323a06755301/schema8 исключает отложенный portable/prune WIP. [Проверки rc5](https://github.com/alxkirshenbaum-hue/empire451f/blob/feature/controlpanel-pilot/controlpanel/RELEASE_RC5_2026-11-17.md). Реальная F3 rc4 не заменяет приёмку rc5.
 
-macOS: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc5/bootstrap/macos.sh)"`. Настоящая macOS-проверка не выполнена.
+macOS: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc6/bootstrap/macos.sh)"`. Настоящая macOS-проверка не выполнена.
 
 ---
 # Персональная VPN — v0.3.6

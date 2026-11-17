@@ -262,3 +262,51 @@ func (r *Registry) renderSFA(ctx context.Context, tx *sql.Tx, userID, domain str
 	defer clear(blob)
 	return WithVPNPanelDestination(blob, options.PanelDomain, options.PanelEntryIP)
 }
+
+// BindMissingLegacyProfiles repairs only absent imported-user bindings. The caller
+// must hold the installation writer lock and supply the explicitly approved source.
+func (r *Registry) BindMissingLegacyProfiles(ctx context.Context, source, approved string) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	var body, checksum string
+	err = tx.QueryRowContext(ctx, `SELECT v.body_json,v.sha256 FROM template_revisions v
+ JOIN profile_templates t ON t.id=v.template_id
+ WHERE v.id=? AND v.status='approved' AND v.client_family='sfa' AND v.min_version='1.14.4'
+ AND t.enabled=1 AND t.slug='sfa'
+ AND NOT EXISTS(SELECT 1 FROM profile_routing_variants WHERE revision_id=v.id)`, source).Scan(&body, &checksum)
+	if err != nil {
+		return err
+	}
+	if checksum != approved || digest([]byte(body)) != approved {
+		return ErrLegacyDrift
+	}
+	rows, err := tx.QueryContext(ctx, `SELECT u.id FROM users u WHERE u.source='legacy_import'
+ AND u.status IN ('active','disabled','provisioning')
+ AND NOT EXISTS(SELECT 1 FROM user_profiles p WHERE p.user_id=u.id)`)
+	if err != nil {
+		return err
+	}
+	var users []string
+	for rows.Next() {
+		var user string
+		if err = rows.Scan(&user); err != nil {
+			rows.Close()
+			return err
+		}
+		users = append(users, user)
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return err
+	}
+	for _, user := range users {
+		if _, err = tx.ExecContext(ctx, "INSERT INTO user_profiles(id,user_id,template_revision_id,target_client) VALUES(?,?,?,'sfa-1.14.4')", id(), user, source); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}

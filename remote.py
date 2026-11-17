@@ -844,6 +844,7 @@ def install_panel(c, payload, owner_username, owner_password):
     owner_run=report['run_id']
     panel_run('migration plan approval',[interpreter,'-E','-s',str(helper/'inspect_legacy.py'),str(source),'--registry',str(panel/'state.db'),'--plan',owner_run])
     panel_run('migration staging',[cli,'migration','execute','--approved-plan',owner_run,'--staging-db',str(panel/'state.db'),'--snapshot',str(source),'--vault-key-file',str(panel/'vault.key')])
+    panel_run('imported profile binding',[cli,'registry','init','--installation',c['id'],'--sfa-template',str(template),'--approve-sha256',digest(template),'--bind-imported-profiles'])
     caddy=service['evpn-caddy'];admin='/run/'+n['prefix']+'-caddy-admin/admin.sock'
     namespace=['/usr/sbin/ip','netns','exec','naive']
     # Resolve actual installed tools, never user-supplied executable paths.

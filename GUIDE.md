@@ -1,9 +1,11 @@
-# VPN + VPN Control — v0.4.0-rc7
+**rc8:** штатный публичный CA fallback Caddy сохранён: Let's Encrypt → ZeroSSL. Исключены private CA и обход TLS. rc7 чистый прогон остановился до панели из-за внешнего LE429 (5 сертификатов/168 часов), затем штатно откатился; код master/schema9 не менялся.
+
+# VPN + VPN Control — v0.4.0-rc8
 
 Одна защищённая учётная запись **master_user** для VPN и панели, один пароль. Если она есть в JSON-экспорте, реквизиты сохраняются; иначе установщик создаёт её. Отдельный скрытый owner не создаётся. Обычные VPN-пользователи видны в Users и не могут войти в панель; master отмечен Protected / Panel owner. Импортированный VPN-пользователь с именем owner остаётся обычным пользователем.
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc7/bootstrap/windows.ps1')"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc8/bootstrap/windows.ps1')"
 ```
 
 1. До очистки сохраните проверенный актуальный JSON вне Git: `empire-vpn-clients`, schema_version1, username/password включая master_user. JSON v1 импортирует включённые записи активными; не включайте отозванные записи. Не отключайте SSH host-key checking.
@@ -14,11 +16,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iex (irm 'https://ra
 
 **Не передавайте master JSON:** он содержит пароль владельца панели. Раздавайте отдельные профили обычных пользователей. Независимая смена только панельного пароля отключена; общая смена master-пароля пока вне этого выпуска. Protected master нельзя отключить/удалить обычной операцией.
 
-Панель доступна через VPN и использует основной автоматически продлеваемый сертификат Let's Encrypt. Отдельный поддомен/CA/ручная установка сертификата не нужны. Публикация сайта после fresh пока отложена; через VPN основной домен вне пути панели возвращает404. Случайный путь не заменяет аутентификацию.
+Панель доступна через VPN и использует основной автоматически продлеваемый публичный сертификат (Caddy: Let's Encrypt / ZeroSSL). Отдельный поддомен/CA/ручная установка сертификата не нужны. Публикация сайта после fresh пока отложена; через VPN основной домен вне пути панели возвращает404. Случайный путь не заменяет аутентификацию.
 
 Только fresh, не in-place upgrade/portable. Существующие registry/key/units требуют отдельного плана; при частичном отказе сохраните сообщения/journal и не сбрасывайте ключи. Runtime core d94a4e7121c41bb9157e7c14d457365c7abd99d6/schema9 исключает portable/prune WIP. [Спецификация](https://github.com/alxkirshenbaum-hue/empire451f/blob/feature/controlpanel-pilot/controlpanel/MASTER_USER_OWNER_SPEC.md), [приёмка и ограничения](https://github.com/alxkirshenbaum-hue/empire451f/blob/feature/controlpanel-pilot/controlpanel/RELEASE_RC7_2026-11-17.md). Новые E/DR/reboot gates не заявляются.
 
-macOS: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc7/bootstrap/macos.sh)"`. Syntax проверен; реальная macOS-проверка не выполнена.
+macOS: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc8/bootstrap/macos.sh)"`. Syntax проверен; реальная macOS-проверка не выполнена.
 
 ---
 

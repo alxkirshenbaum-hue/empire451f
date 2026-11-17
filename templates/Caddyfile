@@ -2,9 +2,13 @@
  admin off
  persist_config off
  order forward_proxy before file_server
- acme_ca https://acme-v02.api.letsencrypt.org/directory
  log {
   output discard
+ }
+ log certificate_errors {
+  level ERROR
+  include tls.obtain tls.issuance.acme tls.issuance.zerossl
+  output stderr
  }
  servers {
   protocols h1 h2

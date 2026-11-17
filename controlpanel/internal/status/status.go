@@ -82,6 +82,9 @@ func SessionOwner(ctx context.Context, tx *sql.Tx, token string) (string, error)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", ErrSession
 	}
+	if err == nil {
+		err = MasterAdminAllowed(ctx, tx, actor)
+	}
 	return actor, err
 }
 
@@ -196,4 +199,28 @@ func (r *Reader) Handler() http.Handler {
 		json.NewEncoder(w).Encode(result)
 	})
 	return mux
+}
+
+// MasterAdminAllowed enforces persistent policy, while pre-policy schemas remain legacy.
+func MasterAdminAllowed(ctx context.Context, tx *sql.Tx, id string) error {
+	var n int
+	if err := tx.QueryRowContext(ctx, "SELECT count(*) FROM sqlite_schema WHERE type='table' AND name='master_admin_policy'").Scan(&n); err != nil {
+		return err
+	}
+	if n == 0 {
+		return nil
+	}
+	if err := tx.QueryRowContext(ctx, "SELECT enabled FROM master_admin_policy WHERE singleton=1").Scan(&n); err != nil {
+		return err
+	}
+	if n == 0 {
+		return nil
+	}
+	if err := tx.QueryRowContext(ctx, "SELECT count(*) FROM valid_master_admin WHERE admin_id=? AND (SELECT count(*) FROM admin_accounts)=1", id).Scan(&n); err != nil {
+		return err
+	}
+	if n != 1 {
+		return ErrSession
+	}
+	return nil
 }

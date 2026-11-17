@@ -601,7 +601,8 @@ def handoff_profile(c, users, session):
         require(local_copy.resolve()==path,'Profile pointer conflict')
     else:
         local_copy.symlink_to(path)
-    print('VPN login: master_user')
+    print(('VPN and panel' if c.get('panel_enabled') else 'VPN')+' login: master_user')
+    if c.get('panel_enabled'):print('Keep the master_user JSON private: it also contains the panel password. Do not share this account.')
     if sys.stdout.isatty():
         print('VPN password (private): ' + user['password'])
     print('Private client profile on entry: ' + str(path))
@@ -617,26 +618,13 @@ def setup_fresh_panel(c, session, state):
     """Panel failure must not roll back an already committed VPN."""
     require(c.get('mode') == 'fresh' and c.get('panel_enabled') is True, 'Fresh panel scope required')
     payload = json.loads(BUNDLE['panel/payload.json'])
-    print('Configure an independent panel owner. Its password stays on entry and is not saved in the installer session.')
-    while True:
-        owner = input('[P01] Panel owner login [owner]: ').strip() or 'owner'
-        if owner != 'master_user' and re.fullmatch(r'[A-Za-z0-9_.@-]{1,64}', owner):
-            break
-        print('Choose an independent owner login (not master_user).')
-    while True:
-        password = getpass.getpass('[P02] Panel owner password (12+ characters): ')
-        if not 12 <= len(password) <= 256 or len(password.encode()) > 256 or '\n' in password or '\r' in password:
-            print('Use a password of 12 to 256 bytes.'); continue
-        if password == getpass.getpass('[P03] Repeat panel owner password: '):
-            break
-        print('Passwords differ.')
+    owner = 'master_user'
+    print('The protected master_user VPN account is also the panel owner. No separate owner account is created.')
     try:
-        result = remote.install_panel(c, payload, owner, password)
+        result = remote.install_panel(c, payload)
     except BaseException:
         print('VPN is committed. Panel setup is incomplete; preserve protected migration/journal state. Do not reinstall VPN or reset keys.', file=sys.stderr)
         raise
-    finally:
-        password = None
     target = session_path(session).with_suffix('.panel-url.txt')
     remote.atomic(target,result['panel_url']+'\n')
     state['panel_ready'] = True
@@ -644,8 +632,8 @@ def setup_fresh_panel(c, session, state):
     state['panel_url'] = result['panel_url']
     store_session(session, state)
     print('VPN + private panel installed: ' + result['panel_url'])
-    print('Panel owner: ' + owner)
-    print('Connect the VPN, open the HTTPS link above, and sign in with the independent panel owner.')
+    print('Panel owner: master_user (same login and password as VPN).')
+    print('Connect the VPN, open the HTTPS link above, and sign in with master_user using the same VPN password.')
     print('The panel uses the VPN domain trusted certificate. No CA installation is needed; never bypass browser certificate warnings.')
 
 

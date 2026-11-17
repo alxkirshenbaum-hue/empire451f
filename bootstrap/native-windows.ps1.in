@@ -237,9 +237,33 @@ function Offer-PanelCA([string]$Prefix){
 }
 function Finish-Handoff {
  $prefix='/var/lib/empire-vpn-sessions/'+$env:LC_EVPN_SESSION
+ $default=Join-Path $HOME ('vpn-master_user-'+[guid]::NewGuid().ToString('N').Substring(0,8)+'.sfa.json')
+ Write-Host 'Master JSON also contains panel password; do not share.'
+ $quote={param($v) "'"+([string]$v).Replace("'","''")+"'"}
+ $argsLater=@('-o','StrictHostKeyChecking=yes')
+ if($resume){$remote=$EntryAlias+':'+$prefix+'.profile.json'}else{
+  $node=$Nodes.entry;$key=$Identity;if($node.ContainsKey('key')){$key=$node.key}
+  $argsLater+=@('-P',[string]$node.port,'-i',$key)
+  if($node.aliasKey -and $node.aliasKey -ne $key){$argsLater+=@('-i',$node.aliasKey)}
+  if($node.hostkeyalias -and $node.hostkeyalias -ne 'none'){$argsLater+=@('-o',('HostKeyAlias='+$node.hostkeyalias))}
+  $remote=$node.user+'@'+$node.hostname+':'+$prefix+'.profile.json'
+  if($Jumps.ContainsKey('entry')){
+   $stable=Join-Path $HOME ('.ssh/empire-profile-route-'+[guid]::NewGuid().ToString('N')+'.conf')
+   [IO.File]::Open($stable,'CreateNew','Write','None').Dispose()
+   $sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+   & icacls.exe $stable /inheritance:r /grant:r ('*'+$sid+':(F)') | Out-Null
+   if($LASTEXITCODE){throw 'Private route permissions unavailable'}
+   [IO.File]::WriteAllText($stable,[IO.File]::ReadAllText($Config))
+   $argsLater=@('-F',$stable);$remote='entry:'+$prefix+'.profile.json'
+  }
+ }
+ $laterScript='& { $d=DEST; $t=Join-Path ([IO.Path]::GetDirectoryName($d)) ([guid]::NewGuid().ToString("N")+".tmp"); try { [IO.File]::Open($t,"CreateNew","Write","None").Dispose(); $sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value; & icacls.exe $t /inheritance:r /grant:r ("*"+$sid+":(F)") | Out-Null; if($LASTEXITCODE){throw "Private permissions unavailable"}; & scp ARGS $t; if($LASTEXITCODE){throw "Transfer failed"}; [IO.File]::Move($t,$d) } finally { if([IO.File]::Exists($t)){[IO.File]::Delete($t)} } }'
+ $laterScript=$laterScript.Replace('DEST',(& $quote $default)).Replace('ARGS',((@($argsLater)+@($remote) | ForEach-Object {& $quote $_}) -join ' '))
+ Write-Host ('Download command: '+$laterScript)
  while($true){
-  $target=Ask Q24 'Save the private Android profile? Enter a NEW local JSON file path, or Enter to skip'
-  if(!$target){break}
+  $choice=Ask Q24.1 '1 Download JSON now, 2 Later' '1'
+  if($choice -eq '2'){break};if($choice -ne '1'){continue}
+  $target=Ask Q24 'NEW private local JSON file path' $default
   $tmp=$null
   try{
    $dest=$ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($target)

@@ -125,6 +125,11 @@ func servePanel(dbPath, socket, domain, keyPath string, keyVersion int64, run st
 		return err
 	}
 	defer sessions.Close()
+	if os.Getenv("PANEL_MASTER_ONLY") == "1" {
+		if err = sessions.RequireMaster(context.Background()); err != nil {
+			return err
+		}
+	}
 	sessions.Configure(config)
 	mux := http.NewServeMux()
 	mux.Handle("/", reader.Handler())

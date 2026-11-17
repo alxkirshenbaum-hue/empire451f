@@ -784,7 +784,7 @@ def wait_panel_https(namespace, ca_path, environment, panel_url=None):
         time.sleep(1)
 
 
-def install_panel(c, payload, owner_username, owner_password):
+def install_panel(c, payload):
     """Fresh entry only, invoked after VPN commit. Never accepts owner secret in argv."""
     import grp, pwd, uuid
     environment=dict(os.environ);environment.pop('PYTHONPATH',None);environment.pop('PYTHONHOME',None);environment['PYTHONNOUSERSITE']='1';environment['PATH']='/usr/sbin:/usr/bin:/sbin:/bin'
@@ -795,8 +795,6 @@ def install_panel(c, payload, owner_username, owner_password):
     require(hasattr(os,'geteuid') and os.geteuid()==0,'Panel installation requires root on the entry')
     c=validate(c);n=names(c);state=Path(n['state']);base=Path(n['base'])
     require(c['mode']=='fresh' and c.get('panel_enabled') and c.get('tls')=='ready','Panel requires a fresh committed TLS-ready installation')
-    require(isinstance(owner_username,str) and re.fullmatch(r'[A-Za-z0-9_.@-]{1,64}',owner_username),'Invalid owner username')
-    require(isinstance(owner_password,str) and 12<=len(owner_password)<=256 and '\n' not in owner_password and '\r' not in owner_password,'Owner password must contain 12-256 characters')
     manifest=readjson(state/'manifest.json',{})
     require(manifest.get('role')=='entry' and manifest.get('config',{}).get('id')==c['id'] and not (state/'pending.json').exists(),'Commit VPN before panel installation')
     require_installer_writer(manifest,state)
@@ -835,7 +833,6 @@ def install_panel(c, payload, owner_username, owner_password):
     cli='/usr/local/bin/vpnctl';api='/usr/local/bin/vpn-control'
     template=root/'templates/sfa-profile.json'
     panel_run('registry initialization',[cli,'registry','init','--installation',c['id'],'--sfa-template',str(template),'--approve-sha256',digest(template)])
-    panel_run('owner initialization',[api,'--bootstrap-owner',owner_username,'--owner-password-stdin'],data=(owner_password+'\n').encode())
     # Snapshot/plan/stage/cutover use the accepted common lock and migration journal.
     interpreter=str(Path(sys.executable).resolve())
     captured=json.loads(panel_run('VPN snapshot',[interpreter,'-E','-s',str(helper/'g3_snapshot.py'),c['id'],str(uuid.uuid4()),'pre']).stdout)
@@ -857,6 +854,7 @@ def install_panel(c, payload, owner_username, owner_password):
     worker=dict(installation=c['id'],owner_run=owner_run,socket=admin,helper=str(helper/'owned_auth.py'),validate_command=validate_command,probe_command=namespace+[str(Path(python).resolve()),'-B',str(helper/'create_probe.py'),'--policy',str(probe)])
     atomic(config/('worker-'+c['id']+'.json'),json.dumps(worker));atomic(config/('worker-'+c['id']+'.env'),'OWNER_RUN='+owner_run+'\n')
     panel_run('writer cutover',[cli,'migration','cutover','--installation',c['id'],'--approved-plan',owner_run,'--snapshot',str(source),'--legacy-writers-stopped'])
+    panel_run('master owner binding',[cli,'registry','init','--installation',c['id'],'--sfa-template',str(template),'--approve-sha256',digest(template),'--bind-master-owner'])
     # Main Caddy owns the automatically renewed domain certificate.
     # Existing dedicated frontend retains Unix API access without TLS keys.
     tls=config/'private-panel';require(not tls.exists(),'Existing panel frontend refused');tls.mkdir(mode=0o700)
@@ -865,7 +863,7 @@ def install_panel(c, payload, owner_username, owner_password):
     apiunit=(unitsroot/'vpn-control-api.service').read_text().replace('--vault-key-file /var/lib/vpn-control/vault.key','--vault-key-file /var/lib/vpn-control/vault.key --owner-run '+owner_run)
     frontendunit=(unitsroot/'vpn-control-panel.service').read_text().replace('evpn-nh1',n['prefix'])
     for name,content in [('vpn-control-api.service',apiunit),('vpn-control-panel.service',frontendunit),('vpn-control-worker@.service',(unitsroot/'vpn-control-worker@.service').read_text()),('vpn-control-worker@.timer',(unitsroot/'vpn-control-worker@.timer').read_text())]:atomic('/etc/systemd/system/'+name,content,0o644)
-    atomic(config/'api.env','PROFILE_DOMAIN='+c['domain']+'\nPANEL_ORIGIN=https://'+c['domain']+'\nPANEL_BASE_PATH='+c['panel_path']+'\nPANEL_ENTRY_IP='+c['entry']['address']+'\n')
+    atomic(config/'api.env','PROFILE_DOMAIN='+c['domain']+'\nPANEL_ORIGIN=https://'+c['domain']+'\nPANEL_BASE_PATH='+c['panel_path']+'\nPANEL_ENTRY_IP='+c['entry']['address']+'\nPANEL_MASTER_ONLY=1\n')
     atomic('/etc/tmpfiles.d/vpn-control.conf','d /run/vpn-control 0700 root root -\nd /run/vpn-control/probes 0700 root root -\nf /run/lock/empire-vpn.lock 0600 root root -\n',0o644)
     paneluser=service['evpn-panel']
     for path in [panel,*[panel/name for name in ('state.db','state.db-wal','state.db-shm','vault.key') if (panel/name).exists()]]:
@@ -880,7 +878,7 @@ def install_panel(c, payload, owner_username, owner_password):
     require(dict(line.split('=',1) for line in checked if '=' in line)=={'Result':'success','ExecMainStatus':'0'},'Panel worker did not complete startup successfully')
     panel_url='https://'+c['domain']+c['panel_path']
     wait_panel_https(namespace,None,environment,panel_url)
-    return dict(panel_url=panel_url,owner=owner_username,owner_run=owner_run,profile_path=str(state/'master_user.sfa.json'))
+    return dict(panel_url=panel_url,owner='master_user',owner_run=owner_run,profile_path=str(state/'master_user.sfa.json'))
 
 
 if __name__ == '__main__':

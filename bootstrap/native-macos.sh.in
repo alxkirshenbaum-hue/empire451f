@@ -309,9 +309,32 @@ run_wizard() {
 fresh_sessions() { [ "$(probe entry)" = ok ] && [ "$(probe exit)" = ok ]; }
 finish_handoff() {
  local prefix="/var/lib/empire-vpn-sessions/$LC_EVPN_SESSION" dest tmp archive
+ local default="$HOME/vpn-master_user-$(date +%s)-$$.sfa.json" choice stable
+ local -a later
+ printf '%s\n' 'Master JSON also contains panel password; do not share.'
+ later=(-o StrictHostKeyChecking=yes)
+ if [ "$resume" = 1 ]; then
+  later+=("${entry_host}:$prefix.profile.json")
+ elif [ -n "$E_jump" ]; then
+  stable=$(mktemp "$HOME/.ssh/empire-profile-route.XXXXXX") || return 1
+  chmod 600 "$stable" && cp "$CONFIG" "$stable" || return 1
+  later+=(-F "$stable" "entry:$prefix.profile.json")
+ else
+  later+=(-P "$E_port" -i "$IDENTITY")
+  if [ -n "${E_hostkeyalias:-}" ] && [ "$E_hostkeyalias" != none ]; then later+=(-o "HostKeyAlias=$E_hostkeyalias"); fi
+  if [ -f "${E_identityfile:-}" ] && [ "$E_identityfile" != "$IDENTITY" ]; then later+=(-i "$E_identityfile"); fi
+  later+=("$E_user@$E_hostname:$prefix.profile.json")
+ fi
+ printf 'Download command: (umask 077; d='
+ printf '%q' "$default"
+ printf '; t=$(mktemp "$(dirname "$d")/.empire-profile.XXXXXX") || exit 1; trap '\''rm -f "$t"'\'' EXIT; scp '
+ printf '%q ' "${later[@]}"
+ printf '"$t" && chmod 600 "$t" && ln "$t" "$d")\n'
  while :; do
-  dest=$(ask Q24 'Save the private Android profile? Enter a NEW local JSON file path, or Enter to skip')
-  [ -n "$dest" ] || break
+  choice=$(ask Q24.1 '1 Download JSON now, 2 Later' '1')
+  [ "$choice" != 2 ] || break
+  [ "$choice" = 1 ] || continue
+  dest=$(ask Q24 'NEW private local JSON file path' "$default")
   case "$dest" in '~/'*) dest="$HOME/${dest#\~/}";; /*) ;; *) dest="$PWD/$dest";; esac
   if [ -e "$dest" ] || [ -L "$dest" ] || [ ! -d "$(dirname "$dest")" ]; then printf '%s\n' 'Choose a new path in an existing folder.' >&2; continue; fi
   tmp=$(mktemp "$(dirname "$dest")/.empire-profile.XXXXXX") || continue

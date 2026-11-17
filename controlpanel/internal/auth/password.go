@@ -17,6 +17,15 @@ import (
 // changePassword changes only the independent admin credential. VPN credentials
 // and the registry vault identity are untouched. All owner sessions expire.
 func (s *Service) changePassword(w http.ResponseWriter, r *http.Request) {
+	master, err := s.masterMode(r.Context())
+	if err != nil {
+		fail(w, 503)
+		return
+	}
+	if master {
+		fail(w, 409)
+		return
+	}
 	c, e := r.Cookie("session")
 	if e != nil || c.Value == "" || len(c.Value) > 512 {
 		fail(w, 401)

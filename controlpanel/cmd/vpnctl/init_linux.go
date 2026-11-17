@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"regexp"
 
+	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/auth"
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/storage"
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/vault"
 )
@@ -23,6 +24,7 @@ func initializeRegistry(args []string, out, stderr io.Writer) int {
 	flags.SetOutput(io.Discard)
 	installation := flags.String("installation", "", "Installation ID")
 	source := flags.String("sfa-template", "", "Reviewed root-owned template")
+	bindMaster := flags.Bool("bind-master-owner", false, "Bind canonical master owner")
 	bindImported := flags.Bool("bind-imported-profiles", false, "Bind missing imported profiles to the reviewed template")
 	approved := flags.String("approve-sha256", "", "Explicit reviewed template digest")
 	if flags.Parse(args) != nil || flags.NArg() != 0 || !installationID.MatchString(*installation) || !regexp.MustCompile("^[0-9a-f]{64}$").MatchString(*approved) {
@@ -133,6 +135,21 @@ func initializeRegistry(args []string, out, stderr io.Writer) int {
 	revision, err := registry.InstallInitialSFA(context.Background(), body, *approved)
 	if err != nil {
 		return fail()
+	}
+	if *bindMaster {
+		id, cid, secret, e := registry.MasterOwnerCredential(context.Background())
+		if e != nil {
+			return fail()
+		}
+		defer clear(secret)
+		sessions, e := auth.Open(dbPath)
+		if e != nil {
+			return fail()
+		}
+		defer sessions.Close()
+		if e = sessions.BindMaster(context.Background(), id, cid, secret); e != nil {
+			return fail()
+		}
 	}
 	if *bindImported {
 		if err = registry.BindMissingLegacyProfiles(context.Background(), revision, *approved); err != nil {

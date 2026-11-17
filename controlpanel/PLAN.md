@@ -1,5 +1,15 @@
 # План разработки панели
 
+## 17.11.2026 — priority profile404 hotfix real PASS
+
+U counters unchanged (W9.5U-Fresh4/4,W9U3/5,W10U1/4); E unchanged.
+Current owner package: point5 complete;1–3 implementation,4 next. rc6/e7c653e
+published, imported profile binding repaired through approved locked registry init.
+Actual master1144/alpha13/RuDM HTTP200; downloaded alpha13RuDM exact-engine and real
+TCP/UoT PASS. No network/service restart, no repeated fresh install. [Evidence](PROFILE_404_FIX_2026-11-17.md).
+Architect spec saved MASTER_USER_OWNER_SPEC.md. Next: canonical master admin projection,
+then default-yes native JSON handoff, one combined published clean install on hh pair.
+
 ## 17.11.2026 — BL-011.1 complete, actual rc5 PASS
 
 U W9.5U-Fresh4/4 · W9U3/5 · W10U1/4; E unchanged. BL-011.1 closed1/1.

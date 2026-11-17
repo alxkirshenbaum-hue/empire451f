@@ -137,7 +137,7 @@
   for(const user of data.users) {
    const row=node("tr"),identity=node("td"),name=node("div",user.login,"mono");
    identity.append(name,node("div",user.display_name,"muted"));row.append(identity);
-   const status=node("td");status.append(node("span",stateLabel(user.status),"badge"));row.append(status,node("td",user.protected?"Protected":"Regular"));
+   const status=node("td");status.append(node("span",stateLabel(user.status),"badge"));row.append(status,node("td",user.protected?"Protected / Panel owner":"Regular"));
    const action=node("td"),open=node("button","Open","quiet");open.addEventListener("click",()=>showUser(user.id).catch(report));action.append(open);row.append(action);tbody.append(row);
   }
   if(!data.users.length){const row=node("tr"),cell=node("td","No matching users.");cell.colSpan=4;row.append(cell);tbody.append(row);}
@@ -149,7 +149,7 @@
   const changed=state.user?.id!==id;state.user=data.user;
   byId("user-detail").hidden=false;byId("user-heading").textContent=data.user.login;
   const metadata=byId("user-metadata");empty(metadata);
-  for(const [label,value] of [["Recorded state",stateLabel(data.user.status)],["Account type",data.user.protected?"Protected":"Regular"],["Row version",data.user.row_version],["Credential version",data.credential.secret_version],["Live state","Not measured"],["Existing tunnels","Termination not confirmed"]])metadata.append(node("dt",label),node("dd",value));
+  for(const [label,value] of [["Recorded state",stateLabel(data.user.status)],["Account type",data.user.protected?"Protected / Panel owner":"Regular"],["Row version",data.user.row_version],["Credential version",data.credential.secret_version],["Live state","Not measured"],["Existing tunnels","Termination not confirmed"]])metadata.append(node("dt",label),node("dd",value));
   byId("rename-user").elements.display_name.value=data.user.display_name;
   const actions=byId("user-actions");empty(actions);
   if(!data.user.protected && ["active","disabled"].includes(data.user.status)) {
@@ -240,7 +240,7 @@
   for(const name of tabs)byId("view-"+name).hidden=name!==tab;
   for(const link of document.querySelectorAll("nav a"))if(link.hash==="#"+tab)link.setAttribute("aria-current","page");else link.removeAttribute("aria-current");
  }
- byId("owner-password").addEventListener("submit",async event=>{
+ byId("owner-password")?.addEventListener("submit",async event=>{
   event.preventDefault();const form=event.currentTarget,button=form.querySelector("button");
   const values=Object.fromEntries(new FormData(form).entries());
   const byteLength=new TextEncoder().encode(values.new_password).length;

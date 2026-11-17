@@ -28,9 +28,9 @@ class FreshControllerTests(unittest.TestCase):
             state={'config':{'mode':'fresh','panel_enabled':True},'committed':True}
             result={'panel_url':'https://vpn.example/'+('a'*32)+'/'}
             output=io.StringIO();secret='Independent owner secret'
-            with patch.dict(controller.BUNDLE,{'panel/payload.json':'{}'}),patch('builtins.input',return_value='owner'),patch.object(controller.getpass,'getpass',return_value=secret),patch.object(controller.remote,'install_panel',return_value=result) as install,patch.object(controller,'session_path',return_value=root/'session.json'),patch.object(controller,'store_session') as store,contextlib.redirect_stdout(output):
+            with patch.dict(controller.BUNDLE,{'panel/payload.json':'{}'}),patch('builtins.input',side_effect=AssertionError('Separate owner prompt forbidden')),patch.object(controller.getpass,'getpass',side_effect=AssertionError('Separate owner password forbidden')),patch.object(controller.remote,'install_panel',return_value=result) as install,patch.object(controller,'session_path',return_value=root/'session.json'),patch.object(controller,'store_session') as store,contextlib.redirect_stdout(output):
                 controller.setup_fresh_panel(state['config'],'session',state)
-            self.assertEqual(install.call_args.args[2:],('owner',secret))
+            self.assertEqual(install.call_args.args,(state['config'],{}));self.assertEqual(state['panel_owner'],'master_user')
             self.assertTrue(state['panel_ready']);self.assertNotIn(secret,json.dumps(state));self.assertNotIn(secret,output.getvalue())
             self.assertEqual((root/'session.panel-url.txt').read_text().strip(),result['panel_url']);store.assert_called_once()
             self.assertIn('No CA installation is needed',output.getvalue())

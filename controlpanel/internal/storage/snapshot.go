@@ -16,7 +16,7 @@ type snapshotQuerier interface {
 	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
 }
 
-var registryMigrationScripts = []string{migrations.Registry, migrations.VaultIdentity, migrations.MigrationDocuments, migrations.ProfileIssuance, migrations.UserMutations, migrations.ProfileRouting, migrations.ProfilePanelDNS, migrations.Maintenance}
+var registryMigrationScripts = []string{migrations.Registry, migrations.VaultIdentity, migrations.MigrationDocuments, migrations.ProfileIssuance, migrations.UserMutations, migrations.ProfileRouting, migrations.ProfilePanelDNS, migrations.Maintenance, migrations.MasterAdmin}
 
 var ErrSnapshotState = errors.New("registry snapshot state is not clean")
 

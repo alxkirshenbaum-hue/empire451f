@@ -205,6 +205,10 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback()
+	if err = status.MasterAdminAllowed(r.Context(), tx, id); err != nil {
+		fail(w, 401)
+		return
+	}
 	res, err := tx.ExecContext(r.Context(), "UPDATE admin_accounts SET last_login_at=CURRENT_TIMESTAMP WHERE id=? AND password_hash=? AND disabled=0", id, stored)
 	if err != nil {
 		fail(w, 503)

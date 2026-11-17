@@ -1,25 +1,24 @@
-**rc6: исправлена отсутствующая привязка профилей импортированных пользователей (ошибка404, включая alpha13/RuDM).** Базовая приёмка rc5 ниже относится к неизменённым компонентам; [hotfix](https://github.com/alxkirshenbaum-hue/empire451f/blob/feature/controlpanel-pilot/controlpanel/PROFILE_404_FIX_2026-11-17.md).
+# VPN + VPN Control — v0.4.0-rc7
 
-**17.11.2026: rc5 установлен штатной публичной командой на очищенных hh-entry/hh-exit, exit0.** VPN → trusted HTTPS → owner → create → download → TCP/UoT PASS; публичный путь закрыт. Без ручной установки CA.
-
-# VPN + VPN Control — v0.4.0-rc6
-
-Панель: `https://<VPN-domain>/<случайный-путь>/`, основной автоматически продлеваемый сертификат Let's Encrypt. Отдельный поддомен и установка CA на устройства не нужны. Доступ к панели только через VPN; отдельный owner login сохраняется.
+Одна защищённая учётная запись **master_user** для VPN и панели, один пароль. Если она есть в JSON-экспорте, реквизиты сохраняются; иначе установщик создаёт её. Отдельный скрытый owner не создаётся. Обычные VPN-пользователи видны в Users и не могут войти в панель; master отмечен Protected / Panel owner. Импортированный VPN-пользователь с именем owner остаётся обычным пользователем.
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc6/bootstrap/windows.ps1')"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc7/bootstrap/windows.ps1')"
 ```
 
-1. До очистки проверьте актуальный JSON пользователей вне Git: `empire-vpn-clients`, `schema_version:1`, username/password включая master_user. JSON v1 импортирует включённые записи активными; исключите отозванные записи. Проверку SSH host key не отключайте.
-2. Две подготовленные Ubuntu24.04/26.04 amd64 VDS, SSH-ключ, домен на вход. В мастере new → fresh, прежние домен/адреса для сохранения реквизитов; Q16 ready. Q13 — локальный JSON, имя произвольное.
-3. P01–P03 — отдельный owner панели. Q24 — сохраните профиль и импортируйте в SFA: реквизиты прежние, добавлены точные маршруты панели.
-4. Подключите VPN, откройте готовую HTTPS-ссылку мастера, войдите владельцем. Сертификаты вручную устанавливать не нужно. Проверьте список, создайте пользователя, скачайте профиль и подключитесь.
+1. До очистки сохраните проверенный актуальный JSON вне Git: `empire-vpn-clients`, schema_version1, username/password включая master_user. JSON v1 импортирует включённые записи активными; не включайте отозванные записи. Не отключайте SSH host-key checking.
+2. Две подготовленные Ubuntu24.04/26.04 amd64 VDS, root SSH-ключ, домен на вход. Мастер: new → fresh, прежние домен/адреса для сохранения VPN-реквизитов, Q16 ready. Q13 — локальный JSON (имя произвольное).
+3. После VPN commit master_user автоматически становится владельцем панели. Отдельных P01–P03 нет. Мастер печатает логин/пароль, готовую HTTPS-ссылку и команду скачивания JSON.
+4. Q24.1: **1 Download JSON now** (по умолчанию), **2 Later**. Для1 подтвердите предложенный приватный новый путь или укажите свой. Для2 сохраните напечатанную команду: она работает после завершения установщика. Ошибка SCP не повторяет установку и не меняет реквизиты.
+5. Импортируйте JSON в SFA, подключите VPN, откройте выданную ссылку `https://<VPN-domain>/<случайный-путь>/`, войдите как master_user с тем же VPN-паролем. Создайте пользователя, скачайте профиль под выбранную версию. Исправлена404 для импортированных пользователей, включая1.15.0-alpha.13+RU/DM.
 
-Сохранены принятые W9U/W10U возможности управления пользователями, защищённый master_user, смена owner-пароля, ресурсы и timestamps аудитов/копий. Только fresh; upgrade/portable и полные E-матрицы не заявлены. Публикация сайта после fresh панели отложена. Через VPN основной домен вне пути панели возвращает404.
+**Не передавайте master JSON:** он содержит пароль владельца панели. Раздавайте отдельные профили обычных пользователей. Независимая смена только панельного пароля отключена; общая смена master-пароля пока вне этого выпуска. Protected master нельзя отключить/удалить обычной операцией.
 
-При частичном отказе сохраняйте сообщения и journal; не сбрасывайте ключи и не повторяйте очистку. Чистый core c174ba9babba229ee04f3eca4c1f323a06755301/schema8 исключает отложенный portable/prune WIP. [Проверки rc5](https://github.com/alxkirshenbaum-hue/empire451f/blob/feature/controlpanel-pilot/controlpanel/RELEASE_RC5_2026-11-17.md). Реальная F3 rc4 не заменяет приёмку rc5.
+Панель доступна через VPN и использует основной автоматически продлеваемый сертификат Let's Encrypt. Отдельный поддомен/CA/ручная установка сертификата не нужны. Публикация сайта после fresh пока отложена; через VPN основной домен вне пути панели возвращает404. Случайный путь не заменяет аутентификацию.
 
-macOS: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc6/bootstrap/macos.sh)"`. Настоящая macOS-проверка не выполнена.
+Только fresh, не in-place upgrade/portable. Существующие registry/key/units требуют отдельного плана; при частичном отказе сохраните сообщения/journal и не сбрасывайте ключи. Runtime core d94a4e7121c41bb9157e7c14d457365c7abd99d6/schema9 исключает portable/prune WIP. [Спецификация](https://github.com/alxkirshenbaum-hue/empire451f/blob/feature/controlpanel-pilot/controlpanel/MASTER_USER_OWNER_SPEC.md), [приёмка и ограничения](https://github.com/alxkirshenbaum-hue/empire451f/blob/feature/controlpanel-pilot/controlpanel/RELEASE_RC7_2026-11-17.md). Новые E/DR/reboot gates не заявляются.
+
+macOS: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc7/bootstrap/macos.sh)"`. Syntax проверен; реальная macOS-проверка не выполнена.
 
 ---
 # Персональная VPN — v0.3.6

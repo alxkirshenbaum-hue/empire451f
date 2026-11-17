@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"errors"
 	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/caddy"
+	"github.com/alxkirshenbaum-hue/empire451f/controlpanel/internal/status"
 	"html/template"
 	"net/http"
 )
@@ -17,6 +18,7 @@ var panelScript []byte
 var pageTemplate = template.Must(template.New("home").Parse(pageSource))
 
 type page struct {
+	MasterOnly  bool
 	BasePath    string
 	Profiles    []profileLink
 	CSRF        string
@@ -46,8 +48,26 @@ func (s *Service) loginError(w http.ResponseWriter, web bool, code int) {
 
 func (s *Service) home(w http.ResponseWriter, r *http.Request) {
 	data := page{BasePath: s.Config().BasePath}
+	master, e := s.masterMode(r.Context())
+	if e != nil {
+		fail(w, 503)
+		return
+	}
+	data.MasterOnly = master
 	data.ApplyNotice = caddy.ApplyNotice
 	if c, err := r.Cookie("session"); err == nil {
+		tx, e := s.db.BeginTx(r.Context(), nil)
+		if e != nil {
+			fail(w, 503)
+			return
+		}
+		_, e = status.SessionOwner(r.Context(), tx, c.Value)
+		tx.Rollback()
+		if e != nil {
+			http.SetCookie(w, s.cookie("", -1))
+			render(w, 200, data)
+			return
+		}
 		var id string
 		err = s.db.QueryRowContext(r.Context(), `UPDATE admin_sessions SET last_seen_at=CURRENT_TIMESTAMP
  WHERE token_hash=? AND revoked_at IS NULL AND julianday(expires_at)>julianday('now')

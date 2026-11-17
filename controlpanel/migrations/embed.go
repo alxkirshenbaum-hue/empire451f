@@ -26,3 +26,6 @@ var ProfilePanelDNS string
 
 //go:embed 008_maintenance.sql
 var Maintenance string
+
+//go:embed 009_master_admin.sql
+var MasterAdmin string

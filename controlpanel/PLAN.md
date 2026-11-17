@@ -1,5 +1,17 @@
 # План разработки панели
 
+## 17.11.2026 — BL-011.1 complete, actual rc5 PASS
+
+U W9.5U-Fresh4/4 · W9U3/5 · W10U1/4; E unchanged. BL-011.1 closed1/1.
+Published rc5/artifact47a81a2/corec174ba9, authorized cleanup and normal install exit0.
+Actual VPN→system-trusted same-domain TLS→prefixed owner UI/API→create/worker/download→
+new/master TCP/UoT PASS. Exact imported6 credentials/case/status/protected master PASS.
+Public known prefix/forged headers denied, Origin/CSRF negatives and HTTP redirect PASS.
+Same automatic Let's Encrypt certificate, private listeners retained after worker;
+fresh SSH/default host routes PASS, monitors stopped. No CA install needed.
+[Exact evidence and limits](RELEASE_RC5_2026-11-17.md). No new E/phone UI gate claimed.
+Next: owner uses updated Q24 profile and printed URL; no further reinstall required.
+
 ## 17.11.2026 — BL-011.1 domain/path HTTPS candidate
 
 U W9.5U-Fresh4/4 from rc4; W9U3/5,W10U1/4. E unchanged. BL-011.1 local PASS,

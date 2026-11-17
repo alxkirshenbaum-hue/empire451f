@@ -398,6 +398,8 @@ def start(nodes, session, imported, resume_id=None):
         if action != 'preview':
             require(c.get('tls') == 'ready', 'Fresh VPN + panel requires DNS ready for trusted HTTPS; select ready at Q16')
         c = dict(c, panel_enabled=True, panel_path=c.get('panel_path') or '/'+secrets.token_hex(16)+'/')
+    contact=os.environ.get('LC_EVPN_ACME_EMAIL','')
+    if contact:c=validate(dict(c,acme_email=contact))
     users = clients(c, imported)
     state = {'config': c, 'changed': [], 'action': action}
     if action == 'ssh-security':

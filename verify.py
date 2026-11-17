@@ -97,7 +97,7 @@ def verify(c, clients, blocked=False, before_block=None):
         port = reserve.getsockname()[1]
     user = clients['clients'][0]
     if not blocked:
-        for attempt in range(12):
+        for attempt in range(36):
             site = subprocess.run(['curl', '-fsS', '--max-time', '8', '--resolve', c['domain'] + ':443:' + c['entry']['address'], 'https://' + c['domain'] + '/'], capture_output=True, timeout=12)
             if site.returncode == 0 and b'<!doctype html>' in site.stdout.lower():
                 break

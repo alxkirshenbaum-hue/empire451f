@@ -304,7 +304,7 @@ start_rpc() {
 }
 run_wizard() {
  printf 'Opening interactive wizard on entry: %s ...\n' "$1" >&2
- ssh -F "$CONFIG" -tt -o SendEnv=LC_EVPN_BUNDLE_FILE -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -R "127.0.0.1:$RELAY_PORT:127.0.0.1:$LOCAL_PORT" "$entry_host" "$BOOT wizard $RELAY_PORT $1"
+ ssh -F "$CONFIG" -tt -o SendEnv=LC_EVPN_BUNDLE_FILE -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -o SendEnv=LC_EVPN_ACME_EMAIL -R "127.0.0.1:$RELAY_PORT:127.0.0.1:$LOCAL_PORT" "$entry_host" "$BOOT wizard $RELAY_PORT $1"
 }
 fresh_sessions() { [ "$(probe entry)" = ok ] && [ "$(probe exit)" = ok ]; }
 finish_handoff() {

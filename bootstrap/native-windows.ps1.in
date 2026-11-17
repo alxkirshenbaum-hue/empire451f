@@ -205,7 +205,7 @@ function Start-Rpc{
 function Run-Wizard([string]$Operation){
  Write-Host ("Opening interactive wizard on entry: "+$Operation+" ...")
  # Keep native console handles: capturing/piping stdout buffers prompts without LF.
- & ssh -F $Config -tt -o SendEnv=LC_EVPN_BUNDLE_FILE -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -R ('127.0.0.1:'+$RelayPort+':127.0.0.1:'+$LocalPort) $entryHost ($Boot+' wizard '+$RelayPort+' '+$Operation)
+ & ssh -F $Config -tt -o SendEnv=LC_EVPN_BUNDLE_FILE -o SendEnv=LC_EVPN_TOKEN -o SendEnv=LC_EVPN_SESSION -o SendEnv=LC_EVPN_CLIENTS -o SendEnv=LC_EVPN_ACME_EMAIL -R ('127.0.0.1:'+$RelayPort+':127.0.0.1:'+$LocalPort) $entryHost ($Boot+' wizard '+$RelayPort+' '+$Operation)
  $script:WizardExit=$LASTEXITCODE
 }
 function Offer-PanelCA([string]$Prefix){

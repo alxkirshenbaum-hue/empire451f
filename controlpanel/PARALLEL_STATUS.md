@@ -1,5 +1,31 @@
 # Parallel development journal
 
+## 17.11.2026 — external ACME contact block; production rolled back
+
+U: point5 accepted live inrc6 before authorized wipe. Points1–4 implemented/local
+PASS, combined real acceptance OPEN. W9U3/5,W10U1/4; E unchanged. Do not close gates.
+rc7 ordinary clean attempt and rc8 recovery both stopped at public TLS BEFORE panel
+bootstrap; both rolled back. Current VPN/panel are NOT running; new SSH works on both.
+Saved verified CURRENT installer JSON7 (including all original6/master) outside Git.
+Monitors stopped, raw evidence retained, ACME storage/WG keys preserved after rollback.
+
+Concrete external blocker: LE429 duplicate5/168h; server retry18.11 about04:32MSK.
+Pinned Caddy2.11.9 DefaultIssuers(email) adds ZeroSSL ONLY when email nonempty; generic
+docs/modules check was insufficient. No invented email or third blind retry.
+Owner asked for ACME contact through async text question; awaiting actual email or
+owner decision to wait. This is missing external data, not a permission request.
+
+Prepared SEPARATE UNRELEASED email candidate: LC_EVPN_ACME_EMAIL via existing SSH
+SendEnv/config, strict ASCII validation, renderglobal email; existing TLS wait36
+attempts. Python10 PASS0.031s, production Caddy adapter TWO CA policies PASS with
+synthetic email only (no registration/issuance). Go/schema/master code unchanged.
+Candidate renderer/verifier differ fromd94 pin: MUST create clean helper-only core
+child, verify Go tree unchanged/reuse exact ELF, update manifests before packaging.
+First next AFTER actual email: complete candidate pin/build/release, reset ONLY owned
+prepared component pool8 if version guard requires, no further node wipe/ACME deletion;
+ordinary install with environment contact, then master/JSON/alpha13 actual acceptance.
+[Full record](RELEASE_RC7_2026-11-17.md). Main remains last accepted rc5 docs, not rc8 PASS.
+
 ## 17.11.2026 — BL-011.1 complete, actual rc5 PASS
 
 U W9.5U-Fresh4/4 · W9U3/5 · W10U1/4; E unchanged. BL-011.1 closed1/1.

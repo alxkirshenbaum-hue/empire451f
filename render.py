@@ -55,6 +55,7 @@ def validate(config):
             raise Invalid(name + ' must be a network /30') from None
     require(not ipaddress.ip_network(c['tunnel']).overlaps(ipaddress.ip_network(c['relay'])), 'Subnets overlap')
     require(type(c.get('panel_enabled', False)) is bool, 'panel_enabled must be boolean')
+    if c.get('acme_email'):require(isinstance(c['acme_email'],str) and len(c['acme_email'])<=254 and re.fullmatch(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,63}',c['acme_email']), 'Invalid ACME contact email')
     if 'panel_path' in c:require(isinstance(c['panel_path'],str) and re.fullmatch(r'/[0-9a-f]{32}/',c['panel_path']), 'Invalid panel path')
     c.setdefault('wg_port', 51830)
     require(type(c['wg_port']) is int and 1024 <= c['wg_port'] <= 65535, 'Invalid WG port')
@@ -145,6 +146,7 @@ def render(c, role, facts, public_keys, clients, templates):
         caddy_group='evpn-caddy' if c.get('panel_enabled') else 'evpn'
         out[base + '/auth.caddy'] = file('\n'.join('basic_auth ' + json.dumps(x['username']) + ' ' + json.dumps(x['password']) for x in clients['clients']), 0o640, caddy_group)
         out[base + '/Caddyfile'] = file(tpl('Caddyfile').replace('admin off','admin unix//run/'+n['prefix']+'-caddy-admin/admin.sock') if c.get('panel_enabled') else tpl('Caddyfile'), 0o640, caddy_group)
+        if c.get('acme_email'):out[base+'/Caddyfile']['content']=out[base+'/Caddyfile']['content'].replace('{\n','{\n email '+c['acme_email']+'\n',1)
         sb = {'log': {'disabled': True}, 'dns': {'servers': [{'type': 'udp', 'tag': 'resolver', 'server': c['dns'], 'detour': 'wg-only'}], 'strategy': 'ipv4_only'},
               'inbounds': [{'type': 'http', 'tag': 'uot', 'listen': '127.0.0.1', 'listen_port': 1081}],
               'outbounds': [{'type': 'direct', 'tag': 'wg-only', 'bind_interface': 'wg0'}],

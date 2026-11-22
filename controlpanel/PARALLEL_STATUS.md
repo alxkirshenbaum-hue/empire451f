@@ -1,5 +1,20 @@
 # Parallel development journal
 
+## 22.11.2026 — rc10 published / actual full fresh + Q27 PASS
+
+Явно согласованные выпуск и очистка hh-entry/hh-exit выполнены. Artifact e80c2b1,
+helper core0af8a3b, exact rc9/schema9 Go ELF reused. CURRENT JSON6 сохранён/сверен,
+private snapshots/rollback подготовлены; SSH/ACME/WG сохранены, резерв не затронут.
+Полный опубликованный Windows launcher + точный ZIP через -BundlePath: EXIT0.
+Q27yes: preflight обеих нод до apply, secure-apply/новые SSH/commit обеих PASS;
+ошибка writer после panel handoff устранена. Q28 пропущен при direct exit.
+Post: original-key SSH обеих,6 exact credentials, panel_generation/DBintegrity/FK,
+скачанный JSON externalTCP/UoTDNS/privateTLS/master200/ordinary401 PASS.
+[Протокол и ограничения](RELEASE_RC10_2026-11-22.md). Предыдущая запись о локальном
+кандидате заменена этим результатом. W9.5U-Fresh4/4, W9U3/5, W10U1/4; E unchanged.
+BL-010.7/010.8 (Q28/ProxyJump) и BL-010.9 (ACME/SAN) остаются бэклогом.
+Следующее действие: владелец использует новый master JSON/URL; новые U-задачи отдельно.
+
 ## 22.11.2026 — SSH hardening после panel handoff: локальный hotfix
 
 По новому реальному проходу владельца rc9: установка VPN/панели и JSON завершилась,

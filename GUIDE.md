@@ -1,13 +1,15 @@
-# VPN + VPN Control — v0.4.0-rc9
+# VPN + VPN Control — v0.4.0-rc10
 
-**Проверено на реальных hh-entry/hh-exit:** установка → VPN → master login → create → download → TCP/UoT. [Доказательства и ограничения](https://github.com/alxkirshenbaum-hue/empire451f/blob/feature/controlpanel-pilot/controlpanel/RELEASE_RC9_COMPLETION_2026-11-22.md).
+**rc10 проверен на реальных hh-entry/hh-exit:** полный fresh-проход завершился с кодом0, включая Q27 — защиту SSH после установки панели. Обе ноды прошли предварительную проверку, применение, новые SSH-сессии и подтверждение изменений. Из реально скачанного master JSON проверены TCP через exit, DNS через UoT и доступ к панели с обычной проверкой доверенного HTTPS-сертификата; master login200, обычный пользователь401.
+
+Функциональная приёмка единого master_user, создания и выдачи профилей переиспользована из [rc9](https://github.com/alxkirshenbaum-hue/empire451f/blob/feature/controlpanel-pilot/controlpanel/RELEASE_RC9_COMPLETION_2026-11-22.md). Полная матрица rc9 повторно не выполнялась; Go-бинарники и schema9 сохранены. [Приёмка rc10 и границы](https://github.com/alxkirshenbaum-hue/empire451f/blob/feature/controlpanel-pilot/controlpanel/RELEASE_RC10_2026-11-22.md): опубликованный artifact e80c2b1, helper-only core0af8a3b.
 
 Одна защищённая учётная запись **master_user** для VPN и панели с одним паролем. Из JSON реквизиты сохраняются; при отсутствии master установщик создаёт его. Отдельного скрытого owner нет. Другие пользователи видны в Users и не могут войти в панель. Импортированный VPN owner остаётся обычным пользователем.
 
 Одна команда Windows (email необязателен для LE, но нужен для резервного публичного CA):
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command '$env:LC_EVPN_ACME_EMAIL=Read-Host "ACME contact email (optional; enables backup CA)"; iex (irm "https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc9/bootstrap/windows.ps1")'
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command '$env:LC_EVPN_ACME_EMAIL=Read-Host "ACME contact email (optional; enables backup CA)"; iex (irm "https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc10/bootstrap/windows.ps1")'
 ```
 
 1. До очистки сохраните проверенный актуальный JSON пользователей вне Git. Формат empire-vpn-clients/schema_version1, clients с username/password, включая master_user. Включённые записи импортируются активными; исключите отозванные. Проверку SSH host key не отключайте.
@@ -15,6 +17,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command '$env:LC_EVPN_ACME_EM
 3. После commit master_user автоматически становится владельцем панели; P01–P03 отсутствуют. Мастер выдаёт реквизиты, HTTPS-ссылку и команду скачивания JSON.
 4. Q24.1: **1 Download JSON now** по умолчанию либо **2 Later**. Для1 подтвердите новый приватный путь; для2 используйте напечатанную команду после установщика. Существующие файлы не перезаписываются, ошибка SCP не повторяет установку.
 5. Подключите VPN, откройте выданную ссылку, войдите как master_user с VPN-паролем. Создайте пользователя, скачайте профиль нужной версии. 404 импортированных профилей исправлена, включая1.15.0-alpha.13+Ru/DM.
+
+После установки Q26–Q27 предлагают дополнительную защиту SSH: сначала подтвердите доступ к консоли провайдера обеих нод, затем при желании отключите парольный и keyboard-interactive вход. В rc10 этот шаг совместим с уже установленной панелью и сохраняет её владение пользователями. Новые SSH-ключи при выполненной проверке не создавались.
+
+Q28 — отдельный явный выбор ограничения SSH на exit только адресом entry. В проверенном rc10-проходе подключение было прямым, поэтому Q28 пропущен: порт SSH exit остаётся доступен со всех адресов с действующей авторизацией по ключу. Для Q28 требуется заранее проверенный SSH-маршрут через entry (например ProxyJump); установщик не добавляет его автоматически. При недоступности entry потребуется консоль провайдера для доступа к exit.
 
 Master JSON содержит пароль администратора: не передавайте его, выдавайте отдельные пользовательские профили. Независимая смена только панельного пароля отключена; общая смена master-пароля пока не реализована. Protected master нельзя удалить/отключить обычной операцией.
 

@@ -42,7 +42,7 @@ def build(panel_root=None, panel_source_sha=None, release_url=None):
     digest = hashlib.sha256((destination / 'installer.zip').read_bytes()).hexdigest()
     (destination / 'installer.sha256').write_text(digest + '  installer.zip\n', encoding='ascii')
     loader = (ROOT / 'server_boot.py.in').read_text().replace('__BUNDLE_SHA256__', digest)
-    loader = loader.replace('__BUNDLE_URL__', repr(release_url or 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc9/dist/installer.zip'))
+    loader = loader.replace('__BUNDLE_URL__', repr(release_url or 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc10/dist/installer.zip'))
     encoded = base64.b64encode(loader.encode()).decode()
     command = "python3 -c exec\\(__import__\\(\\'base64\\'\\).b64decode\\(\\'" + encoded + "\\'\\)\\)"
     for name in ['windows.ps1', 'macos.sh']:
@@ -108,6 +108,11 @@ PANEL_BINARY_MANIFESTS['d94a4e7121c41bb9157e7c14d457365c7abd99d6'] = json.loads(
 # RC9 helper-only child; Go tree and accepted ELF unchanged.
 PANEL_CORE_MANIFESTS['55593cb4ac92674631a811c4bc1d1eed91612519'] = json.loads(r'''{"vpn-add-user.template":"0adafe5b445b0b1a3d613e66934531ce945989107e965f1dfc73bf5478f24592","owned_auth.py":"d161f67951f732bf1b671afefb8bf3cf58be16badf7a65514a4f55ba610caadd","create_probe.py":"b6d3f93737e3cf0c950aa46b87515a3b04a0f91a32ce7b196c84c3ecb923c12f","g3_snapshot.py":"85e1c89d2a18cd0612aa351be315e74e7fb06166bb38410bf2ec33d2b57bc4cf","g3_restore_runtime.py":"b370f86359e46af79d1033136df9c7551902cf224682da672060d820d88d3439","inspect_legacy.py":"56f32a232a8a951df229026272ed4007dcbe0cf756ac86533893b087a2bcc905","handoff_legacy.py":"d889c9d17021968c7d145811318763fc2e8740dc6c153ef8bcd37905fcdea377","return_legacy.py":"dae1d6545f1badf24d6c59ad0ae2d84a52b61c3d9dcf600cca155975da5db434","render.py":"7c909b61fc2120aee370a7fc61a95cea7d0c3fb586c5473fbc7b35348a168c18","verify.py":"75ae1dddbdb697f32e31e8e80f1a87dfc7b63f9ae2471fae8b20d6c293c9fc19","backup_artifact.py":"69f3dad25851c8ae5b5b29dcdc327abccb8715a5607f298c834efe09150c582d","templates/sfa-profile.json":"1cea56f365912867563039963cc6fe25c47c1873c10010bcd1916d23c1a9a1b8","templates/panel-frontend.Caddyfile":"86f2b8346efaa8610d708641fbe8e651dd4dd4178ae417e9d2ebce189782988f","controlpanel/systemd/vpn-control-api.service":"1a81334cb0a2210cdc991cf67327dffab891d392b310eea3991d30963fdf7b05","controlpanel/systemd/vpn-control-panel.service":"6de240b76aa4936b1fa0b56b46e975e3d2f522768599f4b21bbcc2a5d13c2b17","controlpanel/systemd/vpn-control-worker@.service":"a885820138213564fe0d271ef5183a921e5bb8c302639fb90b9cd7cf398113ea","controlpanel/systemd/vpn-control-worker@.timer":"e23845370813efd060be6ad9ca5b7a602cb03b993367c108f249b7cdc62f8f02"}''')
 PANEL_BINARY_MANIFESTS['55593cb4ac92674631a811c4bc1d1eed91612519'] = json.loads(r'''{"bin/vpn-control":"4399d75331cae1f9b496f439eca925f74908ff0fcb7fee098e9f0e8bf5363e4e","bin/vpnctl":"b460f90840a150ce08b791608d0b2d86012089313674b22ef64e1f21e183a708"}''')
+
+
+# RC10: scoped SSH renderer only; accepted Go/schema/ELF unchanged.
+PANEL_CORE_MANIFESTS['0af8a3b39489e0f71222264c4f0c800872870838'] = dict(PANEL_CORE_MANIFESTS['55593cb4ac92674631a811c4bc1d1eed91612519'], **{'render.py': 'd4ad1f5061e9e21d8e31b9666283c2ba03d94aae6a34dc5ff442a9eb485dcd11'})
+PANEL_BINARY_MANIFESTS['0af8a3b39489e0f71222264c4f0c800872870838'] = dict(PANEL_BINARY_MANIFESTS['55593cb4ac92674631a811c4bc1d1eed91612519'])
 
 def panel_destination(name):
     if name.startswith('bin/') or name.startswith('templates/'):

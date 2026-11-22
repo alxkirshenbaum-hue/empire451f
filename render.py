@@ -102,7 +102,7 @@ def file(content, mode=0o644, group='root'):
     return {'content': content.rstrip() + '\n', 'mode': mode, 'group': group}
 
 
-def render(c, role, facts, public_keys, clients, templates):
+def render(c, role, facts, public_keys, clients, templates, security_only=False):
     c = validate(c)
     require(role in ('entry', 'exit'), 'Invalid role')
     n = names(c)
@@ -124,7 +124,8 @@ def render(c, role, facts, public_keys, clients, templates):
         return Template(templates[name]).substitute(subst | extra)
     out = {}
     base = n['base']
-    out[base + '/network.sh'] = file(tpl('network-' + role + '.sh'), 0o700)
+    if not security_only:
+        out[base + '/network.sh'] = file(tpl('network-' + role + '.sh'), 0o700)
     security = dict(facts.get('saved_security', {})) | c.get('security', {})
     rules = tpl('host-' + role + '.nft', policy='accept' if facts.get('legacy') else 'drop')
     if not facts.get('legacy') and security.get('key_only'):
@@ -134,6 +135,8 @@ def render(c, role, facts, public_keys, clients, templates):
         require(facts.get('admin_ip') == c['entry']['address'], 'Use SSH to exit via the entry before applying the exit firewall restriction')
         rules = rules.replace('  tcp dport ', '  ip saddr ' + c['entry']['address'] + ' tcp dport ')
     out[base + '/host.nft'] = file(rules)
+    if security_only:
+        return out
     out[base + '/firewall.sh'] = file('#!/bin/bash\nset -euo pipefail\n{\n if nft list table inet ' + n['table'] + ' >/dev/null 2>&1; then echo "delete table inet ' + n['table'] + '"; fi\n cat ' + base + '/host.nft\n} | nft -f -', 0o700)
     out['/etc/systemd/system/' + n['prefix'] + '-firewall.service'] = file(tpl('firewall.service'))
     out['/etc/systemd/system/' + n['prefix'] + '-network.service'] = file(tpl('network.service'))

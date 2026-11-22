@@ -473,7 +473,9 @@ try{
   if(Fresh-Sessions){Run-Wizard finish;$code=$script:WizardExit;if($code -eq 0){
     Finish-Handoff
     if(!(Fresh-Sessions)){throw 'Post-install SSH check failed'}
+    Write-Host 'VPN installation and requested panel setup completed. The following optional step changes SSH protection only.'
     Run-Wizard secure
+    if($script:WizardExit -ne 0 -and $script:WizardExit -ne 47){Write-Host 'Optional SSH protection did not complete. VPN installation and requested panel setup have completed; inspect the SSH-stage error and rollback result above.'}
     $code=$script:WizardExit
    }}else{Run-Wizard abort;throw 'New SSH session failed; rollback requested'}
  }

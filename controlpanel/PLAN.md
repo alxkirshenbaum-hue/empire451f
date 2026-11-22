@@ -1,5 +1,21 @@
 # План разработки панели
 
+## 22.11.2026 — SSH hardening после panel handoff: локальный hotfix
+
+По новому реальному проходу владельца rc9: установка VPN/панели и JSON завершилась,
+Q27 на exit применился, entry/secure-apply отказал из-за panel_generation, exit откатился.
+Прямой SSH обеих нод и exit через entry доступны; Q28 был пропущен, не применён.
+Исправляется только ограниченная SSH-транзакция: предварительная проверка обеих нод,
+разрешённые SSH/firewall пути, сохранение актуального manifest панели при commit/rollback.
+Обычный installer writer guard сохраняется. ProxyJump и явный выбор Q28 записаны
+в BACKLOG BL-010.7/010.8; в этом hotfix не реализуются.
+Проверки: 7 целевых post-panel security + 9 существующих RenderingTests PASS (16, 0.211s),
+существующий WSL Python через временную копию исходников, без доработки стенда.
+PowerShell parser и git diff --check PASS. Полный fresh на нодах не выполнялся.
+Production/release bundle не менялись. Реальная fresh-приёмка кандидата пока OPEN;
+установку и подтверждённые rc9 тесты не повторять до отдельного окна владельца.
+W9.5U-Fresh4/4, W9U3/5, W10U1/4 и E сохраняют прежнюю область доказательств.
+
 ## 22.11.2026 — rc9 actual master package complete
 
 U current owner package1–5:5/5. W9.5U-Fresh4/4 retained,W9U3/5,W10U1/4; E unchanged.

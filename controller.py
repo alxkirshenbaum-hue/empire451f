@@ -101,7 +101,7 @@ def rpc(port, token):
                     stopping = True
                     result = {'status': 'stopping'}
                 else:
-                    require(data['action'] in ('check-pair', 'network-options', 'probe', 'plan', 'prepare', 'apply', 'secure-apply', 'commit', 'rollback', 'boot', 'reboot'), 'RPC action rejected')
+                    require(data['action'] in ('check-pair', 'network-options', 'probe', 'plan', 'prepare', 'apply', 'secure-plan', 'secure-apply', 'commit', 'rollback', 'boot', 'reboot'), 'RPC action rejected')
                     result = remote.dispatch(request(data.pop('action'), 'exit', data.pop('config'), **data))
                 reply = {'ok': True, 'result': result}
             except BaseException as error:
@@ -518,7 +518,10 @@ def finish(nodes, session, operation):
             return 0
         c = dict(c, security=policy)
         keys = {r:facts[r]['public_key'] for r in facts}
-        users = clients(c,None)
+        # Validate both nodes before changing the exit; apply revalidates under lock.
+        for r in ('entry','exit'):
+            nodes.call(r,'secure-plan',c,keys=keys)
+        users = None
         state.update(config=c, changed=[], transaction=uuid.uuid4().hex)
         store_session(session,state)
         try:

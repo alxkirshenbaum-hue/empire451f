@@ -383,12 +383,40 @@ def desired(c, role, f, keys, clients, templates):
     return out
 
 
+def security_manifest(c, role):
+    n = names(c)
+    require(not os.path.lexists(Path(n['state']) / 'return-intent.json'), 'Finish returning writer ownership first')
+    manifest = readjson(Path(n['state']) / 'manifest.json', {})
+    require(manifest.get('role') == role, 'SSH security role mismatch')
+    previous = dict(manifest.get('config', {}))
+    requested = dict(c)
+    previous.pop('security', None)
+    requested.pop('security', None)
+    require(previous == requested, 'SSH security configuration differs from installed deployment')
+    require(c[role]['kind'] != 'legacy', 'SSH security requires installer-managed nodes')
+    return manifest
+
+
+def security_scope(c):
+    return {'/etc/ssh/sshd_config.d/00-evpn-' + c['id'] + '.conf', names(c)['base'] + '/host.nft'}
+
+
+def security_journal(j):
+    paths = j.get('security_paths')
+    require(isinstance(paths, list) and set(paths) <= security_scope(j['config']), 'Invalid SSH security journal paths')
+    require(set(j['files']) == set(j['new_hashes']) and set(j['files']) <= security_scope(j['config']), 'Invalid SSH security journal files')
+    require(set(paths) <= set(j['files']), 'Missing SSH security journal files')
+    return security_manifest(j['config'], j['role'])
+
+
 def plan(c, role, f, keys, clients, templates, security_only=False):
-    if role == 'entry':
-        require_installer_writer(readjson(Path(names(c)['state']) / 'manifest.json', {}), names(c)['state'])
-    out = desired(c, role, f, keys, clients, templates)
-    if security_only and '/usr/local/bin/vpn-add-user' not in f['owned']:
-        out.pop('/usr/local/bin/vpn-add-user', None)
+    if security_only:
+        security_manifest(c, role)
+        out = render(c, role, f, keys, None, templates, security_only=True)
+    else:
+        if role == 'entry':
+            require_installer_writer(readjson(Path(names(c)['state']) / 'manifest.json', {}), names(c)['state'])
+        out = desired(c, role, f, keys, clients, templates)
     existing = {p: digest(p) for p in out}
     owned = dict(f['owned'])
     if f['legacy']:
@@ -587,7 +615,9 @@ def rollback_local(txdir):
     pending = readjson(n['state'] + '/pending.json')
     manifest = readjson(n['state'] + '/manifest.json', {})
     require((pending and pending['dir'] == str(txdir)) or manifest.get('transaction') == txdir.name, 'Rollback is not the latest transaction')
-    if role == 'entry':
+    if j.get('security_paths') is not None:
+        security_journal(j)
+    elif role == 'entry':
         require_installer_writer(manifest, n['state'])
     for p, saved in j['files'].items():
         if j.get('security_paths') is not None and p not in j['security_paths']:
@@ -607,7 +637,22 @@ def rollback_local(txdir):
         if any(p.startswith('/etc/ssh/') for p in j['security_paths']):
             run(['sshd','-t'])
             run(['systemctl','reload','ssh'])
-        atomic(n['state']+'/manifest.json',base64.b64decode(j['manifest']['data']))
+        # An uncommitted security apply never modified the manifest. Do not restore
+        # a stale panel snapshot. For committed rollback merge only scoped fields.
+        if manifest.get('transaction') == txdir.name:
+            before = json.loads(base64.b64decode(j['manifest']['data']))
+            for p in j['security_paths']:
+                if p in before['files']:
+                    manifest['files'][p] = before['files'][p]
+                else:
+                    manifest['files'].pop(p, None)
+            manifest['config'] = dict(manifest['config'])
+            if 'security' in before['config']:
+                manifest['config']['security'] = before['config']['security']
+            else:
+                manifest['config'].pop('security', None)
+            manifest['transaction'] = before['transaction']
+            atomic(n['state']+'/manifest.json',json.dumps(manifest))
         cancel_timer(c)
         Path(n['state']+'/pending.json').unlink(missing_ok=True)
         j['phase']='rolled-back'
@@ -662,11 +707,20 @@ def commit(c, expected=None):
     require(expected is None or pending['transaction'] == expected, 'Refusing to commit a different transaction')
     txdir = Path(pending['dir'])
     j = readjson(txdir / 'journal.json')
-    if j['role'] == 'entry':
+    security_only = j.get('security_paths') is not None
+    if security_only:
+        manifest = security_journal(j)
+    elif j['role'] == 'entry':
         require_installer_writer(readjson(Path(n['state']) / 'manifest.json', {}), n['state'])
     require(j['phase'] == 'applied', 'Transaction did not finish applying')
     require(all(digest(p) == h for p, h in j['new_hashes'].items()), 'Files changed since apply')
-    atomic(n['state'] + '/manifest.json', json.dumps({'schema_version': 1, 'files': j['new_hashes'], 'transaction': txdir.name, 'config': c, 'role': j['role']}))
+    if security_only:
+        manifest['files'].update(j['new_hashes'])
+        manifest['config'] = dict(manifest['config'], security=j['config'].get('security', {}))
+        manifest['transaction'] = txdir.name
+    else:
+        manifest = {'schema_version': 1, 'files': j['new_hashes'], 'transaction': txdir.name, 'config': c, 'role': j['role']}
+    atomic(n['state'] + '/manifest.json', json.dumps(manifest))
     cancel_timer(c)
     Path(n['state'] + '/pending.json').unlink()
     j['phase'] = 'committed'
@@ -704,6 +758,11 @@ def dispatch(request):
         return {'networks': networks, 'ports': ports, 'keep': keep}
     if action == 'probe':
         return probe(c, role)
+    if action == 'secure-plan':
+        f = probe(c, role)
+        require(not f['pending'], 'Pending transaction: rollback or commit it first')
+        _, changes = plan(c, role, f, request['keys'], None, request['templates'], security_only=True)
+        return {'changes': changes}
     if action == 'plan':
         f = probe(c, role)
         _, changes = plan(c, role, f, request['keys'], request.get('clients'), request['templates'])

@@ -1,5 +1,15 @@
 # Parallel development journal
 
+## 22.11.2026 — rc9 actual master package complete
+
+U current owner package1–5:5/5. W9.5U-Fresh4/4 retained,W9U3/5,W10U1/4; E unchanged.
+Supersedes old external-block/current-unavailable notes below. Actual rc9 completed
+exit0 and saved full target PASS before prior approval usage limit. Completion now
+rechecked SSH/services/schema9/single canonical master/currentCID/FK/private listeners/
+trusted certificate; monitors already inactive/unloaded. No reinstall/repeated suite.
+[Evidence and limits](RELEASE_RC9_COMPLETION_2026-11-22.md). Main docs to rc9.
+Next: owner uses current panel link/master credentials; further U work separately.
+
 ## 17.11.2026 — external ACME contact block; production rolled back
 
 U: point5 accepted live inrc6 before authorized wipe. Points1–4 implemented/local

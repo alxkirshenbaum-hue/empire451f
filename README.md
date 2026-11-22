@@ -1,28 +1,26 @@
-**Текущая приёмка OPEN:** rc8 не включает резервный CA без contact email в Caddy2.11.9. Текущий домен упёрся в LE429; обе ноды откатились, VPN/панель пока недоступны, SSH сохранён. Optional email кандидат локально проверен, но ещё не опубликован; ждём адрес владельца или снятие лимита.
+# VPN + VPN Control — v0.4.0-rc9
 
-**rc8:** штатный публичный CA fallback Caddy сохранён: Let's Encrypt → ZeroSSL. Исключены private CA и обход TLS. rc7 чистый прогон остановился до панели из-за внешнего LE429 (5 сертификатов/168 часов), затем штатно откатился; код master/schema9 не менялся.
+**Проверено на реальных hh-entry/hh-exit:** установка → VPN → master login → create → download → TCP/UoT. [Доказательства и ограничения](https://github.com/alxkirshenbaum-hue/empire451f/blob/feature/controlpanel-pilot/controlpanel/RELEASE_RC9_COMPLETION_2026-11-22.md).
 
-# VPN + VPN Control — v0.4.0-rc8
+Одна защищённая учётная запись **master_user** для VPN и панели с одним паролем. Из JSON реквизиты сохраняются; при отсутствии master установщик создаёт его. Отдельного скрытого owner нет. Другие пользователи видны в Users и не могут войти в панель. Импортированный VPN owner остаётся обычным пользователем.
 
-Одна защищённая учётная запись **master_user** для VPN и панели, один пароль. Если она есть в JSON-экспорте, реквизиты сохраняются; иначе установщик создаёт её. Отдельный скрытый owner не создаётся. Обычные VPN-пользователи видны в Users и не могут войти в панель; master отмечен Protected / Panel owner. Импортированный VPN-пользователь с именем owner остаётся обычным пользователем.
+Одна команда Windows (email необязателен для LE, но нужен для резервного публичного CA):
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc8/bootstrap/windows.ps1')"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command '$env:LC_EVPN_ACME_EMAIL=Read-Host "ACME contact email (optional; enables backup CA)"; iex (irm "https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc9/bootstrap/windows.ps1")'
 ```
 
-1. До очистки сохраните проверенный актуальный JSON вне Git: `empire-vpn-clients`, schema_version1, username/password включая master_user. JSON v1 импортирует включённые записи активными; не включайте отозванные записи. Не отключайте SSH host-key checking.
-2. Две подготовленные Ubuntu24.04/26.04 amd64 VDS, root SSH-ключ, домен на вход. Мастер: new → fresh, прежние домен/адреса для сохранения VPN-реквизитов, Q16 ready. Q13 — локальный JSON (имя произвольное).
-3. После VPN commit master_user автоматически становится владельцем панели. Отдельных P01–P03 нет. Мастер печатает логин/пароль, готовую HTTPS-ссылку и команду скачивания JSON.
-4. Q24.1: **1 Download JSON now** (по умолчанию), **2 Later**. Для1 подтвердите предложенный приватный новый путь или укажите свой. Для2 сохраните напечатанную команду: она работает после завершения установщика. Ошибка SCP не повторяет установку и не меняет реквизиты.
-5. Импортируйте JSON в SFA, подключите VPN, откройте выданную ссылку `https://<VPN-domain>/<случайный-путь>/`, войдите как master_user с тем же VPN-паролем. Создайте пользователя, скачайте профиль под выбранную версию. Исправлена404 для импортированных пользователей, включая1.15.0-alpha.13+RU/DM.
+1. До очистки сохраните проверенный актуальный JSON пользователей вне Git. Формат empire-vpn-clients/schema_version1, clients с username/password, включая master_user. Включённые записи импортируются активными; исключите отозванные. Проверку SSH host key не отключайте.
+2. Две подготовленные Ubuntu24.04/26.04 amd64 VDS, root SSH-ключ и домен на вход. Мастер: new → fresh, прежние параметры подключения для сохранения VPN-реквизитов; Q16 ready, Q13 локальный JSON.
+3. После commit master_user автоматически становится владельцем панели; P01–P03 отсутствуют. Мастер выдаёт реквизиты, HTTPS-ссылку и команду скачивания JSON.
+4. Q24.1: **1 Download JSON now** по умолчанию либо **2 Later**. Для1 подтвердите новый приватный путь; для2 используйте напечатанную команду после установщика. Существующие файлы не перезаписываются, ошибка SCP не повторяет установку.
+5. Подключите VPN, откройте выданную ссылку, войдите как master_user с VPN-паролем. Создайте пользователя, скачайте профиль нужной версии. 404 импортированных профилей исправлена, включая1.15.0-alpha.13+Ru/DM.
 
-**Не передавайте master JSON:** он содержит пароль владельца панели. Раздавайте отдельные профили обычных пользователей. Независимая смена только панельного пароля отключена; общая смена master-пароля пока вне этого выпуска. Protected master нельзя отключить/удалить обычной операцией.
+Master JSON содержит пароль администратора: не передавайте его, выдавайте отдельные пользовательские профили. Независимая смена только панельного пароля отключена; общая смена master-пароля пока не реализована. Protected master нельзя удалить/отключить обычной операцией.
 
-Панель доступна через VPN и использует основной автоматически продлеваемый публичный сертификат (Caddy: Let's Encrypt / ZeroSSL). Отдельный поддомен/CA/ручная установка сертификата не нужны. Публикация сайта после fresh пока отложена; через VPN основной домен вне пути панели возвращает404. Случайный путь не заменяет аутентификацию.
+Панель https://<VPN-domain>/<random-path>/ доступна через VPN, с тем же публично доверенным автоматически управляемым сертификатом основного домена. При contact email Caddy2.11.9 использует LE/ZeroSSL; без email только LE. Private CA и установка доверия на устройства не нужны. Через VPN основной домен вне пути панели возвращает404; публикация сайта после панели пока отложена.
 
-Только fresh, не in-place upgrade/portable. Существующие registry/key/units требуют отдельного плана; при частичном отказе сохраните сообщения/journal и не сбрасывайте ключи. Runtime core d94a4e7121c41bb9157e7c14d457365c7abd99d6/schema9 исключает portable/prune WIP. [Спецификация](https://github.com/alxkirshenbaum-hue/empire451f/blob/feature/controlpanel-pilot/controlpanel/MASTER_USER_OWNER_SPEC.md), [приёмка и ограничения](https://github.com/alxkirshenbaum-hue/empire451f/blob/feature/controlpanel-pilot/controlpanel/RELEASE_RC7_2026-11-17.md). Новые E/DR/reboot gates не заявляются.
-
-macOS: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc8/bootstrap/macos.sh)"`. Syntax проверен; реальная macOS-проверка не выполнена.
+Только fresh: upgrade/portable, полные E/DR/reboot матрицы не заявлены. При частичном отказе сохраняйте journal/сообщения и не сбрасывайте ключи. [Спецификация master](https://github.com/alxkirshenbaum-hue/empire451f/blob/feature/controlpanel-pilot/controlpanel/MASTER_USER_OWNER_SPEC.md). macOS bootstrap сохранён в том же теге; проверен syntax, реальная macOS-проверка не выполнена.
 
 ---
 # Персональная VPN — v0.3.6

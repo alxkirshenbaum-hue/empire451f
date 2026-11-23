@@ -27,5 +27,5 @@
 ## R11 · Публикация загрузчика сайта
 
 - [x] Собрать rc11 с прежним проверенным payload панели, согласовать SHA/URL/version; target checks пройдены.
-- [ ] Опубликовать commit/tag v0.4.0-rc11, проверить удалённые bytes bootstrap/bundle.
+- [x] Опубликовать commit/tag v0.4.0-rc11, проверить удалённые bytes bootstrap/bundle: 4341017, EXACT PASS.
 Серверы и полный fresh не входят; ограничения Linux/macOS/E2E сохранить.

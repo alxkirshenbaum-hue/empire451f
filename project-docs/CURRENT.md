@@ -1,10 +1,10 @@
 # Текущая точка CodexVPN
 
-Обновлено 23.11.2026. Локальная передача S1; состояние серверов не диагностировалось заново.
+Обновлено 23.11.2026. Опубликован rc11; состояние серверов не диагностировалось заново.
 
 ## Состояние и доказательства
 
-- Последний принятый выпуск: v0.4.0-rc10, artifact e80c2b1, helper core 0af8a3b; Go ELF rc9/schema9 переиспользован без изменения. [Точный протокол](../controlpanel/RELEASE_RC10_2026-11-22.md).
+- Последний серверно принятый выпуск: v0.4.0-rc10, artifact e80c2b1, helper core 0af8a3b; Go ELF rc9/schema9 переиспользован без изменения. [Точный протокол](../controlpanel/RELEASE_RC10_2026-11-22.md).
 - Рабочая пара в этом протоколе: hh-entry 85.155.185.169 → hh-exit 85.155.184.194. Старый kvmka-entry 193.233.22.225 — историческая топология, не целевой адрес по умолчанию. Резерв 193.233.22.78 запрещён.
 - Full Windows fresh с опубликованным launcher и точным ZIP через -BundlePath: EXIT0; Q27 на обеих нодах, новые SSH, commit, TCP/UoT, trusted private TLS/master200/ordinary401 PASS. Сохранены 6 exact credentials; SSH key-only.
 - Q28 пропущен при direct exit; ProxyJump/entry-only restriction этим проходом не внедрены. Загрузка удалённого ZIP в полном rc10 проходе не принята (скачивание отменено); прежняя F4 имеет собственную область доказательств.
@@ -28,4 +28,4 @@ Q25 возвращён в существующий сценарий с пане�
 Передача 23.11: candidate подготовлен, 20 PASS/2 skip, независимый review пройден. Владелец подтвердил push в прежний origin; identity как в прошлых коммитах: Codex <codex@local>. Итог синхронизации проверять по Git HEAD/remote, не по историческому статусу.
 
 ## R11 · Выпуск
-Подготовлен v0.4.0-rc11: ZIP SHA256 a18b001f1918aff0445b7527c98846fc4743eafa84a5aa04475db880ef8db045. Target checks 20 PASS/2 skip, payload панели rc10 сохранён. Точная публикация проверяется по tag и remote bytes; [протокол](../controlpanel/RELEASE_RC11_2026-11-23.md). Новый серверный fresh и macOS не приняты.
+Опубликован v0.4.0-rc11, release commit 4341017; tag и remote bytes ZIP/SHA/bootstrap/wrappers проверены EXACT PASS. ZIP SHA256 a18b001f1918aff0445b7527c98846fc4743eafa84a5aa04475db880ef8db045. Target checks 20 PASS/2 skip, payload панели rc10 сохранён. Точная публикация проверяется по tag и remote bytes; [протокол](../controlpanel/RELEASE_RC11_2026-11-23.md). Новый серверный fresh и macOS не приняты.

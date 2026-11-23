@@ -42,7 +42,7 @@ def build(panel_root=None, panel_source_sha=None, release_url=None):
     digest = hashlib.sha256((destination / 'installer.zip').read_bytes()).hexdigest()
     (destination / 'installer.sha256').write_text(digest + '  installer.zip\n', encoding='ascii')
     loader = (ROOT / 'server_boot.py.in').read_text().replace('__BUNDLE_SHA256__', digest)
-    loader = loader.replace('__BUNDLE_URL__', repr(release_url or 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc10/dist/installer.zip'))
+    loader = loader.replace('__BUNDLE_URL__', repr(release_url or 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc11/dist/installer.zip'))
     encoded = base64.b64encode(loader.encode()).decode()
     command = "python3 -c exec\\(__import__\\(\\'base64\\'\\).b64decode\\(\\'" + encoded + "\\'\\)\\)"
     for name in ['windows.ps1', 'macos.sh']:

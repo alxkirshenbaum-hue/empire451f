@@ -14,11 +14,11 @@ RC10_SHA = 'f0dbed6ce57d21744a3dd8d026a931cf470bcb4132fafa641b15d336eee6211c'
 CORE = '0af8a3b39489e0f71222264c4f0c800872870838'
 
 
-def main():
-    output = ROOT / 'dist/s1-local'
+def main(release_rc11=False):
+    output = ROOT / ('dist/rc11-build' if release_rc11 else 'dist/s1-local')
     if output.exists():
         raise ValueError('Candidate directory already exists; preserve it or select a new explicit build location')
-    original = ROOT / 'dist/installer.zip'
+    original = ROOT / ('dist/s1-local/rc10-before/dist/installer.zip' if release_rc11 else 'dist/installer.zip')
     data = original.read_bytes()
     if hashlib.sha256(data).hexdigest() != RC10_SHA:
         raise ValueError('Expected exact accepted rc10 bundle')
@@ -46,12 +46,12 @@ def main():
         for name in ['templates','bootstrap','examples/site-handoff']:
             shutil.copytree(ROOT/name, source/name)
         version = json.loads((source/'versions.json').read_text())
-        version['installer_release'] = '0.4.0-rc10-s1-local'
+        version['installer_release'] = '0.4.0-rc11' if release_rc11 else '0.4.0-rc10-s1-local'
         (source/'versions.json').write_text(json.dumps(version, indent=2)+'\n')
         previous_root = build_release.ROOT
         try:
             build_release.ROOT = source
-            build_release.build(stage, CORE, CANDIDATE_URL)
+            build_release.build(stage, CORE, 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc11/dist/installer.zip' if release_rc11 else CANDIDATE_URL)
         finally:
             build_release.ROOT = previous_root
         with zipfile.ZipFile(source/'dist/installer.zip') as z:
@@ -69,7 +69,22 @@ def main():
             base_bundle_sha256=RC10_SHA, panel_source_sha=CORE, panel_payload_sha256=hashlib.sha256(payload_bytes).hexdigest(),
             files={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in output.iterdir() if p.is_file()})
         (output/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
+        if release_rc11:
+            manifest['format'] = 'empire-rc11-build-v1'
+            manifest['publication'] = 'prepared-not-published'
+            manifest['release_url'] = 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc11/dist/installer.zip'
+            shutil.copy2(ROOT/'dist/build-provenance.json', backup/'build-provenance.json')
+            for name in ['installer.zip','installer.sha256','site-handoff-example.zip']:
+                shutil.copy2(output/name,ROOT/'dist'/name)
+            for name in ['windows.ps1','macos.sh']:
+                shutil.copy2(output/name,ROOT/'bootstrap'/name)
+            shutil.copy2(source/'versions.json',ROOT/'versions.json')
+            (ROOT/'dist/build-provenance.json').write_text(json.dumps(manifest,indent=2)+'\n')
+            (output/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
         print(json.dumps(manifest,indent=2))
 
 if __name__ == '__main__':
-    main()
+    import argparse
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--release-rc11', action='store_true')
+    main(parser.parse_args().release_rc11)

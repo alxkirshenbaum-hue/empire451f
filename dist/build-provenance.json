@@ -1,38 +1,15 @@
 {
-  "format": "vpn-control-fresh-build-v1",
-  "installer_source_sha": "b86591dc0dbd76d1f223b6dd5c71cdd5a1e7e00f",
-  "panel_source_sha": "0c05a6174e254192939227668f9d4947904984d4",
-  "go_version": "go1.27.3",
-  "go_sum_sha256": "d21703d26da01b776d242a173790ac72e660d96a0347678923243d0f3ba8c825",
-  "binary_build_commands": [
-    "GOPROXY=file:///opt/vpn-control/proxy GOSUMDB=off GOTOOLCHAIN=local GOFLAGS=\"-p=1 -mod=readonly\" /opt/vpn-control/toolchain/go/bin/go build -trimpath -buildvcs=false -o bin/vpn-control ./cmd/vpn-control",
-    "same env /opt/vpn-control/toolchain/go/bin/go build -trimpath -buildvcs=false -o bin/vpnctl ./cmd/vpnctl"
-  ],
-  "core_stage": "/opt/vpn-control/panel-core-0c05a61-20261115130710",
-  "binaries": {
-    "vpn-control": {
-      "sha256": "34ce33ecfaea722a300b01b0507e21ff8449a9eb033d4c62472e65369ed5c497",
-      "size_bytes": 17818304
-    },
-    "vpnctl": {
-      "sha256": "5ee106d875cd13852fde0d4182acf1ff575c08ec612577f58422c7d806b368f6",
-      "size_bytes": 15886064
-    }
-  },
-  "bundle_sha256": "f5e8b7344945e067e1a85635a7a5c07a98e58e530b7096701a4f6f0ce85a1e6b",
-  "bundle_size_bytes": 22761364,
-  "release_url": "https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc1/dist/installer.zip",
-  "publication": "prepared_for_v0.4.0-rc1_not_pushed_by_builder",
-  "platform": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.39",
-  "validation": {
-    "regression_tests": 63,
-    "skipped_platform_tests": 4,
-    "default_https_loader": "actual ZIP fetched through mock URL, SHA and all embedded module imports PASS; deployment call intercepted",
-    "tampered_https_bundle": "SHA refusal PASS",
-    "macOS_shell": "bash -n PASS; no real macOS execution",
-    "live_nodes": "NOT ACCESSED",
-    "generated_checked_loader": "Both generated launchers embed exactly the HTTPS loader tested with actual ZIP",
-    "windows": "PS7 and PS5.1 AST PASS; public CA SSH-mock test PASS; native behavior unchanged except checked URL/hash"
-  },
-  "target_unit": "w95-publish-b86591d"
+  "format": "empire-rc11-build-v1",
+  "publication": "prepared-not-published",
+  "release_url": "https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc11/dist/installer.zip",
+  "base_bundle_sha256": "f0dbed6ce57d21744a3dd8d026a931cf470bcb4132fafa641b15d336eee6211c",
+  "panel_source_sha": "0af8a3b39489e0f71222264c4f0c800872870838",
+  "panel_payload_sha256": "735866ba8efd3e85339987bd241c2d6f7cc51381d963a9c9027dd42743089271",
+  "files": {
+    "installer.sha256": "31f1fafc8463381d8ba3d36a4da067a40c48a526e78a6140d630ca13910655e0",
+    "installer.zip": "a18b001f1918aff0445b7527c98846fc4743eafa84a5aa04475db880ef8db045",
+    "macos.sh": "e324a28aa2642a702012dbd3f0f565fb3bb30374d8595b9dbaf164685a66d357",
+    "site-handoff-example.zip": "a7001fbf5cef8cd7d83279a10528ca5917f5293aad6a1e5dd3929460292c816a",
+    "windows.ps1": "f7c310779435084f4392c89ae4b17c3ca0271e570fdf192dd9ec8e41bc8f4148"
+  }
 }

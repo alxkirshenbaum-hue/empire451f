@@ -1,4 +1,6 @@
-# VPN + VPN Control — v0.4.0-rc10
+# VPN + VPN Control — v0.4.0-rc11
+
+RC11 возвращает шаг Q25: локальный TAR/ZIP загружается и безопасно публикуется, также при включённой панели. Проверены локальные тесты и сборка; серверный fresh/upgrade rc11 не выполнен. Ниже приёмка rc10 относится к предыдущему выпуску.
 
 **rc10 проверен на реальных hh-entry/hh-exit:** полный fresh-проход завершился с кодом0, включая Q27 — защиту SSH после установки панели. Обе ноды прошли предварительную проверку, применение, новые SSH-сессии и подтверждение изменений. Из реально скачанного master JSON проверены TCP через exit, DNS через UoT и доступ к панели с обычной проверкой доверенного HTTPS-сертификата; master login200, обычный пользователь401.
 
@@ -9,7 +11,7 @@
 Одна команда Windows (email необязателен для LE, но нужен для резервного публичного CA):
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command '$env:LC_EVPN_ACME_EMAIL=Read-Host "ACME contact email (optional; enables backup CA)"; iex (irm "https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc10/bootstrap/windows.ps1")'
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command '$env:LC_EVPN_ACME_EMAIL=Read-Host "ACME contact email (optional; enables backup CA)"; iex (irm "https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc11/bootstrap/windows.ps1")'
 ```
 
 1. До очистки сохраните проверенный актуальный JSON пользователей вне Git. Формат empire-vpn-clients/schema_version1, clients с username/password, включая master_user. Включённые записи импортируются активными; исключите отозванные. Проверку SSH host key не отключайте.
@@ -29,7 +31,7 @@ Master JSON содержит пароль администратора: не п�
 Только fresh: upgrade/portable, полные E/DR/reboot матрицы не заявлены. При частичном отказе сохраняйте journal/сообщения и не сбрасывайте ключи. [Спецификация master](https://github.com/alxkirshenbaum-hue/empire451f/blob/feature/controlpanel-pilot/controlpanel/MASTER_USER_OWNER_SPEC.md). macOS bootstrap сохранён в том же теге; проверен syntax, реальная macOS-проверка не выполнена.
 
 ---
-# Персональная VPN — v0.3.6
+# Персональная VPN — v0.4.0-rc11
 
 **Установщик работает на VPS; диалог — в вашем терминале через SSH.** На компьютер не скачиваются комплект, шаблоны или сборки; локальный Python и Git не нужны. Короткий запускающий текст выполняется в памяти штатной оболочки. Обе VPS сами получают закреплённый комплект из Git, проверяют SHA256 и устанавливают компоненты из официальных источников.
 
@@ -40,13 +42,13 @@ Master JSON содержит пароль администратора: не п�
 **Windows10/11**, Windows PowerShell5.1 или PowerShell7 — одна команда:
 
 ```powershell
-& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.3.6/bootstrap/windows.ps1').Content))
+& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc11/bootstrap/windows.ps1').Content))
 ```
 
 **macOS11+**, Terminal с zsh или bash — одна команда, без PowerShell:
 
 ```sh
-/bin/bash -c 'set -e; code=$(curl -fsSL --proto "=https" https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.3.6/bootstrap/macos.sh); /bin/bash -c "$code"'
+/bin/bash -c 'set -e; code=$(curl -fsSL --proto "=https" https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc11/bootstrap/macos.sh); /bin/bash -c "$code"'
 ```
 
 ### Повторный запуск сразу в меню Q00
@@ -56,13 +58,13 @@ Master JSON содержит пароль администратора: не п�
 **Windows PowerShell**
 
 ```powershell
-& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.3.6/bootstrap/windows.ps1').Content)) -EntryAlias hh-entry -ExitAlias hh-exit -DeploymentId nh1
+& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc11/bootstrap/windows.ps1').Content)) -EntryAlias hh-entry -ExitAlias hh-exit -DeploymentId nh1
 ```
 
 **macOS, zsh или bash**
 
 ```sh
-/bin/bash -c 'set -e; code=$(curl -fsSL --proto "=https" https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.3.6/bootstrap/macos.sh); /bin/bash -c "$code" -- --resume "$@"' -- hh-entry hh-exit nh1
+/bin/bash -c 'set -e; code=$(curl -fsSL --proto "=https" https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc11/bootstrap/macos.sh); /bin/bash -c "$code" -- --resume "$@"' -- hh-entry hh-exit nh1
 ```
 
 **[Пройти установку шаг за шагом](GUIDE.md)** — от первого подключения до проверки VPN на телефоне. Для реальной замены входа выберите Q00 → 2 и Q01 → 2. Для просмотра плана выберите Q00 → 1. Чтобы сменить домен действующей установки, выберите Q00 → 3. [Переход с тестового домена на рабочий](GUIDE.md#как-сменить-тестовый-домен-на-рабочий).
@@ -82,8 +84,10 @@ Master JSON содержит пароль администратора: не п�
 
 **Статус: кандидат для испытания на новой VDS.** Локальные проверки не заменяют первую установку с Windows. Настоящий macOS и Linux/systemd/netns пока не испытаны. Рабочие серверы и DNS при разработке не менялись.
 
-После успешной установки мастер выводит пароль VPN-пользователя `master_user`. Q24 сохраняет JSON для импорта в [sing-box for Android](https://sing-box.sagernet.org/clients/android/). Q25 предлагает опубликовать TAR или ZIP со статическим сайтом, в том числе при включённой панели. index.html должен находиться в корне архива либо в site/ (допускается один внешний каталог). [Скачать ZIP-заготовку с заданием для агента](https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.3.6/dist/site-handoff-example.zip). Передайте агенту ZIP и тему, затем выберите возвращённый им архив в Q25.
+После успешной установки мастер выводит пароль VPN-пользователя `master_user`. Q24 сохраняет JSON для импорта в [sing-box for Android](https://sing-box.sagernet.org/clients/android/). Q25 предлагает опубликовать TAR или ZIP со статическим сайтом, в том числе при включённой панели. index.html должен находиться в корне архива либо в site/ (допускается один внешний каталог). [Скачать ZIP-заготовку с заданием для агента](https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc11/dist/site-handoff-example.zip). Передайте агенту ZIP и тему, затем выберите возвращённый им архив в Q25.
 
 - [Выдать пользователю профиль VPN по SSH](GUIDE.md#выдача-профиля-по-ssh)
 
 Локальный S1 candidate: `python build_site_candidate.py` создаёт отдельный `dist/s1-local/`, проверяет и сохраняет payload rc10; опубликованный rc10 не перезаписывается. Candidate launcher требует `-BundlePath` к своему ZIP: remote URL намеренно недоступен. Candidate не опубликован и не принят серверным fresh.
+
+RC11 возвращает Q25 с TAR/ZIP при включённой панели; панель и schema9 сохранены из rc10. Сборка release: `python build_site_candidate.py --release-rc11`; локальный s1-local сохраняется отдельно. Серверная приёмка rc11 не выполнена.

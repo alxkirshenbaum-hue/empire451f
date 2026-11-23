@@ -1,0 +1,15 @@
+{
+  "format": "empire-s1-local-v1",
+  "publication": "unpublished-local-only",
+  "release_url": "https://example.invalid/empire-vpn-s1-local/installer.zip",
+  "base_bundle_sha256": "f0dbed6ce57d21744a3dd8d026a931cf470bcb4132fafa641b15d336eee6211c",
+  "panel_source_sha": "0af8a3b39489e0f71222264c4f0c800872870838",
+  "panel_payload_sha256": "735866ba8efd3e85339987bd241c2d6f7cc51381d963a9c9027dd42743089271",
+  "files": {
+    "installer.sha256": "2aa92cb8a1a4e1bdd0103d74c7229f15cd4659bc041810bee5d8f2f13e0f7cc2",
+    "installer.zip": "43bdd2ee218182106fcfdb2f902081ac47f04f4b26ce588381c7f2c6eef442d9",
+    "macos.sh": "91185cb1ad31a8e01a16c9f34b9325c9adb02bf11aa86d2323eee19e4b6e6b69",
+    "site-handoff-example.zip": "a7001fbf5cef8cd7d83279a10528ca5917f5293aad6a1e5dd3929460292c816a",
+    "windows.ps1": "8c5c6b1eefddfa883d9441e3b2e1556713786a287387deb29f5016072f650949"
+  }
+}

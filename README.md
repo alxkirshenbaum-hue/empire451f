@@ -82,6 +82,8 @@ Master JSON содержит пароль администратора: не п�
 
 **Статус: кандидат для испытания на новой VDS.** Локальные проверки не заменяют первую установку с Windows. Настоящий macOS и Linux/systemd/netns пока не испытаны. Рабочие серверы и DNS при разработке не менялись.
 
-После успешной установки мастер выводит пароль VPN-пользователя `master_user`. Q24 сохраняет JSON для импорта в [sing-box for Android](https://sing-box.sagernet.org/clients/android/). Q25 предлагает опубликовать готовый ZIP со статическим сайтом. [Скачать ZIP-заготовку с заданием для агента](https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.3.6/dist/site-handoff-example.zip). Передайте агенту ZIP и тему, затем выберите возвращённый им архив в Q25.
+После успешной установки мастер выводит пароль VPN-пользователя `master_user`. Q24 сохраняет JSON для импорта в [sing-box for Android](https://sing-box.sagernet.org/clients/android/). Q25 предлагает опубликовать TAR или ZIP со статическим сайтом, в том числе при включённой панели. index.html должен находиться в корне архива либо в site/ (допускается один внешний каталог). [Скачать ZIP-заготовку с заданием для агента](https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.3.6/dist/site-handoff-example.zip). Передайте агенту ZIP и тему, затем выберите возвращённый им архив в Q25.
 
 - [Выдать пользователю профиль VPN по SSH](GUIDE.md#выдача-профиля-по-ssh)
+
+Локальный S1 candidate: `python build_site_candidate.py` создаёт отдельный `dist/s1-local/`, проверяет и сохраняет payload rc10; опубликованный rc10 не перезаписывается. Candidate launcher требует `-BundlePath` к своему ZIP: remote URL намеренно недоступен. Candidate не опубликован и не принят серверным fresh.

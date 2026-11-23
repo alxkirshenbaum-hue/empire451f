@@ -13,15 +13,14 @@ import controller
 from render import Invalid
 
 class FreshControllerTests(unittest.TestCase):
-    def test_panel_site_change_is_refused_without_mutation(self):
+    def test_panel_site_publish_uses_existing_public_root(self):
         with tempfile.TemporaryDirectory() as directory:
-            session=Path(directory)/'session.json';archive=session.with_suffix('.zip');archive.write_bytes(b'fixture upload')
-            state={'committed':True,'config':{'panel_enabled':True}}
-            with patch.object(controller.remote,'readjson',return_value=state),patch.object(controller,'session_path',return_value=session),patch.object(controller.delivery,'publish_site') as publish:
-                with contextlib.redirect_stdout(io.StringIO()) as output, contextlib.redirect_stderr(output):
-                    self.assertEqual(controller.finish(Mock(),'session','publish-site'),1)
-                self.assertIn('Site ZIP rejected',output.getvalue())
-            publish.assert_not_called();self.assertFalse(archive.exists())
+            session=Path(directory)/'session.json'; archive=session.with_suffix('.zip');archive.write_bytes(b'fixture')
+            state={'committed':True,'config':{'panel_enabled':True,'entry':{'kind':'new'},'domain':'vpn.example'}}
+            with patch.object(controller.remote,'readjson',return_value=state),patch.object(controller,'session_path',return_value=session),patch.object(controller,'names',return_value={'base':directory}),patch.object(controller.delivery,'publish_site') as publish,contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(controller.finish(Mock(),'session','publish-site'),0)
+            publish.assert_called_once_with(archive,Path(directory)/'site-releases',Path(directory)/'site-current')
+            self.assertFalse(archive.exists())
     def test_owner_secret_stays_out_of_session_and_output(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);ca=root/'ca.crt';ca.write_bytes(b'public certificate')

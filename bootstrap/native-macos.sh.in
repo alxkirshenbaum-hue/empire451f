@@ -344,15 +344,14 @@ finish_handoff() {
   rm -f "$tmp"; printf '%s\n' 'Profile transfer failed; retry or skip.' >&2
  done
  if ssh -F "$CONFIG" "$entry_host" "test -f $prefix.panel-url.txt" 2>/dev/null; then
-    printf '%s\n' 'Panel uses the VPN domain trusted HTTPS certificate; no CA installation is required. Connect VPN and use the URL printed above. Website publishing remains deferred to preserve its verified baseline.'
-    return 0
+    printf '%s\n' 'Panel uses the VPN domain trusted HTTPS certificate; no CA installation is required. Connect VPN and use the URL printed above.'
    fi
    while :; do
-  archive=$(ask Q25 'Publish a static website now? Enter a local handoff ZIP path, or Enter to keep the current site')
+  archive=$(ask Q25 'Publish a static website now? Enter a local TAR or ZIP path, or Enter to keep the current site')
   [ -n "$archive" ] || return 0
   case "$archive" in '~/'*) archive="$HOME/${archive#\~/}";; /*) ;; *) archive="$PWD/$archive";; esac
-  if [ ! -f "$archive" ] || [ "$(wc -c < "$archive")" -gt 209715200 ]; then printf '%s\n' 'Select a ZIP up to 200 MiB.' >&2; continue; fi
-  printf '%s\n' 'Uploading site ZIP to entry. Only files under site/ will be published.' >&2
+  if [ ! -f "$archive" ] || [ "$(wc -c < "$archive")" -gt 209715200 ]; then printf '%s\n' 'Select a TAR or ZIP up to 200 MiB.' >&2; continue; fi
+  printf '%s\n' 'Uploading site archive to entry. index.html must be at archive root or under site/.' >&2
   if scp -F "$CONFIG" "$archive" "${entry_host}:$prefix.zip" && run_wizard publish-site; then return 0; fi
  done
 }

@@ -6,6 +6,8 @@ import re
 import shutil
 import stat
 import tempfile
+import tarfile
+from contextlib import contextmanager
 import zipfile
 
 from render import require
@@ -28,6 +30,29 @@ def profile(template, config, password):
     return result
 
 
+@contextmanager
+def site_archive(path):
+    """Read metadata and streams; never extract archive paths directly."""
+    if zipfile.is_zipfile(path):
+        with zipfile.ZipFile(path) as z:
+            entries = z.infolist()
+            require(len(entries) <= 4096, 'Too many archive entries')
+            for i in entries:
+                require(stat.S_IFMT(i.external_attr >> 16) in (0, stat.S_IFREG, stat.S_IFDIR) and not i.flag_bits & 1, 'Unsupported ZIP entry')
+            yield [(i.orig_filename, i.is_dir(), i.file_size, i) for i in entries], z.open
+    else:
+        with tarfile.open(path, 'r:*') as t:
+            entries = []
+            total = 0
+            for i in t:
+                require(len(entries) < 4096, 'Too many archive entries')
+                require((i.isfile() or i.isdir()) and i.sparse is None, 'Unsupported TAR entry')
+                total += i.size
+                require(i.size >= 0 and total <= 400 * 1024**2, 'Expanded archive exceeds 400 MiB')
+                entries.append((i.name, i.isdir(), i.size, i))
+            yield entries, t.extractfile
+
+
 def publish_site(archive, root, current, *, legacy=False):
     """Stage a complete release, then switch the site with one rename."""
     require(archive.stat().st_size <= MAX_ZIP, 'Archive exceeds 200 MiB')
@@ -43,32 +68,35 @@ def publish_site(archive, root, current, *, legacy=False):
     stage = Path(tempfile.mkdtemp(prefix='release-', dir=root))
     link = stage.parent / (stage.name + '.link')
     try:
-        with zipfile.ZipFile(archive) as z:
-            entries = z.infolist()
-            require(0 < len(entries) <= 4096, 'Too many ZIP entries')
+        with site_archive(archive) as (entries, open_entry):
+            require(entries, 'Empty archive')
             roots = []
-            for item in entries:
-                raw = item.orig_filename
-                parts = raw.rstrip('/').split('/')
-                require(all(x not in ('', '.', '..') for x in parts) and not any(ch in raw for ch in ('\\', ':', '\x00')), 'Unsafe ZIP path')
-                require(stat.S_IFMT(item.external_attr >> 16) in (0, stat.S_IFREG, stat.S_IFDIR) and not item.flag_bits & 1, 'Unsupported ZIP entry')
-                if parts[-2:] == ['site','index.html'] and len(parts) in (2,3):
-                    roots.append('/'.join(parts[:-1]) + '/')
-            require(len(roots) == 1, 'Expected exactly one site/index.html (optional wrapper directory)')
-            total, seen = 0, set()
-            for item in entries:
-                if not item.filename.startswith(roots[0]) or item.is_dir():
+            for raw, directory, size, item in entries:
+                while raw.startswith('./'):
+                    raw = raw[2:]
+                if directory and raw in ('', '.'):
                     continue
-                rel = PurePosixPath(item.filename[len(roots[0]):])
+                parts = raw.rstrip('/').split('/')
+                require(all(x not in ('', '.', '..') for x in parts) and not any(ch in raw for ch in ('\\', ':', '\x00')), 'Unsafe archive path')
+                if not directory and (parts == ['index.html'] or (parts[-2:] == ['site','index.html'] and len(parts) in (2,3))):
+                    roots.append('/'.join(parts[:-1]) + ('/' if len(parts)>1 else ''))
+            require(len(roots) == 1, 'Expected one index.html at root or under site/')
+            total, seen = 0, set()
+            for raw, directory, size, item in entries:
+                while raw.startswith('./'):
+                    raw = raw[2:]
+                if not raw.startswith(roots[0]) or directory:
+                    continue
+                rel = PurePosixPath(raw[len(roots[0]):])
                 require(all(re.fullmatch(r'[A-Za-z0-9_-][A-Za-z0-9._ -]*', p) for p in rel.parts), 'Unsupported site filename')
                 require(rel.suffix.lower()[1:] in SITE_TYPES, 'Unsupported public file type')
                 require(str(rel).casefold() not in seen, 'Duplicate site path')
                 seen.add(str(rel).casefold())
-                total += item.file_size
-                require(total <= 400 * 1024**2, 'Expanded site exceeds 400 MiB')
+                total += size
+                require(0 <= size and total <= 400 * 1024**2, 'Expanded site exceeds 400 MiB')
                 target = stage.joinpath(*rel.parts)
                 target.parent.mkdir(parents=True, exist_ok=True)
-                with z.open(item) as src, target.open('xb') as dst:
+                with open_entry(item) as src, target.open('xb') as dst:
                     shutil.copyfileobj(src,dst,256*1024)
                 target.chmod(0o644)
         for folder, _, _ in os.walk(stage):

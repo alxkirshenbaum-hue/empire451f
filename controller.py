@@ -545,7 +545,6 @@ def finish(nodes, session, operation):
         require(state.get('committed'), 'Website upload requires a committed deployment')
         archive = session_path(session).with_suffix('.zip')
         try:
-            require(not c.get('panel_enabled'), 'Website publication is deferred for this panel candidate: preserve the verified worker site baseline')
             if c['entry']['kind'] == 'legacy':
                 base = Path('/var/www/empire-tomorrow')
                 require(str(base / 'current') in Path('/etc/naive/Caddyfile').read_text(), 'Unrecognised legacy site root')
@@ -556,7 +555,7 @@ def finish(nodes, session, operation):
             print('Site published: https://' + c['domain'] + '/')
             return 0
         except Exception:
-            print('Site ZIP rejected or could not be published. The previous site is still active.', file=sys.stderr)
+            print('Site archive rejected or could not be published. Existing physical site-current directories must be migrated separately; the previous site is still active.', file=sys.stderr)
             return 1
         finally:
             archive.unlink(missing_ok=True)

@@ -280,12 +280,12 @@ function Finish-Handoff {
   finally{if($tmp -and [IO.File]::Exists($tmp)){[IO.File]::Delete($tmp)}}
  }
  & ssh -F $Config $entryHost ('test -f '+$prefix+'.panel-url.txt') 2>$null
- if($LASTEXITCODE -eq 0){Write-Host 'Panel uses the VPN domain trusted HTTPS certificate; no CA installation is required. Connect VPN and use the URL printed above. Website publishing remains deferred to preserve its verified baseline.';return}
+ if($LASTEXITCODE -eq 0){Write-Host 'Panel uses the VPN domain trusted HTTPS certificate; no CA installation is required. Connect VPN and use the URL printed above.'}
  while($true){
-  $zip=Ask Q25 'Publish a static website now? Enter a local handoff ZIP path, or Enter to keep the current site'
+  $zip=Ask Q25 'Publish a static website now? Enter a local TAR or ZIP path, or Enter to keep the current site'
   if(!$zip){return}
-  try{$f=Get-Item -LiteralPath $zip -ErrorAction Stop;if($f.PSIsContainer -or $f.Length -gt 209715200){throw 'Invalid file'}}catch{Write-Host 'Select a ZIP up to 200 MiB.';continue}
-  Write-Host 'Uploading site ZIP to entry. Only files under site/ will be published.'
+  try{$f=Get-Item -LiteralPath $zip -ErrorAction Stop;if($f.PSIsContainer -or $f.Length -gt 209715200){throw 'Invalid file'}}catch{Write-Host 'Select a TAR or ZIP up to 200 MiB.';continue}
+  Write-Host 'Uploading site archive to entry. index.html must be at archive root or under site/.'
   & scp -F $Config $f.FullName ($entryHost+':'+$prefix+'.zip')
   if($LASTEXITCODE){Write-Host 'Upload failed. Retry or press Enter to skip.';continue}
   Run-Wizard publish-site

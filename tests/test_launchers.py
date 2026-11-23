@@ -255,7 +255,7 @@ $global:EVPNTestAnswers.Enqueue('2')
 $global:EVPNTestAnswers.Enqueue('')
 $global:EVPNTestAnswers.Enqueue('')
 $global:EVPNTestAnswers.Enqueue('')
-function Read-Host {param([string]$Prompt); if($Prompt -match '^\[Q24\]'){if($global:Asked24){return ''};$global:Asked24=$true;return ($env:EVPN_TEST_TRACE+'.profile')};if($Prompt -match '^\[Q25\]'){if($global:Asked25){return ''};$global:Asked25=$true;return $env:EVPN_TEST_KEY};if(!$global:EVPNTestAnswers.Count){throw ('Unexpected prompt: '+$Prompt)};return $global:EVPNTestAnswers.Dequeue()}
+function Read-Host {param([string]$Prompt); if($Prompt -match '^\[Q24\.1\]'){return '1'}; if($Prompt -match '^\[Q24\]'){if($global:Asked24){return ''};$global:Asked24=$true;return ($env:EVPN_TEST_TRACE+'.profile')};if($Prompt -match '^\[Q25\]'){if($global:Asked25){return ''};$global:Asked25=$true;return $env:EVPN_TEST_KEY};if(!$global:EVPNTestAnswers.Count){throw ('Unexpected prompt: '+$Prompt)};return $global:EVPNTestAnswers.Dequeue()}
 & $env:EVPN_TEST_LAUNCHER
 ''')
             for name in ('powershell.exe', 'pwsh.exe'):
@@ -271,7 +271,7 @@ function Read-Host {param([string]$Prompt); if($Prompt -match '^\[Q24\]'){if($gl
                 self.assertEqual(events[start + 1:finish], ['ssh-check', 'ssh-check'])
                 self.assertIn(b'REMOTE_DIALOG_STUB', result.stdout)
                 self.assertIn(b'COMMIT_STUB', result.stdout)
-                self.assertIn('publish-site',events[finish+1:])
+                self.assertIn('publish-site',events[finish+1:],result.stdout.decode(errors='replace')+result.stderr.decode(errors='replace'))
                 self.assertEqual(json.loads(Path(str(trace)+'.profile').read_text()),{'fixture':True})
                 self.assertIn(b'Key was not unlocked', result.stdout)
                 self.assertIn(b'Route 2 did not reach exit', result.stdout)

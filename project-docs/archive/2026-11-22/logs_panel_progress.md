@@ -1,0 +1,294 @@
+> Исторический документ: installer/controlpanel/PROGRESS.md. Не текущие указания. Исходные байты сохранены в V001/before; изменены только относительные Markdown-ссылки.
+
+# Общий прогресс VPN Control
+
+## 22.11.2026 — rc10 published / actual full fresh + Q27 PASS
+
+Явно согласованные выпуск и очистка hh-entry/hh-exit выполнены. Artifact e80c2b1,
+helper core0af8a3b, exact rc9/schema9 Go ELF reused. CURRENT JSON6 сохранён/сверен,
+private snapshots/rollback подготовлены; SSH/ACME/WG сохранены, резерв не затронут.
+Полный опубликованный Windows launcher + точный ZIP через -BundlePath: EXIT0.
+Q27yes: preflight обеих нод до apply, secure-apply/новые SSH/commit обеих PASS;
+ошибка writer после panel handoff устранена. Q28 пропущен при direct exit.
+Post: original-key SSH обеих,6 exact credentials, panel_generation/DBintegrity/FK,
+скачанный JSON externalTCP/UoTDNS/privateTLS/master200/ordinary401 PASS.
+[Протокол и ограничения](../../installer/controlpanel/RELEASE_RC10_2026-11-22.md). Предыдущая запись о локальном
+кандидате заменена этим результатом. W9.5U-Fresh4/4, W9U3/5, W10U1/4; E unchanged.
+BL-010.7/010.8 (Q28/ProxyJump) и BL-010.9 (ACME/SAN) остаются бэклогом.
+Следующее действие: владелец использует новый master JSON/URL; новые U-задачи отдельно.
+
+## 22.11.2026 — SSH hardening после panel handoff: локальный hotfix
+
+По новому реальному проходу владельца rc9: установка VPN/панели и JSON завершилась,
+Q27 на exit применился, entry/secure-apply отказал из-за panel_generation, exit откатился.
+Прямой SSH обеих нод и exit через entry доступны; Q28 был пропущен, не применён.
+Исправляется только ограниченная SSH-транзакция: предварительная проверка обеих нод,
+разрешённые SSH/firewall пути, сохранение актуального manifest панели при commit/rollback.
+Обычный installer writer guard сохраняется. ProxyJump и явный выбор Q28 записаны
+в BACKLOG BL-010.7/010.8; в этом hotfix не реализуются.
+Проверки: 7 целевых post-panel security + 9 существующих RenderingTests PASS (16, 0.211s),
+существующий WSL Python через временную копию исходников, без доработки стенда.
+PowerShell parser и git diff --check PASS. Полный fresh на нодах не выполнялся.
+Production/release bundle не менялись. Реальная fresh-приёмка кандидата пока OPEN;
+установку и подтверждённые rc9 тесты не повторять до отдельного окна владельца.
+W9.5U-Fresh4/4, W9U3/5, W10U1/4 и E сохраняют прежнюю область доказательств.
+
+## 22.11.2026 — rc9 actual master package complete
+
+U current owner package1–5:5/5. W9.5U-Fresh4/4 retained,W9U3/5,W10U1/4; E unchanged.
+Supersedes old external-block/current-unavailable notes below. Actual rc9 completed
+exit0 and saved full target PASS before prior approval usage limit. Completion now
+rechecked SSH/services/schema9/single canonical master/currentCID/FK/private listeners/
+trusted certificate; monitors already inactive/unloaded. No reinstall/repeated suite.
+[Evidence and limits](../../installer/controlpanel/RELEASE_RC9_COMPLETION_2026-11-22.md). Main docs to rc9.
+Next: owner uses current panel link/master credentials; further U work separately.
+
+## 17.11.2026 — external ACME contact block; production rolled back
+
+U: point5 accepted live inrc6 before authorized wipe. Points1–4 implemented/local
+PASS, combined real acceptance OPEN. W9U3/5,W10U1/4; E unchanged. Do not close gates.
+rc7 ordinary clean attempt and rc8 recovery both stopped at public TLS BEFORE panel
+bootstrap; both rolled back. Current VPN/panel are NOT running; new SSH works on both.
+Saved verified CURRENT installer JSON7 (including all original6/master) outside Git.
+Monitors stopped, raw evidence retained, ACME storage/WG keys preserved after rollback.
+
+Concrete external blocker: LE429 duplicate5/168h; server retry18.11 about04:32MSK.
+Pinned Caddy2.11.9 DefaultIssuers(email) adds ZeroSSL ONLY when email nonempty; generic
+docs/modules check was insufficient. No invented email or third blind retry.
+Owner asked for ACME contact through async text question; awaiting actual email or
+owner decision to wait. This is missing external data, not a permission request.
+
+Prepared SEPARATE UNRELEASED email candidate: LC_EVPN_ACME_EMAIL via existing SSH
+SendEnv/config, strict ASCII validation, renderglobal email; existing TLS wait36
+attempts. Python10 PASS0.031s, production Caddy adapter TWO CA policies PASS with
+synthetic email only (no registration/issuance). Go/schema/master code unchanged.
+Candidate renderer/verifier differ fromd94 pin: MUST create clean helper-only core
+child, verify Go tree unchanged/reuse exact ELF, update manifests before packaging.
+First next AFTER actual email: complete candidate pin/build/release, reset ONLY owned
+prepared component pool8 if version guard requires, no further node wipe/ACME deletion;
+ordinary install with environment contact, then master/JSON/alpha13 actual acceptance.
+[Full record](../../installer/controlpanel/RELEASE_RC7_2026-11-17.md). Main remains last accepted rc5 docs, not rc8 PASS.
+
+## 17.11.2026 — BL-011.1 complete, actual rc5 PASS
+
+U W9.5U-Fresh4/4 · W9U3/5 · W10U1/4; E unchanged. BL-011.1 closed1/1.
+Published rc5/artifact47a81a2/corec174ba9, authorized cleanup and normal install exit0.
+Actual VPN→system-trusted same-domain TLS→prefixed owner UI/API→create/worker/download→
+new/master TCP/UoT PASS. Exact imported6 credentials/case/status/protected master PASS.
+Public known prefix/forged headers denied, Origin/CSRF negatives and HTTP redirect PASS.
+Same automatic Let's Encrypt certificate, private listeners retained after worker;
+fresh SSH/default host routes PASS, monitors stopped. No CA install needed.
+[Exact evidence and limits](../../installer/controlpanel/RELEASE_RC5_2026-11-17.md). No new E/phone UI gate claimed.
+Next: owner uses updated Q24 profile and printed URL; no further reinstall required.
+
+## 17.11.2026 — real authorized F3 PASS
+
+**W9.5U-Fresh F1–F4:4/4.** W9U3/5, W10U1/4, W8E3/8 and whole W9.5U/E/E1 unchanged.
+[Actual execution, evidence and limits](../../installer/controlpanel/REAL_F3_2026-11-17.md).
+Both current nodes software-cleaned by explicit owner instruction, no extra backups;
+published rc4 command UNMODIFIED, JSON6, installerexit0. Real SSH/routes/VPN/TLS/
+cutover/API/frontend/worker PASS. External real VPN→CA-verified owner login→create→
+actualworker→download→new TCP/UoT and master control PASS. All6 passwords/case/master
+protection preserved; whole profilecheck0. Private artifacts outside Git, monitors
+stopped. Last old rc4 nested error remains unproven, not assigned a guessed cause.
+Next: owner device profile/CA import and panel use; no reinstall/new tests needed.
+Historical F3OPEN/PARTIAL below superseded for technical fresh path only. Phone UI
+W9U01 and remaining E matrices not accepted by this result.
+
+
+## 16.11.2026 — owner stopped gate debugging; publish rc4 for manual fresh
+
+U W9U3/5, W10U1/4; E unchanged, **F3 OPEN**. Installer235e3a4, helper6bfb74b,
+unchanged Go8d9b87c/schema8. Cutover+restore freshUnix preconditions, canonical
+XDG and strict root-page TLS/API/worker startup checks corrected as one package.
+[Exact evidence and limits](../../installer/controlpanel/RELEASE_RC4_2026-11-16.md).
+Actual bundled install_panel to service boundary PASS; generated API/frontend,
+TLS/root200 and owner login PASS. Latest gate916108 PARTIAL: worker did not run
+because test RootDirectory mount226 failed on /run/lock/empire-vpn.lock. No
+new CRUD/profile end-to-end PASS claimed. Owner explicitly requested no further
+stand debugging/tests and publication for his own clean-install test. All failed
+runs preserved, owned processes stopped. No production mutations.
+rc4 published: artifactde4c5fa, main instruction31f02c9. Public bootstrap/ZIP
+hashes and encoded URL verified without running installer/stand. Next: owner's
+manual F3 after both OS reinstalls actually complete. No further gate debugging.
+
+
+## 16.11.2026 — rc3 hotfix validated after owner F3 failure
+
+U W9U3/5, W10U1/4; E unchanged. **F3 rc2 FAIL; rc3 OPEN for owner repeat.**
+Root cause: installer-created root lock0644 rejected by protected Go registry
+init before owner bootstrap/DB/key. Fix7c7b679, installer sourceb2336af, unchanged
+accepted runtime8d9b87c/schema8. [Evidence and limits](../../installer/controlpanel/RELEASE_RC3_2026-11-16.md).
+Linux71 tests PASS/4 platform skips, Windows16 PASS/1 macOS skip; security review
+no blocker. Real isolated controller022→lock0600; legacy0644→actual vpnctl exit5;
+sameinode helper repair→Go init PASS. Full worker916082 mutations/new-old-control
+TCP/UoT/MIG05/CLI/owner download/return PASS; cleanup MainPID0/Resultsuccess.
+Phase-specific safe failures and corrected final shutdown guidance included.
+No node cleanup, chmod or service restart by agent. Phase resume remains BL-010.5,
+not a new rc3 feature. Publication PASS: tagv0.4.0-rc3/artifacta35f31d; main READMEbfbbeca. Public
+bootstrap/full ZIP/hash/loader and actual command PS5.1/7 first prompt verified.
+First next action: owner manually repeats fresh using the new README command.
+The owner's checked JSON stays required before any node cleanup.
+
+
+## 16.11.2026 — rc2 published and public command verified
+
+**U: W9U3/5 · W10U1/4. E: W8E3/8 reused, no new gate closures.**
+`v0.4.0-rc2` artifactc5f74fc, clean core8d9b87c/schema8 published; main README/
+GUIDE command updated byf9e8596 without merging WIP into stable code. Public
+bootstrap/fullZIP/checksum and encoded loader URL/SHA verified; actual public
+command reaches first master prompt in PS5.1/7 from a new directory, stopped
+before SSH target. [Release evidence](../../installer/controlpanel/RELEASE_RC2_2026-11-16.md).
+F1/F2/F4 ready with stated local/provenance boundaries; **F3 remains OPEN** for
+owner manual cleared-node install→old VPN→owner login→create→download→TCP/UoT.
+Owner confirmed checked JSON; recheck freshness before destructive steps. No
+production actions. Further implementation paused; next action is owner's F3,
+not next W10U development. Earlier publication-pending entries are historical.
+
+
+## 16.11.2026 — rc2 release preparation (current priority)
+
+W9U3/5 (02,04,05), W10U1/4 (03); W8E3/8 reused, E unchanged.
+Further development paused at owner's request. Clean runtime8d9b87c/schema8,
+installer71fc540, verified final ZIP and actual release ELF acceptance PASS.
+[Release provenance, tests and limits](../../installer/controlpanel/RELEASE_RC2_2026-11-16.md).
+Full exact Go suite, Q13 JSON/master compatibility, actual owner CRUD/TCP/UoT,
+canonical restart/config rollback and Windows/Linux launchers PASS. No production
+changes; rc1 unchanged. Next: publish rc2 and verify public bootstrap/full ZIP;
+then owner manual F3 on independently cleared nodes. Do not resume portable or
+next W10U development before this release result. Historical next-task entries
+below are superseded by this release priority.
+
+
+**16.11.2026 — целые U-критерии:** W9U **3/5** (02,04,05), W10U **1/4** (03).
+W8U0/4, W13U0/4, W14U0/4. E: W8E3/8 reused, без новых закрытий.
+[E2E-приёмка/точные границы](../../installer/controlpanel/U_ACCEPTANCE_2026-11-16.md): actual owner CRUD/
+profile/control TCP-UoT и actual metrics API/CLI/browser PASS, pinned regression
+и owner guide PASS. W9U04 canonical-derived restart/badstart/data-plane/config
+rollback прошёл controller70c980c/run916043; Main cleanup/unitSHA verified.
+Следующий цельный кандидат W10U02 actual exit-local audit source.
+F3/parent gates OPEN; rc1/production не менялись.
+Прежние 0/5/0/4 ниже — исторические состояния.
+
+**16.11.2026 — актуально:** ночная U-очередь владельца, [проверенные подшаги и остатки](../../installer/controlpanel/U_NIGHT_RESULTS_2026-11-16.md).
+U: W8U0/4 · W9U0/5 · W10U0/4 · W13U0/4 · W14U0/4 fully accepted;
+реализованы и целево проверены пять подшагов: PROF-03, AUTH-04, AUTH-03,
+local resources и stored timestamps. Final code `8c0309b`, full auth7.251s PASS.
+E: W8E3/8 reused, новых закрытий нет. F1/F2/F4 подготовлены/опубликованы,
+F3 OPEN до ручной установки владельцем; portable migration deferred.
+Ночные изменения отсутствуют в опубликованном rc1, production не менялся.
+Старые заявления о паузе/очереди ниже — исторические.
+
+
+**Уточнение владельца15.11.2026:** [единый вход и точная приёмка F1–F4](../../installer/controlpanel/INSTALLER_ENTRY_CONTRACT.md). Сейчас реализуется только новая пара VPN+панель через автоматически загружаемую команду из GitHub и общий мастер. F4 закрывается после публикации и проверки из пустой локальной папки; локальный ZIP недостаточен. Доустановка и обновление панели в будущем идут через тот же мастер, оба сценария сейчас DEFERRED_BY_OWNER. Исторические заявления F4 ready ниже относятся к локальной подготовке.
+
+**Последнее решение владельца15.11.2026:** [W9.5U-Fresh — установить VPN+панель одной командой](../../installer/controlpanel/PRIORITY_FRESH_INSTALL.md), 0/4, выполнять сразу. Portable export/import и его тестовые расширения отложены; предыдущие зависимости от W8U/G9 ниже отменены для fresh-install. Будущий минимальный перенос допускает plaintext JSON с паролями; сейчас на него время не тратить. Сохранять существующие PASS и WIP.
+
+15.11.2026 — W8U [░░░░] 0/4 U_PASS; W8E [███░░░░░] 3/8 E_PASS_REUSED. [Ledger](../../installer/controlpanel/W8_UE_EVIDENCE.md). W9U0/5, W9.5U0/5; W10U–14U INCOMPLETE; W15U DEFERRED_BY_OWNER до выбора. [Порядок](../../installer/controlpanel/UE_BACKLOG.md). Ниже история parent-gates. Около500МБ — ориентир дополнительного диска; RAM наблюдается без фиксированного порога500МБ.
+
+15.11.2026 — старое 0/4 отражает расширенные критерии. По уточнённой цели экспорта/импорта подтверждены encrypted export, offline verification и restored runtime. G8 открыт: пользовательский импорт в чистую установку и завершающий rollback требуют проверки. [Точная матрица и минимальный план](../../installer/controlpanel/W8_TRANSFER_SCOPE.md). Исторические PASS сохраняются.
+> **PAUSED 15.11.2026.** Актуальная передача: [HANDOFF_W8_2026-11-15.md](../../installer/controlpanel/HANDOFF_W8_2026-11-15.md), [промпт продолжения](../../installer/controlpanel/CONTINUE_W8_PROMPT_2026-11-15.md). Функциональный HEAD fc2ec74; bf6f693 — непроверенный rotation WIP, c99e9b0 — отдельный test WIP. W8 0/4 полностью закрытых пунктов, G8 OPEN. До нового разрешения владельца разработку/тесты/агентов не запускать. Старые записи ниже являются историей.
+
+> Возобновлено14.11.2026. Snapshot inspector c4bf7bb: целевые тесты и Go-потребители PASS. Online SQLite capture 5b01836 также проверен (W8_ONLINE_CAPTURE_2026-11-14.md). Привязка capturedDB/owner/key/file hashes bf04c54 также проверена (W8_BINDING_2026-11-14.md). Это частичный W8/1, не готовый encrypted backup.
+
+Дополнение 14.11.2026 — **W9.1 [░░░░░░] 0/6**, интеграция панели в общий установщик и публикация. [Подробный план/G9.1](../../installer/controlpanel/W9_1_INSTALLER_INTEGRATION.md). Текущие W8/W9 выполняются в прежнем порядке. Общий счётчик ниже уже включает W9.1: 6/11 закрытых этапов. Общий выпуск E1 требует G9.1 после приёмки компонентов G9.
+
+Актуально14.11.2026, доказательства до774c07a. Это продуктовый прогресс;
+задачи агентов и готовность стенда учитываются отдельно.
+
+**E1 [██████░░░░░] 6/11 этапов закрыты: W0–W5. G9 принимает компоненты; общий E1 требует G9.1.**
+Это количество этапов, не оценка оставшегося времени/трудоёмкости.
+
+| Этап | Закрытые верхние пункты PLAN | Приёмка / остаток |
+|---|---|---|
+| W0–W5 | Закрыты в своих границах | G0–G5 доказательства исторические, W8 ими не заменяется |
+| W6 профили | [███░]3/4 | G6 OPEN: автоматическая часть готова, телефонная матрица частичная |
+| W7 API/CLI/UI | [███░]3/4 | G7 OPEN: реализация/copy/deploy/owner-phone выполнены, совместная приёмка не завершена |
+| W8 безопасность/backup | [░░░░]0/4 полностью закрытых; пункты1–2 частично | Есть прототип/инвентаризация, нет готового общего backup/restore workflow и G8 |
+| W9 приёмка компонентов панели | [░░░░]0/4 | Приёмка компонентов не начата; повторные тесты разработки не равны G9 |
+| W9.1 общий установщик/публикация | [░░░░░░]0/6 | После W8/W9; общий E1 дополнительно требует G9.1 |
+
+## W6 / G6 — что уже есть и что действительно открыто
+
+ГОТОВО: один renderer/immutable варианты, общий путь выдачи и аудит, обе точные
+версии и DNS на Linux, три профиля подключаются на OnePlus12. Владелец подтвердил
+панель/owner на1.14.4 иalpha13 черезWi-Fi, создал daria, скачал и подключил профиль.
+
+ОТКРЫТО: измеренная Android-матрица DNS/IPv6/маршрутов RU domain+IP и
+приложений/сетей для заявленных вариантов, где наблюдение не было сообщено.
+Не объявлять Wi-Fi+mobile/DNS leak/RU direct доказанными по одному подключению.
+Точная версияAndroid и длительность стабильности также не зафиксированы.
+ChatGPT/Download Manager имеет сообщённые сбои; владелец явно отложил исправление.
+Эту проблему сейчас не расследуем и не идём в backlog. Она не превращается в PASS:
+полный исходный G6 остаётся OPEN; согласованную разработку W8 это не останавливает.
+
+## W7 / G7 — нет повторного блока deploy или owner login
+
+ГОТОВО: API/CLI/UI, copy security/browser download/protection/version gates,
+конкретный package и согласованное production-подключение, owner login на телефоне,
+реальный create(daria)->download->connect. Последняя локальная квалификация
+повторно подтвердила API/frontend/CLI/изоляцию. Sandbox502/ENOENT исправлены.
+
+ОТКРЫТО: оставшиеся фактические наблюдения nonadmin/external на целевом
+подключении из W7/4 и отдельный итоговый протокол совместной G6/G7 приёмки,
+с явным разделением подтверждённого и отложенного. Owner-сценарий не открыт
+заново; deploy заново не нужен. Это не новый дефект API/UI, а незавершённая
+приёмочная матрица. Проверки отрицательных сценариев на копии уже PASS;
+они не выдаются за отсутствующий целевой телефонный/external сеанс.
+
+## W8 — четыре продуктовых пункта
+
+1. **Общий encrypted backup/verify/restore-plan/prune workflow — ЧАСТИЧНО.**
+   Есть исторические snapshot/envelope helpers, metadata schema/list,
+   read-only inspector + bounded raw-tar guard, negative tests; canonical Registry.InspectSnapshot c4bf7bb проверен на Linux (см. W8_SNAPSHOT_INSPECTION_2026-11-14.md). Нет подключённого
+   BKP workflow с согласованной SQLite/WAL/generation/vault моделью, retention
+   и доказанной совместимостью GNUtar/PAX/ACL. backup_creation_available=false.
+2. **Полный secret inventory/security audit/hardening — ЧАСТИЧНО.**
+   SEC22 coverage/gap matrix, synthetic checker и реальные API/frontend denials
+   готовы; полный аудит всех поверхностей/ролей, исправление найденных пробелов,
+   master-key rotation и их доказательства не завершены.
+3. **Пробный restore backup — НЕ ЗАВЕРШЁН.** Требуется encrypted backup->restore
+   в отдельную копию->owner login->старый active profile PASS/revoked FAIL.
+   Installer return, worker rollback и проверка tar это не заменяют.
+4. **Ресурсы/retention и G8 — НЕ ЗАВЕРШЁН.** Пиковые disk<=500000000bytes на
+   обеихVDS и panel aggregateRAM<=500MB, включая backup/restore/temp/retention,
+   ещё не доказаны. Один cgroup peak не является полным gate.
+
+Локальный WSL/systemd runner3/3 ГОТОВ — обеспечивающая работа для этих пунктов,
+не отдельная завершённая четверть W8. Go full78515f4 PASS, Python2ae9706
+84/skipped4 PASS, RootDirectory/HTTPS/CLI/canonical mutations/return PASS.
+
+## W9 — четыре открытых пункта приёмки компонентов
+
+1. Зафиксировать кандидат компонентов панели после G6–G8, выполнить его полный
+   полный E2E/security/recovery набор. Сейчас есть тесты разработки, не release.
+2. Capacity/load/soak (12/50/100+master, наблюдатели UI,30 изменений,24часа).
+3. Выпускная canary/coexistence/cold reboot и проверенный rollback на целевой
+   инфраструктуре в отдельно согласованном scope. Старые network/G3/W7 окна
+   не подменяют это и не дают разрешения на новый downtime.
+4. Финальные runbooks компонентов и отчёт/согласование G9. Общий E1 выпускается только после G9.1.
+
+## W9.1 — интеграция установщика и общий выпуск, 0/6
+
+После W8/W9: пакет компонентов; чистая установка; подключение/обновление
+существующей пары; прерывание/повтор/возврат; инструкции/публикация;
+приёмка опубликованных команд Windows и настоящего macOS (G9.1).
+Панель nh1 распознаётся как существующая установка. Все шесть пунктов OPEN;
+реализация не начата. W10 и дальнейшая нумерация не изменены.
+[Полный контракт и матрица](../../installer/controlpanel/W9_1_INSTALLER_INTEGRATION.md).
+
+## Следующее действие и агенты
+
+Следующий кодовый пакет: W8/1 — canonical consistent backup/DB-generation/vault
+binding; Lead общие контракты/интеграция, агенты независимые части и review.
+Не возобновлять отложенную DM диагностику и не повторять выполненные deploy.
+
+SOL-A: последние raw guard3/3, Caddybuild3/3 завершены.
+SOL-B: raw review2/2, Caddyreview1/1 завершены.
+Lead: local runner3/3, integration/qualification завершены. ASTRA0.
+Подробные шаги: PARALLEL_STATUS.md. Их счётчики не прибавляются к Wn-прогрессу.
+
+Во всех следующих итоговых отчётах сначала единый E1 bar и таблица W6–W9.1,
+затем только изменения текущего этапа и короткий поагентный статус.
+
+15.11.2026 — local development resumed by owner through W9.1, production excluded. Actual evidence is collected in W8_RESUMED_VALIDATION_2026-11-15.md and latest PLAN entries. Pinned4dd8956 API/crypto-worker/offline/rotation targets PASS; integrated ACL6a525bc targets PASS; b0dbd99 restore13scenarios PASS;03bb43f encrypted worker→offline preparedDB PASS. Runtime restored stack still pending, G8OPEN/W8 0/4. Active package: existing RootDirectory vertical encrypted backup/restore/rollback, no nested agents. ASTRA W8-SEC-002 code findings addressed under explicit source/principal trust contracts; runtime acceptance not inferred. Previous pause is superseded by new user authorization.

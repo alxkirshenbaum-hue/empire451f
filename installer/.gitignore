@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.test-output/
+*.key
+*.pem
+*credentials*.json
+*.zip
+*.tar*
+state/
+secrets/

@@ -1,10 +1,13 @@
+local/
+private/
+worktrees/
+.panel-domain-build/
 __pycache__/
 *.pyc
-.test-output/
 *.key
 *.pem
 *credentials*.json
-*.zip
-*.tar*
 state/
 secrets/
+installer/dist/rc11-build*/
+installer/dist/s1-local/rc10-before/

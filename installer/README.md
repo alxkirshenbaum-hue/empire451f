@@ -1,0 +1,81 @@
+# VPN + VPN Control — v0.4.0-rc9
+
+**Проверено на реальных hh-entry/hh-exit:** установка → VPN → master login → create → download → TCP/UoT. [Доказательства и ограничения](https://github.com/alxkirshenbaum-hue/empire451f/blob/feature/controlpanel-pilot/controlpanel/RELEASE_RC9_COMPLETION_2026-11-22.md).
+
+Одна защищённая учётная запись **master_user** для VPN и панели с одним паролем. Из JSON реквизиты сохраняются; при отсутствии master установщик создаёт его. Отдельного скрытого owner нет. Другие пользователи видны в Users и не могут войти в панель. Импортированный VPN owner остаётся обычным пользователем.
+
+Одна команда Windows (email необязателен для LE, но нужен для резервного публичного CA):
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command '$env:LC_EVPN_ACME_EMAIL=Read-Host "ACME contact email (optional; enables backup CA)"; iex (irm "https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.4.0-rc9/bootstrap/windows.ps1")'
+```
+
+1. До очистки сохраните проверенный актуальный JSON пользователей вне Git. Формат empire-vpn-clients/schema_version1, clients с username/password, включая master_user. Включённые записи импортируются активными; исключите отозванные. Проверку SSH host key не отключайте.
+2. Две подготовленные Ubuntu24.04/26.04 amd64 VDS, root SSH-ключ и домен на вход. Мастер: new → fresh, прежние параметры подключения для сохранения VPN-реквизитов; Q16 ready, Q13 локальный JSON.
+3. После commit master_user автоматически становится владельцем панели; P01–P03 отсутствуют. Мастер выдаёт реквизиты, HTTPS-ссылку и команду скачивания JSON.
+4. Q24.1: **1 Download JSON now** по умолчанию либо **2 Later**. Для1 подтвердите новый приватный путь; для2 используйте напечатанную команду после установщика. Существующие файлы не перезаписываются, ошибка SCP не повторяет установку.
+5. Подключите VPN, откройте выданную ссылку, войдите как master_user с VPN-паролем. Создайте пользователя, скачайте профиль нужной версии. 404 импортированных профилей исправлена, включая1.15.0-alpha.13+Ru/DM.
+
+Master JSON содержит пароль администратора: не передавайте его, выдавайте отдельные пользовательские профили. Независимая смена только панельного пароля отключена; общая смена master-пароля пока не реализована. Protected master нельзя удалить/отключить обычной операцией.
+
+Панель https://<VPN-domain>/<random-path>/ доступна через VPN, с тем же публично доверенным автоматически управляемым сертификатом основного домена. При contact email Caddy2.11.9 использует LE/ZeroSSL; без email только LE. Private CA и установка доверия на устройства не нужны. Через VPN основной домен вне пути панели возвращает404; публикация сайта после панели пока отложена.
+
+Только fresh: upgrade/portable, полные E/DR/reboot матрицы не заявлены. При частичном отказе сохраняйте journal/сообщения и не сбрасывайте ключи. [Спецификация master](https://github.com/alxkirshenbaum-hue/empire451f/blob/feature/controlpanel-pilot/controlpanel/MASTER_USER_OWNER_SPEC.md). macOS bootstrap сохранён в том же теге; проверен syntax, реальная macOS-проверка не выполнена.
+
+---
+# Персональная VPN — v0.3.6
+
+**Установщик работает на VPS; диалог — в вашем терминале через SSH.** На компьютер не скачиваются комплект, шаблоны или сборки; локальный Python и Git не нужны. Короткий запускающий текст выполняется в памяти штатной оболочки. Обе VPS сами получают закреплённый комплект из Git, проверяют SHA256 и устанавливают компоненты из официальных источников.
+
+Нужны две VDS **Ubuntu 24.04/26.04 amd64**, первоначальный root-доступ/консоли провайдера и домен. Поддерживаются новая пара, замена входа и замена выхода. Архив старого сервера не требуется. Приватные SSH-ключи остаются на компьютере; ssh-agent на VPS не перенаправляется.
+
+Откройте обычный PowerShell под своей учётной записью. Windows отдельно запросит повышение прав при установке OpenSSH Client или запуске системной службы ssh-agent.
+
+**Windows10/11**, Windows PowerShell5.1 или PowerShell7 — одна команда:
+
+```powershell
+& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.3.6/bootstrap/windows.ps1').Content))
+```
+
+**macOS11+**, Terminal с zsh или bash — одна команда, без PowerShell:
+
+```sh
+/bin/bash -c 'set -e; code=$(curl -fsSL --proto "=https" https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.3.6/bootstrap/macos.sh); /bin/bash -c "$code"'
+```
+
+### Повторный запуск сразу в меню Q00
+
+Если обе VDS уже настроены, используйте те же SSH-алиасы и ID установки. В примерах это `hh-entry`, `hh-exit` и `nh1`. Команда использует ключи и ProxyJump из пользовательского SSH-конфига. Для защищённого ключа предварительно разблокируйте его в ssh-agent. Мастер проверяет доступ и сохранённые роли обеих нод, затем открывает меню. Экспорт клиентов повторно не нужен.
+
+**Windows PowerShell**
+
+```powershell
+& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.3.6/bootstrap/windows.ps1').Content)) -EntryAlias hh-entry -ExitAlias hh-exit -DeploymentId nh1
+```
+
+**macOS, zsh или bash**
+
+```sh
+/bin/bash -c 'set -e; code=$(curl -fsSL --proto "=https" https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.3.6/bootstrap/macos.sh); /bin/bash -c "$code" -- --resume "$@"' -- hh-entry hh-exit nh1
+```
+
+**[Пройти установку шаг за шагом](GUIDE.md)** — от первого подключения до проверки VPN на телефоне. Для реальной замены входа выберите Q00 → 2 и Q01 → 2. Для просмотра плана выберите Q00 → 1. Чтобы сменить домен действующей установки, выберите Q00 → 3. [Переход с тестового домена на рабочий](GUIDE.md#как-сменить-тестовый-домен-на-рабочий).
+
+После успешного входа по IP мастер предложит сохранить короткое SSH-имя на этом компьютере (Q23). Например, имя `nnh1` позволит подключаться командой `ssh nnh1`. Enter пропускает этот шаг.
+
+Сначала укажите SSH входа/выхода и выберите/создайте ключ. Windows при необходимости предложит системный OpenSSH Client. Затем серверный мастер в том же окне спросит режим, адреса и домен, покажет конкретные изменения и запросит `APPLY`. Непонятный вопрос найдите по **Qxx** в [подробной инструкции](GUIDE.md).
+
+Повторные проверки и откат запускаются **той же командой**: в серверном меню Q00 выберите `apply-saved`, `preview`, `verify`, `rollback`, `acceptance` или `reboot-test` и прежний ID. Редактировать конфигурационные файлы вручную не требуется. DNS установщик не переключает.
+
+- [Защита SSH после установки — Q26–Q28 или пункт 8](GUIDE.md#защита-ssh-после-установки)
+- [Аудит безопасности после установки — команда PowerShell](GUIDE.md#аудит-безопасности-после-установки)
+- [Вопросы, подготовка доступа и восстановление](GUIDE.md)
+- [Формат импорта/экспорта учётных данных](CLIENT_EXPORT_V1.md)
+- [Первая приёмка: новый вход HostHatch](MIGRATION_TEST.md)
+- [Фактически выполненные проверки и ограничения](TEST_RESULTS.md)
+
+**Статус: кандидат для испытания на новой VDS.** Локальные проверки не заменяют первую установку с Windows. Настоящий macOS и Linux/systemd/netns пока не испытаны. Рабочие серверы и DNS при разработке не менялись.
+
+После успешной установки мастер выводит пароль VPN-пользователя `master_user`. Q24 сохраняет JSON для импорта в [sing-box for Android](https://sing-box.sagernet.org/clients/android/). Q25 предлагает опубликовать готовый ZIP со статическим сайтом. [Скачать ZIP-заготовку с заданием для агента](https://raw.githubusercontent.com/alxkirshenbaum-hue/empire451f/v0.3.6/dist/site-handoff-example.zip). Передайте агенту ZIP и тему, затем выберите возвращённый им архив в Q25.
+
+- [Выдать пользователю профиль VPN по SSH](GUIDE.md#выдача-профиля-по-ssh)
